@@ -6,9 +6,9 @@
 
 | 順序 | 文件 | 用途 | 模板 |
 |------|------|------|------|
-| 1 | `requirements.md` | 定義做什麼（What） | [`../templates/requirements-template.md`](../templates/requirements-template.md) |
-| 2 | `design.md` | 定義怎麼做（How） | [`../templates/design-template.md`](../templates/design-template.md) |
-| 3 | `tasks.md` | 分解成可執行任務 | [`../templates/tasks-template.md`](../templates/tasks-template.md) |
+| 1 | `requirements.md` | 定義做什麼（What） | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` |
+| 2 | `design.md` | 定義怎麼做（How） | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` |
+| 3 | `tasks.md` | 分解成可執行任務 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` |
 
 ---
 
@@ -57,7 +57,7 @@
 
 ### 1. requirements.md - 需求文件
 
-**MANDATORY**: 讀取 [`../templates/requirements-template.md`](../templates/requirements-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` 完整內容。
 
 定義內容：
 - Introduction - 功能概述、解決的問題
@@ -91,7 +91,7 @@ WHEN [事件] AND [條件] THEN [系統] SHALL [行為]
 
 ### 2. design.md - 設計文件
 
-**MANDATORY**: 讀取 [`../templates/design-template.md`](../templates/design-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` 完整內容。
 
 定義內容：
 - Overview - 高階設計概述
@@ -117,7 +117,7 @@ WHEN [事件] AND [條件] THEN [系統] SHALL [行為]
 
 ### 3. tasks.md - 任務清單
 
-**MANDATORY**: 讀取 [`../templates/tasks-template.md`](../templates/tasks-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` 完整內容。
 
 定義內容：
 - 將設計分解為可執行的任務

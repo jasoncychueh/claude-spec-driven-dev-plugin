@@ -131,14 +131,14 @@ steering   │    .spec/specs/{feat}/│
 **前置條件**：無
 
 **流程**：
-1. 讀取 [references/steering-guide.md](references/steering-guide.md)
+1. 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md`
 2. **進入 Plan Mode**（使用 EnterPlanMode tool）
 3. 規劃 steering 內容，與用戶確認後退出 Plan Mode
 4. 建立 `.spec/steering/` 目錄
-5. 依序撰寫（使用內建模板）：
-   - `product.md` ← [templates/product-template.md](templates/product-template.md)
-   - `tech.md` ← [templates/tech-template.md](templates/tech-template.md)
-   - `structure.md` ← [templates/structure-template.md](templates/structure-template.md)
+5. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
+   - `product.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`
+   - `tech.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`
+   - `structure.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`
 6. 執行 Steering 完整性檢查
 
 ---
@@ -152,7 +152,7 @@ steering   │    .spec/specs/{feat}/│
 **執行步驟**：
 
 1. 載入 steering documents
-2. 讀取 [references/spec-workflow.md](references/spec-workflow.md)
+2. 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md`
 3. **Steering 同步檢查**：檢視新功能是否與 steering 一致
    - 新功能的技術選型是否符合 tech.md
    - 是否引入未記錄的新技術/框架
@@ -163,10 +163,10 @@ steering   │    .spec/specs/{feat}/│
 6. 規劃 spec 內容（requirements, design, tasks），將 researcher 的研究結果納入設計考量
 7. 與用戶確認後退出 Plan Mode
 8. 建立 `.spec/specs/{feature}/` 目錄
-9. 依序撰寫（使用內建模板）：
-   - `requirements.md` ← [templates/requirements-template.md](templates/requirements-template.md)
-   - `design.md` ← [templates/design-template.md](templates/design-template.md)
-   - `tasks.md` ← [templates/tasks-template.md](templates/tasks-template.md)
+9. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
+   - `requirements.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
+   - `design.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
+   - `tasks.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
 10. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**
 11. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
 
@@ -431,6 +431,6 @@ steering   │    .spec/specs/{feat}/│
 
 | 文件 | 內容 |
 |------|------|
-| [references/steering-guide.md](references/steering-guide.md) | Steering 文件撰寫指南 |
-| [references/spec-workflow.md](references/spec-workflow.md) | Spec 文件撰寫工作流程 |
-| [references/checklists.md](references/checklists.md) | 所有檢查清單 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md` | Steering 文件撰寫指南 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md` | Spec 文件撰寫工作流程 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/checklists.md` | 所有檢查清單 |

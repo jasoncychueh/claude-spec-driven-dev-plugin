@@ -21,15 +21,15 @@ Steering 文件應該是「活的文件」，隨專案演進持續更新。
 
 | 順序 | 文件 | 用途 | 模板 |
 |------|------|------|------|
-| 1 | `product.md` | 做什麼、為什麼 | [`../templates/product-template.md`](../templates/product-template.md) |
-| 2 | `tech.md` | 用什麼技術 | [`../templates/tech-template.md`](../templates/tech-template.md) |
-| 3 | `structure.md` | 怎麼組織程式碼 | [`../templates/structure-template.md`](../templates/structure-template.md) |
+| 1 | `product.md` | 做什麼、為什麼 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` |
+| 2 | `tech.md` | 用什麼技術 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` |
+| 3 | `structure.md` | 怎麼組織程式碼 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` |
 
 ## 撰寫工作流程
 
 ### 1. product.md - 產品指引
 
-**MANDATORY**: 讀取 [`../templates/product-template.md`](../templates/product-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` 完整內容。
 
 定義內容：
 - Product Purpose - 產品目的、解決的問題
@@ -49,7 +49,7 @@ Steering 文件應該是「活的文件」，隨專案演進持續更新。
 
 ### 2. tech.md - 技術指引
 
-**MANDATORY**: 讀取 [`../templates/tech-template.md`](../templates/tech-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` 完整內容。
 
 定義內容：
 - Project Type - 專案類型
@@ -70,7 +70,7 @@ Steering 文件應該是「活的文件」，隨專案演進持續更新。
 
 ### 3. structure.md - 結構指引
 
-**MANDATORY**: 讀取 [`../templates/structure-template.md`](../templates/structure-template.md) 完整內容。
+**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` 完整內容。
 
 定義內容：
 - Directory Organization - 目錄結構
