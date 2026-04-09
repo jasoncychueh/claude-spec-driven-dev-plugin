@@ -1,0 +1,20 @@
+{
+  "name": "claude-spec-driven-dev-plugin",
+  "description": "Spec-driven development workflow plugin for Claude Code",
+  "owner": {
+    "name": "Jason Chueh",
+    "email": "jasoncychueh@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "spec-driven-development",
+      "description": "Spec-driven development workflow: steering documents, feature specs (requirements/design/tasks), verification, and agent-based implementation. Enforces 'no spec, no code' discipline.",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "Jason Chueh",
+        "email": "jasoncychueh@gmail.com"
+      }
+    }
+  ]
+}
