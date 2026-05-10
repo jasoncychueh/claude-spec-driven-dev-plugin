@@ -47,13 +47,14 @@ description: "Spec-driven 開發流程，支援 steering/spec 文件的建立、
 
 本 skill 使用 plugin 中定義的 agents 執行各階段任務。
 
-| Agent | 用途 | 觸發時機 |
-|-------|------|---------|
-| `spec-researcher` | 搜尋現有方案、library、最佳實踐 | /create-spec 規劃階段 |
-| `spec-verifier` | 驗證 spec 文件完整性 | /verify-spec Stage 1, /create-spec |
-| `tasks-design-verifier` | 驗證 tasks.md 與 design.md 對齊 | /verify-spec Stage 2, /create-spec, /update-spec |
-| `spec-implementer` | 按 spec 實作 + 自驗 + 建置 | /implement Stage 1 |
-| `implementation-reviewer` | 審查 + 直接修正 + 建置 | /implement Stage 2 |
+| Agent | 用途 | 觸發時機 | 動作 |
+|-------|------|---------|------|
+| `spec-researcher` | 搜尋現有方案、library、最佳實踐 | /create-spec 規劃階段 | review only |
+| `spec-verifier` | 驗證 spec 文件**完整性與格式**（cookie-cutter check） | /verify-spec Stage 1, /create-spec | review only |
+| `tasks-design-verifier` | 驗證 tasks.md 與 design.md **對齊** | /verify-spec Stage 2, /create-spec, /update-spec | review only |
+| `design-reviewer` | 資深軟體工程師視角審 **design.md 設計品質**（多輪到 0 issues） | /create-spec design 階段 | review only（產 issue list） |
+| `spec-implementer` | 寫 / 修 code + 自驗 + 建置（兩種 mode） | /implement Stage 1 (Mode 1) + 接 reviewer issue list (Mode 2) | **write / fix code** |
+| `implementation-reviewer` | 資深軟體工程師視角審 **implementation 品質**（多輪到 0 issues） | /implement Stage 2 | review only（產 issue list） |
 
 ---
 
@@ -161,14 +162,30 @@ steering   │    .spec/specs/{feat}/│
 4. **進入 Plan Mode**（使用 EnterPlanMode tool）
 5. **啟動 `spec-researcher` agent**（背景執行）：搜尋現有方案、library、最佳實踐
 6. 規劃 spec 內容（requirements, design, tasks），將 researcher 的研究結果納入設計考量
-7. 與用戶確認後退出 Plan Mode
-8. 建立 `.spec/specs/{feature}/` 目錄
-9. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
-   - `requirements.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
-   - `design.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
-   - `tasks.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
-10. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**
-11. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
+7. **(Optional) `design-reviewer` Mode A — Plan Mode 對話夥伴**：
+   - 在草擬 design 思路時，**主動詢問使用者**：「要不要邀 design-reviewer 進來 challenge 一下這個設計？」
+   - 若使用者同意，invoke `design-reviewer` agent 並把當前 design 草稿（不一定要寫完）丟給他
+   - Agent 會回 **challenge list + Architecture Decisions**
+   - 對 Architecture Decision，**用 AskUserQuestion 把選擇遞給使用者拍板**，不要主 agent 自己決定
+   - 修改 design 思路後可以再 invoke 一次（這是 optional 的非強制循環）
+8. 與用戶確認後退出 Plan Mode
+9. 建立 `.spec/specs/{feature}/` 目錄
+10. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
+    - `requirements.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
+    - `design.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
+11. **`design-reviewer` Mode B — 多輪強制 review（直到 0 issues）**：
+    - **這一步是強制的**，不可跳過
+    - Loop 開始（從 Round 1）：
+      - Invoke `design-reviewer` agent 對 design.md 做設計品質審查
+      - Agent 回 issue list（Bugs / Smells / Decisions，按 Critical/High/Medium/Low 分級）
+      - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板
+      - **若有 Bugs/Smells（Critical/High）**：主 agent 修正 design.md（也可以再 invoke researcher 做補充研究）
+      - Medium/Low：詢問使用者是否要修，由使用者決定
+      - 進入 Round N+1，重新 invoke `design-reviewer`
+    - **直到當輪 0 issues 才結束 loop**
+12. **撰寫 `tasks.md`**（在 design.md 已收斂之後才開始）— 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
+13. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**
+14. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
 
 ---
 
@@ -338,7 +355,7 @@ steering   │    .spec/specs/{feat}/│
 
 ---
 
-#### Stage 1: Implementation
+#### Stage 1: Initial Implementation
 
 **執行步驟**：
 
@@ -348,12 +365,13 @@ steering   │    .spec/specs/{feat}/│
    - 將無依賴關係的任務分成獨立的組（最多 4 組）
    - 同組內的任務可能有依賴關係（agent 會按順序執行）
    - 不同組之間完全獨立（可並行執行）
-3. **並行啟動多個 `spec-implementer` agents**
-   - 為每個任務組啟動一個獨立的 agent
-   - 使用 Agent tool 在**單一訊息**中同時啟動所有 agents（並行執行）
+3. **啟動 `spec-implementer` agents (Mode 1)**
+   - 為每個任務組啟動一個獨立的 agent，明確指示 **Mode 1 (Initial Implementation)**
+   - 若有多個獨立組，使用 Agent tool 在**單一訊息**中同時啟動（並行執行）
    - 每個 agent 接收：
      * 功能名稱 (feature)
      * 該組的任務列表（任務編號或描述）
+     * Mode 標記：`Mode 1`
      * 提醒 agent 透過 `Design ref` 欄位讀取 design.md 的對應章節
 4. **監控所有 agents 的完成狀態**
    - 任一 agent 回報任務完成後，**即時**更新 tasks.md 對應狀態為 `[x]`
@@ -367,17 +385,35 @@ steering   │    .spec/specs/{feat}/│
 
 ---
 
-#### Stage 2: Verification
+#### Stage 2: Review Loop (review only，多輪到 0 issues)
+
+> **這個階段是強制的**。`spec-implementer` 在 Stage 1 已做自我驗證（簽章 / 資料模型 / 錯誤處理 / 建置），但**自我驗證抓不到「production 才會炸的問題」**（async race、weak-ref GC、idempotency、leak、stale doc、test gap）— 那是這個 stage 的職責。
 
 **執行步驟**：
 
-1. 啟動 `implementation-reviewer` agent 審查所有實作
-2. Agent 職責：
-   - 跨 agent 整合檢查（介面銜接、資料流、命名一致性）
-   - 各 agent 實作與 design.md 的符合度驗證
-   - 發現問題時**直接修正**程式碼
-   - 修正後確認建置通過
-3. Agent 產出審查摘要
+1. **Loop 開始**（從 Round 1）：
+   - Invoke `implementation-reviewer` agent 對所有實作做資深軟體工程師視角審查
+   - Agent 回 issue list（跨 agent 整合 / Bugs / Smells / Design fidelity gaps / Test completeness gaps / Architecture Decisions，按 Critical/High/Medium/Low 分級）
+2. **處理 issue list**：
+   - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板。Decisions 拍板後可能反過來要求改 design.md（觸發 /update-spec 流程），或只是改實作策略 — 由使用者決定
+   - **若有 Critical/High Bugs/Smells**：主 agent **派工給 `spec-implementer` agent (Mode 2)** 修正
+     - 把 issue list（含位置、嚴重度、建議方向）整包丟給 spec-implementer
+     - spec-implementer 按 issue 修，每修一個重新自我驗證，整批完後重建
+     - **主 agent 不直接動手寫 code**（既有原則：實作必須由 agent 執行）
+   - **若有 Medium/Low**：詢問使用者是否要修，由使用者決定
+3. 修完進入 Round N+1，**重新 invoke `implementation-reviewer`**
+4. **直到當輪 0 issues 才結束 loop**
+5. **避免 review 範圍縮水陷阱**：每輪 reviewer 不能只看上一輪修的部分，要抽查未動檔案 — 這個紀律寫在 `implementation-reviewer` agent prompt 裡，主 agent 不需特別處理
+
+**Stage 1 vs Stage 2 的動手者**：
+
+| 階段 | Agent | 動作 |
+|---|---|---|
+| Stage 1 | `spec-implementer` (Mode 1) | 寫初版 code |
+| Stage 2 | `implementation-reviewer` | review only，產 issue list |
+| Stage 2 (loop 內) | `spec-implementer` (Mode 2) | 接 issue list 修 code |
+
+**動手寫 / 修 code 的只有 spec-implementer**，reviewer 只 review。
 
 ---
 
@@ -385,16 +421,36 @@ steering   │    .spec/specs/{feat}/│
 
 **執行步驟**：
 
-1. 彙整 Stage 1 和 Stage 2 的結果
+1. 彙整 Stage 1 與 Stage 2 的結果
 2. 報告完成狀態：
    - 已完成的任務清單
-   - reviewer 修正的項目（如有）
+   - implementation-reviewer 多輪 review 的歷史（每輪找了幾個 issue，如何收斂到 0）
+   - spec-implementer (Mode 2) 修正的項目（按 issue 編號）
+   - 使用者拍板的 Architecture Decisions（如有）
    - 建置狀態
 3. **讓使用者決定下一步**：
    - review diff
    - commit
    - 繼續下個 phase
    - 其他
+
+---
+
+## 多輪 Review 機制
+
+`design-reviewer` 和 `implementation-reviewer` 共用一套 multi-round review loop。**詳細協定** — 嚴重度分級、字母編號規則、Architecture Decision 紀律、輸出格式、收斂判斷、reviewer 共用紀律 — 都記載於：
+
+> `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-protocol.md`
+
+兩個 reviewer agent 啟動時會讀取這份文件。主 agent 驅動 loop 時也應該理解其內容。
+
+### Quick Summary（細節看 review-protocol.md）
+
+- **嚴重度**：Critical / High / Medium / Low — Critical+High 必修，Medium+Low 由 user 決定
+- **編號**：跨 round 累加不重設（Round 1 用 A-D，Round 2 從 E 接續）
+- **收斂**：reviewer 輸出 `0 issues` 才退 loop；含 Critical/High 不可提前退
+- **Architecture Decision**：reviewer 沒共識的設計選擇 → 主 agent 用 AskUserQuestion 遞給 user，**不自己拍板**
+- **Review/Fix 分工**：reviewer 不動 code；design 階段主 agent 改 design.md，implementation 階段派工給 `spec-implementer (Mode 2)`
 
 ---
 
@@ -424,6 +480,8 @@ steering   │    .spec/specs/{feat}/│
 5. **Steering Stays Current** — steering 隨專案演進持續更新
 6. **Self-Verify** — implementation agent 自行驗證，不依賴事後補救
 7. **Verify Before Deliver** — 交付前必須通過 reviewer 審查和建置確認
+8. **Review Until Convergence** — design-reviewer 與 implementation-reviewer 多輪到 0 issues 才收斂，不接受「夠好就停」
+9. **No Architectural Overreach** — Reviewer 遇到「沒有業界共識的設計選擇」時不拍板，由使用者決定
 
 ---
 
@@ -433,4 +491,5 @@ steering   │    .spec/specs/{feat}/│
 |------|------|
 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md` | Steering 文件撰寫指南 |
 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md` | Spec 文件撰寫工作流程 |
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/checklists.md` | 所有檢查清單 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-protocol.md` | Reviewer agent 共用協定（嚴重度 / 編號 / Decision 紀律 / 輸出格式 / 收斂規則）|

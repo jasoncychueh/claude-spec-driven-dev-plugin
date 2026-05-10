@@ -55,6 +55,45 @@
 
 ## 撰寫工作流程
 
+### 完整流程概覽
+
+```
+[/create-spec]
+    │
+    ├── 載入 steering
+    ├── Plan Mode
+    │     ├── spec-researcher (背景研究)
+    │     └── (optional) design-reviewer Mode A — 對話夥伴 challenge 設計草稿
+    │
+    ├── 撰寫 requirements.md
+    ├── 撰寫 design.md (draft)
+    │
+    ├── design-reviewer Mode B 多輪 review loop（強制）
+    │     ├── reviewer 產 issue list（Bugs / Smells / Decisions）
+    │     ├── Architecture Decision → 主 agent 用 AskUserQuestion 遞給使用者拍板
+    │     ├── Bugs/Smells → 主 agent 修 design.md
+    │     └── 直到當輪 0 issues 才退出
+    │
+    ├── 撰寫 tasks.md
+    ├── spec-verifier (Stage 1: 完整性)
+    └── tasks-design-verifier (Stage 2: 對齊)
+
+
+[/implement]
+    │
+    ├── Stage 1: spec-implementer (Mode 1) 並行 / 順序寫初版 + 自驗 + 建置
+    │
+    ├── Stage 2: implementation-reviewer 多輪 review loop（強制）
+    │     ├── reviewer 產 issue list（整合/Bugs/Smells/Fidelity/Tests/Decisions）
+    │     ├── Architecture Decision → 主 agent 用 AskUserQuestion 遞給使用者拍板
+    │     ├── Bugs/Smells → 派工給 spec-implementer (Mode 2) 修
+    │     └── 直到當輪 0 issues 才退出
+    │
+    └── Stage 3: Summary
+```
+
+---
+
 ### 1. requirements.md - 需求文件
 
 **MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` 完整內容。
