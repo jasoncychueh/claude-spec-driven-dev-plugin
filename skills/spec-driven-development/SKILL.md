@@ -87,34 +87,19 @@ A development workflow with **two routing modes**, both backed by multi-round ar
 
 ```
 用戶請求寫 / 改 code
-        │
-        ▼
-┌────────────────────────────────────┐
-│ 判斷 mode（依 mode-selection.md）  │
-└────────────────────────────────────┘
-        │
-   ┌────┴────────┐
-   │             │
-小改動         大型工作
-bug / refactor  新功能 / refactor /
-小擴展 / typo   跨多元件 / 引入新概念
-   │             │
-   ▼             ▼
-Quick Fix       Spec Mode
-Mode             │
-   │             ▼
-   │       ┌──────────────────────┐
-   │       │ Steering 存在？      │
-   │       └──────────────────────┘
-   │            │     │
-   │           否     是
-   │            │     │
-   │     /create-    /create-spec  (or /load-spec)
-   │     steering    ↓
-   │                 /implement
-   │
+        ↓
+判斷 mode（依 mode-selection.md）
+        ↓
+   ┌────┴─────┐
+   ▼          ▼
+Quick Fix    Spec Mode
+Mode           ↓
+   │      Steering 存在？
+   │       否 → /create-steering
+   │       是 → /create-spec  (or /load-spec) → /implement
    ▼
-Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → implementation-reviewer loop
+Plan Mode + design-reviewer loop → ExitPlanMode →
+主 agent 動手 → implementation-reviewer loop
 ```
 
 ---
@@ -125,47 +110,21 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
 
 當任務符合 Quick Fix Mode 標準（詳見 `mode-selection.md`）— bug fix / refactor / 小擴展 / typo / config 改動 — 走以下流程，**不需要建 steering / requirements / design / tasks 文件**：
 
-**前置宣告**：主 agent 收到任務後，先明確告訴 user：「我打算走 quick fix mode，原因是 {scope/類型 判斷}。如需 spec 級流程請告知。」
+**前置宣告**：主 agent 收到任務後，先告訴 user：「我打算走 quick fix mode，原因是 {判斷依據}。如需 spec 級流程請告知。」
 
 **執行步驟**：
 
 1. **EnterPlanMode** — Claude Code 自動建立 plan file 在 `~/.claude/plans/<random>.md`
-2. **撰寫 plan draft** — 主 agent 在 Plan Mode 內用 Edit tool 把 plan 寫進 plan file。Plan 內容應包含：
-   - Context（為什麼要改）
-   - 改動計畫（會動哪些檔案、什麼動作）
-   - 風險評估（可能引入什麼 bug / regression）
-   - 驗證方式（怎麼測試）
-3. **design-reviewer multi-round loop（強制）**：
-   - Loop 開始（Round 1）：
-     - Invoke `design-reviewer` agent，**告訴它 plan file 的 path**（reviewer 自己用 Read tool 讀 file）
-     - Agent 回 issue list（按 review-protocol.md 格式）
-   - 處理 issue list：
-     - **Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給 user 拍板
-     - **Bugs/Smells（Critical/High）**：主 agent 用 Edit 修改 plan file
-     - **Medium/Low**：詢問 user 是否要修
-   - 進入 Round N+1
-   - **直到當輪 0 issues 才結束 loop**
-4. **ExitPlanMode** — 提交「已 reviewed 的最終版 plan」給 user approve（user 看到的就是收斂後版本）
-5. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 不派工 spec-implementer，因為 scope 小、沒正式 spec 可對齊）
-6. **implementation-reviewer multi-round loop（強制）**：
-   - Loop 開始（Round 1）：
-     - Invoke `implementation-reviewer` agent
-     - Agent 回 issue list
-   - 處理 issue list：
-     - **Architecture Decisions**：用 AskUserQuestion 遞給 user 拍板
-     - **Bugs/Smells（Critical/High）**：主 agent 直接修 code（Quick Fix Mode scope 小，不必派工）
-     - **Medium/Low**：詢問 user 是否要修
-   - 進入 Round N+1
-   - **直到當輪 0 issues 才結束 loop**
-7. **Summary** — 報告：
-   - 改動的檔案
-   - design-reviewer / implementation-reviewer 多輪 review 歷史
-   - 使用者拍板的 Architecture Decisions
-   - 建置狀態
+2. **撰寫 plan draft** — 主 agent 用 Edit tool 把 plan 寫進 plan file。**內容請依 `plan-content-guide.md` 規範**（聚焦 substance，不寫 process narration）
+3. **design-reviewer multi-round loop（強制）** — 告訴 reviewer plan file path，依 `review-protocol.md` 跑到 0 issues。Architecture Decisions 用 AskUserQuestion 遞給 user 拍板；Bugs/Smells 主 agent 用 Edit 修 plan file
+4. **ExitPlanMode** — 提交收斂後 plan 給 user approve
+5. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 特例 — 不派工 spec-implementer）
+6. **implementation-reviewer multi-round loop（強制）** — 依 `review-protocol.md` 跑到 0 issues。Bugs/Smells 主 agent 直接修 code（Quick Fix Mode 特例）
+7. **Summary** — 報告改動檔案、review 歷史、user 拍板的 Decisions、建置狀態
 
-**重要約束**：Quick Fix Mode 允許主 agent 直接動手寫 code（與 Spec Mode 不同）。這個放寬只在 Quick Fix Mode 適用，理由：scope 小、沒有正式 spec 文件可讓 spec-implementer 對齊。Spec Mode 仍然嚴格禁止主 agent 直接動手。
+**重要約束**：Quick Fix Mode 允許主 agent 直接動手寫 code；Spec Mode 仍然嚴格禁止。
 
-**中途升級成 Spec Mode**：若 plan / 實作期間發現「scope 比預期大、需要正式 design 文件」，停下來告訴 user 建議升級成 Spec Mode。已寫的 plan 可作為 design.md 的 starting point。
+**中途升級**：若發現 scope 超出 Quick Fix Mode（例如要動 5+ 檔案、需正式 design 文件），停下來建議 user 升級成 Spec Mode。已寫的 plan 可作為 design.md 的 starting point。
 
 ---
 
@@ -294,47 +253,11 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
    - 修改 requirements.md → 使用 `spec-verifier` agent 執行 **Spec 完整性檢查**
    - 修改 design.md 或 tasks.md → 使用 `tasks-design-verifier` agent 進行 **Tasks vs Design 對齊檢查**
 
-**設計變更時的任務更新**（當已有實作程式碼）：
+**設計變更時的任務更新**（當已有實作程式碼）：識別影響範圍 → 更新 tasks.md 標記（受影響改 `[~]`、刪除改 `[-]`、新增 task）→ 顯示變更摘要。詳細流程見 `references/checklists.md` 的「設計變更影響評估」章節。
 
-```
-修改 design.md
-        │
-        ▼
-┌─────────────────────────────┐
-│ 1. 識別影響範圍              │
-│    - 列出受影響的元件/檔案    │
-│    - 判斷變更類型（新增/修改/刪除）│
-└─────────────────────────────┘
-        │
-        ▼
-┌─────────────────────────────┐
-│ 2. 更新 tasks.md            │
-│    - 將受影響的已完成任務改為 │
-│      [~]（需重做）           │
-│    - 將刪除的功能任務改為     │
-│      [-]（已移除）           │
-│    - 新增變更所需的新任務     │
-└─────────────────────────────┘
-        │
-        ▼
-┌─────────────────────────────┐
-│ 3. 顯示變更摘要              │
-│    - 受影響任務數量          │
-│    - 建議下一步（/implement）│
-└─────────────────────────────┘
-```
+> **注意**：`/update-spec` 只更新文件和任務狀態，不執行實作。實際程式碼修改在 `/implement` 時進行。
 
-> **注意**：`/update-spec` 只更新文件和任務狀態，不執行實作。
-> 實際的程式碼修改在執行 `/implement` 時進行。
-
-**任務狀態標記**：
-
-| 標記 | 意義 |
-|------|------|
-| `[ ]` | 待執行 |
-| `[x]` | 已完成 |
-| `[~]` | 需重做（設計變更影響） |
-| `[-]` | 已移除（設計變更刪除） |
+**任務狀態標記**：`[ ]` 待執行 | `[x]` 已完成 | `[~]` 需重做（設計變更影響）| `[-]` 已移除
 
 ---
 
@@ -360,60 +283,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
    - 使用 `tasks-design-verifier` agent 執行對齊檢查
 4. 顯示完整驗證報告
 
-**輸出格式**：
-
-```
-📋 Spec 驗證報告: {feature}
-
-## Stage 1: Spec 完整性驗證
-
-### requirements.md
-✅ 內容完整性：{pass}/{total} 項通過
-✅ 職責邊界檢查：{pass}/{total} 項通過
-
-### design.md
-✅ 內容完整性：{pass}/{total} 項通過
-✅ 實作細節完整性：{pass}/{total} 項通過
-✅ 職責邊界檢查：{pass}/{total} 項通過
-
-### tasks.md
-✅ 編號格式：{pass}/{total} 項通過
-✅ 內容完整性：{pass}/{total} 項通過
-
-### Design vs Requirements 對齊
-✅ 需求覆蓋：{pass}/{total} 項通過
-✅ 非功能需求對應：{pass}/{total} 項通過
-
-### Stage 1 結論
-[x] Spec 完整性驗證通過，繼續執行 Stage 2
-[ ] Spec 完整性驗證失敗，請先修正以下問題
-
-## 不通過項目（如有）
-
-| 檔案 | 檢查項目 | 問題描述 |
-|------|---------|---------|
-| ... | ... | ... |
-
----
-
-## Stage 2: Tasks vs Design 對齊檢查
-
-✅ 通過項目：{pass} 項
-❌ 不通過項目：{fail} 項
-
-## 不通過項目（如有）
-
-| 檢查項目 | 問題描述 | 建議修正 |
-|---------|---------|---------|
-| ... | ... | ... |
-
----
-
-## 最終結論
-
-[x] 驗證通過，可執行 /implement
-[ ] 有不一致項目，需先修正 spec 文件
-```
+**輸出格式**：詳細格式由 `spec-verifier` / `tasks-design-verifier` agent 各自決定（每項通過率 + 不通過項目 table + 結論）。
 
 ---
 
@@ -430,100 +300,66 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
 
 #### Stage 1: Initial Implementation
 
-**執行步驟**：
-
-1. 從 tasks.md 取得所有待執行任務（`[ ]` 或 `[~]` 狀態）
-2. **分析任務依賴關係，將任務分組**
-   - 識別任務之間的依賴關係（例如：Task B 需要 Task A 的輸出）
-   - 將無依賴關係的任務分成獨立的組（最多 4 組）
-   - 同組內的任務可能有依賴關係（agent 會按順序執行）
-   - 不同組之間完全獨立（可並行執行）
-3. **啟動 `spec-implementer` agents (Mode 1)**
-   - 為每個任務組啟動一個獨立的 agent，明確指示 **Mode 1 (Initial Implementation)**
-   - 若有多個獨立組，使用 Agent tool 在**單一訊息**中同時啟動（並行執行）
-   - 每個 agent 接收：
-     * 功能名稱 (feature)
-     * 該組的任務列表（任務編號或描述）
-     * Mode 標記：`Mode 1`
-     * 提醒 agent 透過 `Design ref` 欄位讀取 design.md 的對應章節
-4. **監控所有 agents 的完成狀態**
-   - 任一 agent 回報任務完成後，**即時**更新 tasks.md 對應狀態為 `[x]`
-   - 收集所有 agents 的實作產出檔案清單
-5. **等待所有組完成**：當所有並行 agents 完成後，進入 Stage 2
-
-**進度報告**：每輪任務完成後報告：
-- 當前執行的任務組和進度
-- 各 agent 的成功/失敗狀態
-- 遇到的問題（如有）
+1. 從 tasks.md 取得待執行任務（`[ ]` / `[~]` 狀態）
+2. 分析依賴關係，將任務分組（無依賴的組可並行，最多 4 組）
+3. 啟動 `spec-implementer` agents (Mode 1) — 多組獨立組在同一 message 內並行 spawn；每個 agent 接收 feature 名、任務清單、`Mode 1` 標記，透過 `Design ref` 欄位讀 design.md
+4. Agent 回報完成 → 即時更新 tasks.md 為 `[x]`
+5. 全部組完成後進 Stage 2
 
 ---
 
 #### Stage 2: Review Loop (review only，多輪到 0 issues)
 
-> **這個階段是強制的**。`spec-implementer` 在 Stage 1 已做自我驗證（簽章 / 資料模型 / 錯誤處理 / 建置），但**自我驗證抓不到「production 才會炸的問題」**（async race、weak-ref GC、idempotency、leak、stale doc、test gap）— 那是這個 stage 的職責。
+`spec-implementer` 自我驗證抓不到「production 才會炸的問題」（async race、weak-ref GC、idempotency、leak、test gap）— 這是 Stage 2 職責。
 
-**執行步驟**：
+1. 每輪 invoke `implementation-reviewer` 對所有實作做資深軟體工程師視角審查，產 issue list（依 review-protocol.md Quick Summary 解讀）
+2. 處理 issue list：
+   - **Architecture Decisions** → AskUserQuestion 遞給 user 拍板（可能觸發 /update-spec）
+   - **Critical/High Bugs/Smells** → 派工 `spec-implementer (Mode 2)` 修（主 agent 不直接動手）
+   - **Medium/Low** → AskUserQuestion 問 user
+3. 修完進 Round N+1，直到當輪 0 issues 才退出
 
-1. **Loop 開始**（從 Round 1）：
-   - Invoke `implementation-reviewer` agent 對所有實作做資深軟體工程師視角審查
-   - Agent 回 issue list（跨 agent 整合 / Bugs / Smells / Design fidelity gaps / Test completeness gaps / Architecture Decisions，按 Critical/High/Medium/Low 分級）
-2. **處理 issue list**：
-   - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板。Decisions 拍板後可能反過來要求改 design.md（觸發 /update-spec 流程），或只是改實作策略 — 由使用者決定
-   - **若有 Critical/High Bugs/Smells**：主 agent **派工給 `spec-implementer` agent (Mode 2)** 修正
-     - 把 issue list（含位置、嚴重度、建議方向）整包丟給 spec-implementer
-     - spec-implementer 按 issue 修，每修一個重新自我驗證，整批完後重建
-     - **主 agent 不直接動手寫 code**（既有原則：實作必須由 agent 執行）
-   - **若有 Medium/Low**：詢問使用者是否要修，由使用者決定
-3. 修完進入 Round N+1，**重新 invoke `implementation-reviewer`**
-4. **直到當輪 0 issues 才結束 loop**
-5. **避免 review 範圍縮水陷阱**：每輪 reviewer 不能只看上一輪修的部分，要抽查未動檔案 — 這個紀律寫在 `implementation-reviewer` agent prompt 裡，主 agent 不需特別處理
-
-**Stage 1 vs Stage 2 的動手者**：
-
-| 階段 | Agent | 動作 |
-|---|---|---|
-| Stage 1 | `spec-implementer` (Mode 1) | 寫初版 code |
-| Stage 2 | `implementation-reviewer` | review only，產 issue list |
-| Stage 2 (loop 內) | `spec-implementer` (Mode 2) | 接 issue list 修 code |
-
-**動手寫 / 修 code 的只有 spec-implementer**，reviewer 只 review。
+**動手寫 / 修 code 的只有 `spec-implementer`** — reviewer 不動 code，主 agent 不動 code（Spec Mode 規則）。
 
 ---
 
 #### Stage 3: Summary
 
-**執行步驟**：
+報告：完成的任務、implementation-reviewer 多輪歷史、Mode 2 修正項目、user 拍板的 Decisions、建置狀態。讓 user 決定下一步（diff / commit / 下個 phase / 其他）。
 
-1. 彙整 Stage 1 與 Stage 2 的結果
-2. 報告完成狀態：
-   - 已完成的任務清單
-   - implementation-reviewer 多輪 review 的歷史（每輪找了幾個 issue，如何收斂到 0）
-   - spec-implementer (Mode 2) 修正的項目（按 issue 編號）
-   - 使用者拍板的 Architecture Decisions（如有）
-   - 建置狀態
-3. **讓使用者決定下一步**：
-   - review diff
-   - commit
-   - 繼續下個 phase
-   - 其他
+---
+
+## Plan / Design 文件內容指引
+
+寫 plan file（Quick Fix Mode）或 design.md（Spec Mode）時，**聚焦 substance，不寫 process narration**：
+
+| ✅ 寫 | ❌ 不寫 |
+|---|---|
+| Context（為什麼要改）| Process narration（「我會 invoke X 然後 X 會 ...」）|
+| 改動清單（具體 file + 改動）| 對 skill 紀律的重述（「依 review-protocol.md...」）|
+| 風險評估 | Mode 對比表（「為什麼不走另一個 mode」）|
+| Architecture Decisions（Options + Trade-offs）| 預估幾輪 review（reviewer 決定，不由 plan 預估）|
+| 驗證方式 | Definition of Done（skill 自動執行的退出條件）|
+
+**為什麼**：reviewer / spec-implementer 都已知道 skill flow，不需要 plan 重述。冗長 process narration = noise，模糊 user 真正需要看的 substance。
+
+詳細指引 + 長度建議 + 範例對比：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/plan-content-guide.md`
 
 ---
 
 ## 多輪 Review 機制
 
-`design-reviewer` 和 `implementation-reviewer` 共用一套 multi-round review loop。**詳細協定** — 嚴重度分級、字母編號規則、Architecture Decision 紀律、輸出格式、收斂判斷、reviewer 共用紀律 — 都記載於：
+`design-reviewer` 和 `implementation-reviewer` 共用一套 multi-round review loop。**詳細協定**（嚴重度分級、字母編號規則、Architecture Decision 紀律、輸出格式、收斂判斷、reviewer 共用紀律）記載於 `references/review-protocol.md`。
 
-> `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-protocol.md`
+**Lazy loading 設計**：reviewer agent 啟動時會自己讀 review-protocol.md。主 agent 不必預讀 — 只需理解下面 Quick Summary 即可驅動 loop。
 
-兩個 reviewer agent 啟動時會讀取這份文件。主 agent 驅動 loop 時也應該理解其內容。
-
-### Quick Summary（細節看 review-protocol.md）
+### Quick Summary
 
 - **嚴重度**：Critical / High / Medium / Low — Critical+High 必修，Medium+Low 由 user 決定
 - **編號**：跨 round 累加不重設（Round 1 用 A-D，Round 2 從 E 接續）
 - **收斂**：reviewer 輸出 `0 issues` 才退 loop；含 Critical/High 不可提前退
 - **Architecture Decision**：reviewer 沒共識的設計選擇 → 主 agent 用 AskUserQuestion 遞給 user，**不自己拍板**
-- **Review/Fix 分工**：reviewer 不動 code；design 階段主 agent 改 design.md，implementation 階段派工給 `spec-implementer (Mode 2)`
+- **Review/Fix 分工**：reviewer 不動 code；design 階段主 agent 改 design.md / plan file，implementation 階段 Spec Mode 派工 `spec-implementer (Mode 2)`、Quick Fix Mode 主 agent 直接修
 
 ---
 
@@ -546,28 +382,22 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
 
 ## 核心原則
 
-### 共用原則（兩個 mode 都適用）
+**共用**：
+1. **Plan Before Code** — 先有計畫（Quick Fix: plan file / Spec: design.md），不直接動手
+2. **Research Before Design** — 設計前先研究現有方案
+3. **Self-Verify + Verify Before Deliver** — 動手者自驗，交付前必過 reviewer 審查 + 建置
+4. **Review Until Convergence** — multi-round 到 0 issues，不接受「夠好就停」
+5. **No Architectural Overreach** — reviewer 遇到沒共識的設計選擇不拍板，遞給 user
 
-1. **Plan Before Code** — 不論大小任務，先有計畫（Quick Fix Mode 走 plan file，Spec Mode 走 design.md），不直接動手
-2. **Research Before Design** — 設計前先研究現有方案（Spec Mode 用 spec-researcher，Quick Fix Mode 主 agent 自己快速研究即可）
-3. **Self-Verify** — 動手者自行驗證，不依賴事後補救
-4. **Verify Before Deliver** — 交付前必須通過 reviewer 審查 + 建置確認
-5. **Review Until Convergence** — design-reviewer 與 implementation-reviewer 多輪到 0 issues 才收斂，不接受「夠好就停」（兩個 mode 都強制）
-6. **No Architectural Overreach** — Reviewer 遇到「沒有業界共識的設計選擇」時不拍板，由使用者決定
+**Spec Mode 特有**：
+6. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
+7. **Design is Truth** — design.md 是唯一真理來源
+8. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
 
-### Spec Mode 特有原則
-
-7. **No Steering, No Spec Mode Development** — 進入 Spec Mode 前必須有 steering
-8. **No Spec, No Code** — Spec Mode 下沒 design.md 就不寫程式碼
-9. **Design is Truth** — Spec Mode 中 design.md 是實作的唯一真理來源
-10. **Steering Stays Current** — steering 隨專案演進持續更新
-11. **Implementation by Agent Only (Spec Mode)** — Spec Mode 禁止主 agent 直接動手，必須派工 `spec-implementer`
-
-### Quick Fix Mode 特有原則
-
-12. **Plan File is Truth** — Quick Fix Mode 中 `~/.claude/plans/<random>.md` 是實作的真理來源
-13. **Main Agent May Implement (Quick Fix Mode Only)** — Quick Fix Mode 允許主 agent 直接動手（scope 小、無正式 spec 派工對齊基礎）。但 review loop 仍強制
-14. **Escalate When Scope Grows** — 過程中發現 scope 超過 Quick Fix Mode 範圍時，停下來告訴 user 建議升級到 Spec Mode
+**Quick Fix Mode 特有**：
+9. **Plan File is Truth** — `~/.claude/plans/<random>.md` 是真理來源
+10. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
+11. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
 
 ---
 
@@ -575,8 +405,11 @@ Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → imple
 
 | 文件 | 內容 |
 |------|------|
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/mode-selection.md` | Quick Fix Mode vs Spec Mode 判斷標準與升降級規則 |
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md` | Steering 文件撰寫指南（Spec Mode）|
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md` | Spec 文件撰寫工作流程（Spec Mode）|
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-protocol.md` | Reviewer agent 共用協定（嚴重度 / 編號 / Decision 紀律 / 輸出格式 / 收斂規則）|
+| `references/mode-selection.md` | Quick Fix Mode vs Spec Mode 判斷標準與升降級規則 |
+| `references/plan-content-guide.md` | Plan / Design 文件內容指引（substance vs process narration）|
+| `references/steering-guide.md` | Steering 文件撰寫指南（Spec Mode）|
+| `references/spec-workflow.md` | Spec 文件撰寫工作流程（Spec Mode）|
+| `references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
+| `references/review-protocol.md` | Reviewer agent 共用協定（reviewer 自讀，主 agent 不必預讀）|
+
+所有路徑前綴：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`
