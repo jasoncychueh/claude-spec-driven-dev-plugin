@@ -55,7 +55,46 @@
 
 ## 撰寫工作流程
 
-### 完整流程概覽
+### 兩條路徑
+
+本 skill 支援兩條開發路徑（詳見 `mode-selection.md`），下面分別呈現流程概覽。
+
+---
+
+### Quick Fix Mode 流程
+
+```
+[使用者請求小改動：bug fix / refactor / 小擴展]
+    │
+    ├── 主 agent 宣告走 Quick Fix Mode（給 user 調整機會）
+    │
+    ├── EnterPlanMode
+    │     │
+    │     ├── Claude Code 自動建立 plan file ~/.claude/plans/<random>.md
+    │     ├── 主 agent 用 Edit tool 寫 plan draft（context / 計畫 / 風險 / 驗證）
+    │     │
+    │     └── design-reviewer 多輪 review loop（強制）
+    │           ├── 主 agent 告訴 reviewer plan file path
+    │           ├── reviewer 用 Read 讀 plan file，產 issue list
+    │           ├── Architecture Decision → AskUserQuestion 遞給 user
+    │           ├── Bugs/Smells → 主 agent 用 Edit 修 plan file
+    │           └── 直到當輪 0 issues 才退出
+    │
+    ├── ExitPlanMode（提交已 reviewed 版本給 user approve）
+    │
+    ├── 主 agent 動手實作（按 plan file 內容）
+    │     ↳ 注意：Quick Fix Mode 允許主 agent 直接寫 code（與 Spec Mode 不同）
+    │
+    └── implementation-reviewer 多輪 review loop（強制）
+          ├── reviewer 產 issue list
+          ├── Architecture Decision → AskUserQuestion 遞給 user
+          ├── Bugs/Smells → 主 agent 自己修 code
+          └── 直到當輪 0 issues 才退出
+```
+
+---
+
+### Spec Mode 流程
 
 ```
 [/create-spec]
@@ -91,6 +130,8 @@
     │
     └── Stage 3: Summary
 ```
+
+兩個 mode 的差異只在「文件層次（plan file vs steering+spec docs）」與「動手者（主 agent vs spec-implementer）」 — review loop 機制完全共用（同一份 `review-protocol.md`）。
 
 ---
 

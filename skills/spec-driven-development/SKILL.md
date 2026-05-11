@@ -1,13 +1,34 @@
 ---
 name: spec-driven-development
-description: "Spec-driven 開發流程，支援 steering/spec 文件的建立、修改、載入與實作。使用時機：(1) 開發新功能前需要規劃 (2) 建立或修改 steering 文件 (3) 建立或修改功能 spec (4) 載入已有 spec 繼續實作 (5) 驗證 tasks 與 design 的對齊性 (6) 按 spec 執行實作"
+description: "Disciplined development workflow with multi-round architecture review loops. MUST use this skill for any task that writes or modifies code — bug fixes, refactors, typos, config tweaks, new features, large refactors, anything. Auto-routes to one of two modes: (a) Quick Fix Mode for bug fixes / refactors / small extensions within existing architecture — uses Plan Mode + mandatory multi-round review loops (no spec docs needed); (b) Spec Mode for new features / large refactors / cross-component work — builds full steering + requirements + design + tasks docs before implementation. Both modes enforce design-reviewer and implementation-reviewer multi-round loops until 0 issues — review discipline is non-negotiable regardless of task size. Triggers: fix bug / refactor / add feature / write function / build module / change behavior / modify config / restructure code / design API / improve performance / update logic / create or edit spec / verify spec / load spec / implement feature. Also use this skill when explicitly asked about: steering docs, requirements docs, design docs, tasks docs, /create-spec, /implement, /load-spec, /verify-spec."
 ---
 
 # Spec-Driven Development
 
-確保所有開發工作都遵循「先規格、後實作」的原則。
+A development workflow with **two routing modes**, both backed by multi-round architecture review:
+
+- **Quick Fix Mode**: bug fix / refactor / small extension — Plan Mode + review loops
+- **Spec Mode**: new feature / large refactor / cross-component — full steering + spec docs + implementation
+
+**Mode 選擇詳細指引**：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/mode-selection.md`
+
+**核心紀律**：無論哪個 mode，都強制走 `design-reviewer` + `implementation-reviewer` multi-round loops 直到 0 issues。review 紀律是品質防線，**不因為任務大小而妥協**。
 
 ## Quick Reference
+
+### 路徑分流（**最先做**）
+
+主 agent 收到任何寫 / 改 code 的請求時，第一步是判斷該走哪個 mode（詳見 `mode-selection.md`）：
+
+| 訊號 | Mode |
+|---|---|
+| bug fix / 重構 / 小擴展 / typo / config 改動 | **Quick Fix Mode** |
+| 新功能 / 大型 refactor / 跨多元件 / 引入新概念 | **Spec Mode** |
+| 不確定 | 主 agent 先判斷並告知 user，user 可調整 |
+
+判斷後**明確告訴 user 走哪條路徑**，例如：「這個工作我打算走 quick fix mode，scope 是單元件 bug fix。如果需要 spec 級流程，告訴我。」
+
+### Spec Mode 命令
 
 | 命令 | 說明 |
 |------|------|
@@ -18,6 +39,10 @@ description: "Spec-driven 開發流程，支援 steering/spec 文件的建立、
 | `/update-spec <feature>` | 修改功能 spec |
 | `/verify-spec <feature>` | 驗證 spec 完整性 + tasks vs design 對齊 |
 | `/implement <feature>` | 開始實作 |
+
+### Quick Fix Mode 沒有 slash 命令
+
+主 agent 直接進 Plan Mode 走完整流程，不需要 slash 命令。流程細節見下方「Quick Fix Mode 流程」章節。
 
 ---
 
@@ -61,40 +86,88 @@ description: "Spec-driven 開發流程，支援 steering/spec 文件的建立、
 ## Workflow Decision Tree
 
 ```
-用戶請求開發功能
+用戶請求寫 / 改 code
         │
         ▼
-┌───────────────────────┐
-│ 1. 檢查 Steering 文件  │
-│    .spec/steering/    │
-└───────────────────────┘
+┌────────────────────────────────────┐
+│ 判斷 mode（依 mode-selection.md）  │
+└────────────────────────────────────┘
         │
-    存在且完整？
-    ┌───┴───┐
-    │       │
-   否       是
-    │       │
-    ▼       ▼
-執行       ┌───────────────────────┐
-/create-   │ 2. 檢查功能 Spec       │
-steering   │    .spec/specs/{feat}/│
-           └───────────────────────┘
-                   │
-               存在嗎？
-               ┌───┴───┐
-               │       │
-              否       是
-               │       │
-               ▼       ▼
-           執行       執行
-           /create-   /load-spec
-           spec       ↓
-                      /implement
+   ┌────┴────────┐
+   │             │
+小改動         大型工作
+bug / refactor  新功能 / refactor /
+小擴展 / typo   跨多元件 / 引入新概念
+   │             │
+   ▼             ▼
+Quick Fix       Spec Mode
+Mode             │
+   │             ▼
+   │       ┌──────────────────────┐
+   │       │ Steering 存在？      │
+   │       └──────────────────────┘
+   │            │     │
+   │           否     是
+   │            │     │
+   │     /create-    /create-spec  (or /load-spec)
+   │     steering    ↓
+   │                 /implement
+   │
+   ▼
+Plan Mode + design-reviewer loop → ExitPlanMode → 主 agent 動手 → implementation-reviewer loop
 ```
 
 ---
 
 ## 操作說明
+
+### Quick Fix Mode（無 slash 命令，主 agent 自動 routing）
+
+當任務符合 Quick Fix Mode 標準（詳見 `mode-selection.md`）— bug fix / refactor / 小擴展 / typo / config 改動 — 走以下流程，**不需要建 steering / requirements / design / tasks 文件**：
+
+**前置宣告**：主 agent 收到任務後，先明確告訴 user：「我打算走 quick fix mode，原因是 {scope/類型 判斷}。如需 spec 級流程請告知。」
+
+**執行步驟**：
+
+1. **EnterPlanMode** — Claude Code 自動建立 plan file 在 `~/.claude/plans/<random>.md`
+2. **撰寫 plan draft** — 主 agent 在 Plan Mode 內用 Edit tool 把 plan 寫進 plan file。Plan 內容應包含：
+   - Context（為什麼要改）
+   - 改動計畫（會動哪些檔案、什麼動作）
+   - 風險評估（可能引入什麼 bug / regression）
+   - 驗證方式（怎麼測試）
+3. **design-reviewer multi-round loop（強制）**：
+   - Loop 開始（Round 1）：
+     - Invoke `design-reviewer` agent，**告訴它 plan file 的 path**（reviewer 自己用 Read tool 讀 file）
+     - Agent 回 issue list（按 review-protocol.md 格式）
+   - 處理 issue list：
+     - **Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給 user 拍板
+     - **Bugs/Smells（Critical/High）**：主 agent 用 Edit 修改 plan file
+     - **Medium/Low**：詢問 user 是否要修
+   - 進入 Round N+1
+   - **直到當輪 0 issues 才結束 loop**
+4. **ExitPlanMode** — 提交「已 reviewed 的最終版 plan」給 user approve（user 看到的就是收斂後版本）
+5. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 不派工 spec-implementer，因為 scope 小、沒正式 spec 可對齊）
+6. **implementation-reviewer multi-round loop（強制）**：
+   - Loop 開始（Round 1）：
+     - Invoke `implementation-reviewer` agent
+     - Agent 回 issue list
+   - 處理 issue list：
+     - **Architecture Decisions**：用 AskUserQuestion 遞給 user 拍板
+     - **Bugs/Smells（Critical/High）**：主 agent 直接修 code（Quick Fix Mode scope 小，不必派工）
+     - **Medium/Low**：詢問 user 是否要修
+   - 進入 Round N+1
+   - **直到當輪 0 issues 才結束 loop**
+7. **Summary** — 報告：
+   - 改動的檔案
+   - design-reviewer / implementation-reviewer 多輪 review 歷史
+   - 使用者拍板的 Architecture Decisions
+   - 建置狀態
+
+**重要約束**：Quick Fix Mode 允許主 agent 直接動手寫 code（與 Spec Mode 不同）。這個放寬只在 Quick Fix Mode 適用，理由：scope 小、沒有正式 spec 文件可讓 spec-implementer 對齊。Spec Mode 仍然嚴格禁止主 agent 直接動手。
+
+**中途升級成 Spec Mode**：若 plan / 實作期間發現「scope 比預期大、需要正式 design 文件」，停下來告訴 user 建議升級成 Spec Mode。已寫的 plan 可作為 design.md 的 starting point。
+
+---
 
 ### /load-spec \<feature\>
 
@@ -473,15 +546,28 @@ steering   │    .spec/specs/{feat}/│
 
 ## 核心原則
 
-1. **No Steering, No Development** — 沒有 steering 就不開始開發
-2. **No Spec, No Code** — 沒有 spec 就不寫程式碼
-3. **Research Before Design** — 設計前先研究現有方案
-4. **Design is Truth** — design.md 是實作的唯一真理來源
-5. **Steering Stays Current** — steering 隨專案演進持續更新
-6. **Self-Verify** — implementation agent 自行驗證，不依賴事後補救
-7. **Verify Before Deliver** — 交付前必須通過 reviewer 審查和建置確認
-8. **Review Until Convergence** — design-reviewer 與 implementation-reviewer 多輪到 0 issues 才收斂，不接受「夠好就停」
-9. **No Architectural Overreach** — Reviewer 遇到「沒有業界共識的設計選擇」時不拍板，由使用者決定
+### 共用原則（兩個 mode 都適用）
+
+1. **Plan Before Code** — 不論大小任務，先有計畫（Quick Fix Mode 走 plan file，Spec Mode 走 design.md），不直接動手
+2. **Research Before Design** — 設計前先研究現有方案（Spec Mode 用 spec-researcher，Quick Fix Mode 主 agent 自己快速研究即可）
+3. **Self-Verify** — 動手者自行驗證，不依賴事後補救
+4. **Verify Before Deliver** — 交付前必須通過 reviewer 審查 + 建置確認
+5. **Review Until Convergence** — design-reviewer 與 implementation-reviewer 多輪到 0 issues 才收斂，不接受「夠好就停」（兩個 mode 都強制）
+6. **No Architectural Overreach** — Reviewer 遇到「沒有業界共識的設計選擇」時不拍板，由使用者決定
+
+### Spec Mode 特有原則
+
+7. **No Steering, No Spec Mode Development** — 進入 Spec Mode 前必須有 steering
+8. **No Spec, No Code** — Spec Mode 下沒 design.md 就不寫程式碼
+9. **Design is Truth** — Spec Mode 中 design.md 是實作的唯一真理來源
+10. **Steering Stays Current** — steering 隨專案演進持續更新
+11. **Implementation by Agent Only (Spec Mode)** — Spec Mode 禁止主 agent 直接動手，必須派工 `spec-implementer`
+
+### Quick Fix Mode 特有原則
+
+12. **Plan File is Truth** — Quick Fix Mode 中 `~/.claude/plans/<random>.md` 是實作的真理來源
+13. **Main Agent May Implement (Quick Fix Mode Only)** — Quick Fix Mode 允許主 agent 直接動手（scope 小、無正式 spec 派工對齊基礎）。但 review loop 仍強制
+14. **Escalate When Scope Grows** — 過程中發現 scope 超過 Quick Fix Mode 範圍時，停下來告訴 user 建議升級到 Spec Mode
 
 ---
 
@@ -489,7 +575,8 @@ steering   │    .spec/specs/{feat}/│
 
 | 文件 | 內容 |
 |------|------|
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md` | Steering 文件撰寫指南 |
-| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md` | Spec 文件撰寫工作流程 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/mode-selection.md` | Quick Fix Mode vs Spec Mode 判斷標準與升降級規則 |
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md` | Steering 文件撰寫指南（Spec Mode）|
+| `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md` | Spec 文件撰寫工作流程（Spec Mode）|
 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-protocol.md` | Reviewer agent 共用協定（嚴重度 / 編號 / Decision 紀律 / 輸出格式 / 收斂規則）|
