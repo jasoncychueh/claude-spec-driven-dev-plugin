@@ -128,7 +128,7 @@ Round 3: Bug H, Smell I
 1. **Dispatch issue list**：把 reviewer 的 issue list 整包丟給對應修正者
    - design 階段：主 agent 自己改 design.md（design.md 是文件，不是 code，不違反「實作必須由 agent 執行」原則）
    - implementation 階段：派工給 `spec-implementer (Mode 2)`，主 agent 不直接寫 code
-2. **Decision escalation**：所有 Architecture Decisions 用 AskUserQuestion 遞給使用者
+2. **Decision escalation**：所有 Architecture Decisions 用 AskUserQuestion 遞給使用者（主 agent 會依 SKILL.md「Architecture Decision 呈現紀律」/ `decision-escalation-guide.md` 做人類友善的翻譯 — reviewer 本身只負責產四點原料）
 3. **追蹤輪次**：每輪 review 後記錄 issue 編號，提供給下一輪 reviewer 作為「上一輪修了哪些」context
 4. **避免 scope creep**：派工修正時嚴格限定在 issue 範圍，不順便重構（重構若需要，當成新的 issue 進下一輪）
 5. **判斷收斂**：看到 reviewer 報告「0 issues — 收斂」才能退出 loop；看到 N issues 不能提前退出

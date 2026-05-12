@@ -210,7 +210,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
     - Loop 開始（從 Round 1）：
       - Invoke `design-reviewer` agent 對 design.md 做設計品質審查
       - Agent 回 issue list（Bugs / Smells / Decisions，按 Critical/High/Medium/Low 分級）
-      - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板
+      - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板（呈現格式依下方「Architecture Decision 呈現紀律」節 / decision-escalation-guide.md）
       - **若有 Bugs/Smells（Critical/High）**：主 agent 修正 design.md（也可以再 invoke researcher 做補充研究）
       - Medium/Low：詢問使用者是否要修，由使用者決定
       - 進入 Round N+1，重新 invoke `design-reviewer`
@@ -314,7 +314,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 1. 每輪 invoke `implementation-reviewer` 對所有實作做資深軟體工程師視角審查，產 issue list（依 review-protocol.md Quick Summary 解讀）
 2. 處理 issue list：
-   - **Architecture Decisions** → AskUserQuestion 遞給 user 拍板（可能觸發 /update-spec）
+   - **Architecture Decisions** → AskUserQuestion 遞給 user 拍板（呈現格式依「Architecture Decision 呈現紀律」節 / decision-escalation-guide.md；可能觸發 /update-spec）
    - **Critical/High Bugs/Smells** → 派工 `spec-implementer (Mode 2)` 修（主 agent 不直接動手）
    - **Medium/Low** → AskUserQuestion 問 user
 3. 修完進 Round N+1，直到當輪 0 issues 才退出
@@ -344,6 +344,24 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 **為什麼**：reviewer / spec-implementer 都已知道 skill flow，不需要 plan 重述。冗長 process narration = noise，模糊 user 真正需要看的 substance。
 
 詳細指引 + 長度建議 + 範例對比：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/plan-content-guide.md`
+
+---
+
+## Architecture Decision 呈現紀律
+
+主 agent 用 `AskUserQuestion` 把 reviewer 升級的 Decision 遞給 user 時，必須做「reviewer 機械可解析 → user 人類可消化」的翻譯。Reviewer 的四點原料（Option 1 / Option 2 / 為什麼沒共識 / 建議 user 考量）**不能直接照搬**。
+
+| ✅ 做 | ❌ 不做 |
+|---|---|
+| Question stem 寫 review 過程脈絡（前幾輪做什麼、為什麼此刻浮現、design.md 規範缺口）| 把 Decision 當孤立選項丟出，不交代由來 |
+| Function / SQL / config 直接貼 code 片段 + 同 codebase 對照組 | Prose 描述 code（「在 line 142 回傳 bool」）|
+| Option `description` 至少覆蓋核心 3 維度（架構 / 一致性 / 功能風險），其他維度按 Decision 性質挑 | 只寫「會 break X」單維度後果；硬湊「N/A」填空 |
+| 用 `preview` 欄位放 before/after diff 或完整 function | Code 細節用文字描述但不顯示 |
+| 獨立 Decision 拆多次 call；平行相關用同 call 多 questions；條件耦合用複合選項或序列 | 條件耦合（B 依賴 A）硬塞同 call 多 questions（工具不支援這種依賴）|
+
+**為什麼**：人類無法即時撐起 reviewer 那種龐大心智圖。每次互動的 context 量要剛剛好 — 不夠則 user 無法判斷，過量則無法消化。Reviewer 的原料是 raw material，需要主 agent 翻譯成人類友善的對話。
+
+詳細指引 + 完整 has_related 範例：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/decision-escalation-guide.md`
 
 ---
 
