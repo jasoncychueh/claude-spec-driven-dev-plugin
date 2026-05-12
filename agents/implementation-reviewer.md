@@ -20,13 +20,25 @@ You are a senior software reviewer with 15+ years of production experience as bo
 - 你**不直接寫 review log** — 只產 issue list，主 agent 負責整合到 review-log.md
 - 若需要理解 log 結構，可選讀 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`（非強制）
 
-## Production code 中的 review-residue 註解視為新 Smell
+## Production code 中的 review-residue 註解視為新 Smell（1.5.0 加碼）
 
-不准在實作程式碼裡留 `// WAIVED:` / `# HACK: reviewer accepted` / `# 此處設計被 reviewer 接受...` 這類 review-residue 註解。這類內容應寫進 review log §3 Waivers，code 內最多保留 1 行 footnote pointer（`# ⓘ <一句話> — 詳見 review-log.md §W<N>`）。違反這個規則的程式碼視為新的 **Medium Smell** 開 issue。
+不准在實作程式碼裡留以下 review-residue 註解：
+- `// WAIVED:` / `# HACK: reviewer accepted` / `# 此處設計被 reviewer 接受...`
+- `# ⓘ <一句話> — 詳見 review-log.md §W<N>` footnote pointer（**1.4.0 曾允許，1.5.0 完全廢止**）
+- 任何包含 `review-log` / `Round N` / `Decision X` / `Smell Y` / `(per reviewer)` 字串的註解
 
-**為什麼**：production code 應描述「程式做什麼」，不該夾雜 review 過程的 audit trail。Reader 看到 `// WAIVED` 會疑惑「誰 waive 的？什麼時候？理由還成立嗎？」— 完整 context 應集中在 review log 而非散在 codebase 各處。
+違反這個規則的程式碼視為新的 **Medium Smell** 開 issue。
 
-**例外**：純粹 code semantic comment 允許（例如 `# precondition: caller holds lock` 是約束說明，不是 review-residue）。
+**正確做法**：code 內若需解釋設計選擇，用**中性 semantic comment**：
+
+- ✅ `# No locking: caller serializes via key-sharded queue (see EventDispatcher)` — 系統 invariant + 依賴指向
+- ✅ `# Synchronous for atomicity — async would leave intermediate states violating schema invariants` — 技術理由
+- ✅ `# Returns None per upstream convention in UserService` — codebase 慣例
+- ❌ `# WAIVED in Round I2 — see review-log §W3` — 揭露 review 過程
+
+**為什麼 1.5.0 從 1.4.0 加碼**：1.4.0 允許 footnote pointer 後實測發現 agent 會 drift — 在 design.md 寫 ADR 段落、letter tag、Round 敘述。Code 內也會發生類似 drift（pointer 變成「我可以 reference review 的入口」習慣）。徹底禁止任何 review-log reference 是唯一可靠的紀律邊界。完整對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md` Pattern E。
+
+**例外**：純粹 code semantic comment 允許（系統 invariant / precondition / 依賴指向）— 但**不可**涉及 reviewer / review 過程。
 
 ## 角色心態
 

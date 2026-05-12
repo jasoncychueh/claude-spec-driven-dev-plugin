@@ -225,7 +225,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
       - 若 issue 經討論判定為誤判 → **寫入 `review-log.md` §4** + 更新 §1
       - 進入 Round D{N+1}，重新 invoke `design-reviewer`
     - **直到當輪 0 issues 才結束 loop**
-    - **正式文件絕不寫 waiver/decision 全文** — 需要交代某處異常時，用 1 行 footnote pointer 指向 review-log（格式詳見 `review-log-guide.md`）
+    - **正式文件 100% 隔離** — design.md 完全不寫 Decisions / Waivers / Round 過程 / reviewer 引用 / footnote pointer。設計理由用**中性 prose**（技術限制 / codebase 慣例 / 反面後果）整合進 Component 描述。完整規範與 bad/good 對照：`review-log-guide.md` + `review-log-bad-examples.md`
 12. **撰寫 `tasks.md`**（在 design.md 已收斂之後才開始）— 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
 13. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**（含「跨文件 Review-Residue 檢查」確保正式文件無 inline waiver / decision 區塊）
 14. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
@@ -335,7 +335,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 **動手寫 / 修 code 的只有 `spec-implementer`** — reviewer 不動 code，主 agent 不動 code（Spec Mode 規則）。
 
-**Production code 紀律**：`spec-implementer (Mode 2)` 修 code 時不准留 `// WAIVED:` / `# HACK: reviewer accepted` 類 review-residue 註解。豁免理由寫在 `review-log.md` §3，code 內最多保留 1 行 footnote pointer。`implementation-reviewer` 下一輪會把違反此規則的 code 開為新 Smell issue。
+**Production code 紀律**（1.5.0 加碼）：`spec-implementer (Mode 2)` 修 code 時不准留 `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log` 類 review-residue 註解（包含 1.4.0 曾允許的 footnote pointer，1.5.0 已廢止）。豁免理由完整存於 `review-log.md` §3；code 內若需解釋設計選擇，用**中性 semantic comment**（系統 invariant / precondition / 依賴指向），不揭露 reviewer 來源。範例見 `references/review-log-bad-examples.md` Pattern E。`implementation-reviewer` 下一輪會把違反此規則的 code 開為新 Smell issue。
 
 ---
 
@@ -415,27 +415,48 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 | Spec Mode | `.spec/specs/{feature}/review-log.md` | 是 |
 | Quick Fix Mode | plan file 結尾 `## Review Log` section | 否（plan file ephemeral） |
 
-### 四大紀律規則
+### 四大紀律規則（1.5.0 加碼至 100% 隔離）
 
-1. **正式文件禁止 inline waiver / decision 全文**
-   - 違反 pattern：`> **.*例外.*：`, `<!-- WAIVED`, `<!-- REVIEWER NOTE`, 多行 meta block
-   - `spec-verifier` 加了「跨文件 Review-Residue 檢查」自動偵測
+1. **正式文件完全不出現 review-log 內容或 reference**
+   - 違反 pattern（任一即拒絕）：
+     - `## Architecture Decisions` / `## Decisions Record` / `## ADR` 任何形式的 Decision 段落
+     - Reviewer letter tag：`(per Decision X)` / `(per Smell Y)` / `(per Bug Z)`
+     - Round 過程敘述：「Round N review 提出」/「user 在 Round 3 拍板」/「reviewer 建議」
+     - Review-log 引用：`review-log.md` 字串 / `→ §W1` / `> ⓘ ... — 詳見 review-log`
+     - 豁免區塊：`> **X 例外（已知並接受）**：` / `<!-- WAIVED -->` / `<!-- REVIEWER NOTE -->`
+   - `spec-verifier` 「跨文件 Review-Residue 檢查」自動偵測這些 pattern
 
-2. **Production code 禁止 `// WAIVED:` / `# HACK: reviewer accepted` 類註解**
+2. **Production code 禁止 review-residue 註解**（同 1.4.0 但加 pointer 禁令）
+   - 違反 pattern：`// WAIVED:` / `# HACK: reviewer accepted` / `# WAIVED in Round X` / `# ⓘ ... — see review-log`
    - `implementation-reviewer` 會把違反此規則的 code 開為新 Medium Smell
-   - 例外：純粹 code semantic comment 允許（例如 `# precondition: caller holds lock`）
+   - 例外：純粹 code semantic comment（系統 invariant / precondition / 依賴指向）允許 — 例如 `# precondition: caller holds lock` 或 `# single-writer invariant per EventDispatcher`
 
-3. **正式文件可保留 1 行 footnote pointer**
-   - 格式：`> ⓘ <一句話陳述異常與性質> — 詳見 review-log.md §<id>`
-   - 超過 1 行就完全寫進 review log
+3. **Formal doc 解釋設計理由用中性 prose**
+   - 當 Component / Task 設計需要解釋「為什麼這樣做」，用**技術限制 / codebase 慣例 / 反面後果**整合進對應段落
+   - **不揭露**：reviewer 來源 / Decision letter / Round 來源 / user 拍板過程
+   - 範例：
+     - ❌ 「Synchronous per Decision AL accepted in Round 3」
+     - ✅ 「Synchronous for atomicity — async would leave intermediate states violating schema invariants」
+   - 詳細 bad/good 對照（5 種 pattern + 改寫公式）：`references/review-log-bad-examples.md`
 
 4. **Reviewer 不寫 log，主 agent 整合**
    - Reviewer 產 issue list 即可（同既有紀律）
    - 主 agent 每輪後把 issue list append 進 §1、處理完更新 Status、Waivers/Decisions 補對應子節
+   - Decision 拍板後：寫入 review-log §2，**並**把 Decision 結果的**內容**（非 letter / 非引用）以中性 prose 整合進 design.md 對應 Component 段落
+
+### 為什麼從 1.4.0 升級成 100% 隔離
+
+1.4.0 允許 1 行 `> ⓘ ... — 詳見 review-log §X` footnote pointer 作為「異常但 tracked」signal。實測發現開了這個後門後，agent 會逐步退化成：
+- 寫 `## Architecture Decisions Record` 整段（業界 ADR pattern 訓練深植）
+- 在 design.md table 用 `(per Decision O)` 標記每列來源
+- 寫 `Round 1 design review 期間提出` 過程敘述
+
+這些違反 1.4.0 verifier 沒抓到的盲區。1.5.0 移除 pointer 概念 — formal doc 對 review-log 完全零引用，靠**中性 design rationale**表達設計理由，是唯一可靠的紀律邊界。
 
 ### 詳細規範
 
-- 寫入規範 / ID 規則 / Status 取值 / footnote 格式 / 範例：`references/review-log-guide.md`
+- 寫入規範 / ID 規則 / Status 取值 / 範例：`references/review-log-guide.md`
+- Bad / Good 對照（5 種 pattern + 通用改寫公式）：`references/review-log-bad-examples.md`
 - Reviewer/主 agent handshake 協定：`references/review-protocol.md` 的「Review Log 整合」章節
 
 ---
@@ -489,8 +510,9 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 | `references/spec-workflow.md` | Spec 文件撰寫工作流程（Spec Mode）|
 | `references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
 | `references/review-protocol.md` | Reviewer agent 共用協定（reviewer 自讀，主 agent 不必預讀）|
-| `references/review-log-guide.md` | Review Log 撰寫規範（format / ID / 引用協定 / 範例）|
-| `references/decision-escalation-guide.md` | Architecture Decision 呈現紀律（含拍板後寫入 review log §2）|
+| `references/review-log-guide.md` | Review Log 撰寫規範（format / ID / 中性化原則 / 範例）|
+| `references/review-log-bad-examples.md` | 5 種 review-residue pattern 的 bad / good 對照 + 通用改寫公式 |
+| `references/decision-escalation-guide.md` | Architecture Decision 呈現紀律（含拍板後寫入 review log §2 + design.md 中性化反映）|
 | `templates/review-log-template.md` | review-log.md 最小 skeleton（/create-spec 與 Quick Fix Mode 用） |
 
 所有路徑前綴：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`

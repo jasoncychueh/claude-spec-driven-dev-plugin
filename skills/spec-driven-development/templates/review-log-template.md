@@ -5,7 +5,10 @@
 > **正式文件**（requirements.md / design.md / tasks.md / production code）描述「決定後的世界長什麼樣」。
 > **本 log** 描述「為什麼是這個世界、過程中拒絕了什麼、哪些原則被刻意豁免」。
 >
+> **1.5.0 隔離紀律**：本 log 與正式文件**物理隔離** — 正式文件完全不出現 review-log reference / pointer / letter tag。Decision 結果若需反映到 design.md，把 chosen option 的**內容**用**中性 design rationale**（技術 / codebase 慣例 / 反面後果）整合進 Component 描述，不揭露 reviewer / Decision 編號 / Round 來源。
+>
 > 寫入規範詳見 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`
+> Bad / Good 對照（5 種 pattern + 改寫公式）：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 ---
 

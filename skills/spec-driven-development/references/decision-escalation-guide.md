@@ -301,7 +301,32 @@ User 透過 `AskUserQuestion` 回答 Decision 後，主 agent 必須立即把結
 
 **為什麼立即寫入而非 batch**：user 答完 AskUserQuestion 後 rationale 還是原話，等到全部 Decision 都拍板再 batch 補寫，細節已失真且容易遺漏。
 
-**為什麼正式文件不留 Decision 全文**：design.md / tasks.md 應描述「決定後的世界長什麼樣」，不該包含拍板過程的 Options / Trade-offs / 拒絕理由。需要交代某處異常時，正式文件用 1 行 footnote pointer（`> ⓘ <一句話> — 詳見 review-log.md §2 Decision <letter>`），完整 context 留在 log。
+### Decision 結果如何反映到 design.md / tasks.md（中性化原則）
+
+**1.5.0 紀律**：Decision content（Options 比較、Chosen、Rationale、Round 來源）**只能存在於 `review-log.md §2`**。design.md / tasks.md **不得**：
+
+- 寫 `## Architecture Decisions` / `## Decisions Record` / `## ADR` 段落
+- 寫 `(per Decision X)` reviewer letter tag
+- 寫 `→ review-log §2 Decision X` footnote pointer（1.4.0 曾允許，1.5.0 完全廢止）
+- 寫「user 在 Round N 拍板選 Option 2」等 review 過程敘述
+
+**Decision 結果若需要反映到 design.md（例如 user 選了 Option 1 而非 Option 2，這影響某 Component 的設計）**，做法：
+
+- 把 Option 1 的**內容**（不是 Option 1 這個 label）直接寫進對應 Component 段落
+- 設計理由用**中性 prose** — 寫「為什麼這樣設計」的技術理由，**不**寫「為什麼選 Option 1 拒絕 Option 2」
+- 不揭露 Decision 編號 / Round 來源 / user 拍板過程
+
+**範例**：
+
+User 對 Decision D 拍板「TTL invalidation, 60s」。
+
+- ❌ design.md 寫：`CacheService 採 60s TTL（per Decision D, user 在 Round 3 拍板選 Option 1）`
+- ✅ design.md 寫：`CacheService 採 60s TTL，理由是 read-heavy workload (read:write ≈ 100:1) 可容忍 1 分鐘 staleness；explicit invalidation 需要事件廣播機制，當前 workload 不值得這個複雜度`
+- ✅ review-log.md §2 寫：`### Decision D（raised at D2）\n**Problem**: Cache invalidation 策略 — TTL vs explicit\n**Options considered**: ...\n**Chosen**: Option 1\n**Rationale (user, 2026-05-12)**: ...`
+
+兩者**內容互補但不引用**：design.md 是技術描述、review-log.md 是決策審計，物理隔離。
+
+**為什麼 100% 隔離**：design.md / tasks.md 是反覆閱讀的 truth source；夾雜 Decision audit trail 會稀釋技術描述的密度。1.4.0 允許 footnote pointer 後實測發現 agent 會 drift 成 ADR 段落 + reviewer letter tag — 唯一可靠的紀律是完全禁止任何 review-log reference。完整 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 ---
 

@@ -18,13 +18,15 @@
 | **Context** — 觸發原因、當前問題、預期改變後狀態 | **Process narration** — 「我會 invoke X 然後 X 會 ...」 |
 | **改動清單** — 具體 file path + 改動範圍 | **Skill 紀律重述** — review-protocol.md 條款搬進 plan |
 | **風險評估** — 具體 regression / API break / 行為變更 | **Mode 對比表** — 「為什麼不走另一個 mode」（mode-selection.md 已涵蓋）|
-| **Architecture Decisions** — 沒共識的選擇 Options + Trade-offs | **預估幾輪 review** — reviewer 決定，不該預估 |
-| **驗證方式** — 具體可執行指令 / 測試清單 | **Definition of Done** — skill 自動執行的退出條件 |
-| **Out-of-scope**（spec mode）— 明確邊界 | **Agent invocation sequence** 完整 narration |
+| **Architecture Decisions**（**僅 Quick Fix Mode plan file 內 `## Review Log` 區段**）— Quick Fix 的 plan file 本身就是 review log 容器，Decisions 暫存於此並由 user 拍板 | **`## Architecture Decisions` / `## Decisions Record` / `## ADR` 段落寫進 spec mode 的 design.md** — Spec Mode 一切 Decision content 只能存在於 review-log.md §2，design.md 完全乾淨無 reference |
+| **驗證方式** — 具體可執行指令 / 測試清單 | **預估幾輪 review** — reviewer 決定，不該預估 |
+| **Out-of-scope**（spec mode）— 明確邊界 | **Definition of Done** — skill 自動執行的退出條件 |
+| **中性 design rationale**（spec mode design.md）— 若 Component 設計需要解釋「為什麼這樣設計」，用技術限制 / codebase 慣例的中性 prose 整合進 Component 描述 | **Agent invocation sequence** 完整 narration |
+| | **任何 reviewer letter tag**（Decision X / Bug Y / Smell Z）/ **Round 過程敘述** / **指向 review-log.md 的引用 / footnote pointer** — formal doc 100% 隔離 |
 
 ## 範例對照
 
-### Substance（好範例）
+### Substance（好範例 — Quick Fix Mode plan file）
 
 ```markdown
 ## Context
@@ -39,17 +41,54 @@ user_service.py::get_user_profile() 在 user_id=None 時 throw NPE。
 - 既有 caller 若依賴 None silent return，改 raise 會 break
 - public API 錯誤類型若改變需同步更新 caller
 
-## Architecture Decisions
-**錯誤處理策略**
-- Option 1: raise ValueError — fail-fast、明確；break 既有 silent caller
-- Option 2: return None — 向下相容；延續 silent bug
-- 沒共識，依現有 service 層 convention 拍板
-
 ## 驗證方式
 1. `pytest tests/services/test_user_service.py -v`
 2. `grep -r 'get_user_profile' agent_service/` 確認 caller 對齊
 3. `podman compose build agent-service`
+
+## Review Log
+### 1. Audit Trail
+| Round | ID | Severity | Status | Resolution |
+|-------|-----|----------|--------|------------|
+
+### 2. Architecture Decisions
+**Decision A — 錯誤處理策略**
+- Option 1: raise ValueError — fail-fast、明確；break 既有 silent caller
+- Option 2: return None — 向下相容；延續 silent bug
+- 待 review 階段由 user 拍板（拍板後補 Chosen + Rationale）
+
+### 3. Waivers / 4. False Positives
+_(無)_
 ```
+
+**關鍵差異**：Architecture Decisions 寫在 plan file 內專屬的 `## Review Log` 段落（plan file 本身就是 Quick Fix Mode 的 review log 容器），**不放在 plan 主體**。
+
+### Spec Mode design.md 的好範例
+
+design.md **完全不寫** Architecture Decisions 段落。若 Component 設計需要解釋「為什麼這樣做」，用**中性 design rationale**整合進 Component 描述：
+
+```markdown
+## Components and Interfaces
+
+### UserService
+- **Purpose:** 處理 user profile 讀寫
+- **Interfaces:**
+  ```python
+  def get_user_profile(user_id: str) -> UserProfile:
+      """Raise ValueError if user_id is None or empty.
+
+      Rationale: fail-fast aligns with service layer convention
+      (AuthService, BillingService 同 module 內已採此 pattern)；
+      silent None return 在 caller 端會延後表面化 bug。
+      """
+  ```
+- **Dependencies:** UserRepository
+```
+
+**這段中性 rationale 不提**：reviewer、Decision letter、review-log、Round N。
+**它提**：技術理由（fail-fast）+ codebase 慣例參照（AuthService、BillingService）+ 反面後果（silent bug 延後表面化）。
+
+完整 Decision 紀錄（Options 比較、user 拍板理由、Round 來源）放在 `review-log.md §2`，與 design.md **物理隔離**。
 
 ### Process narration（壞範例）
 

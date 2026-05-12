@@ -8,16 +8,19 @@
 
 ## 核心理念
 
-**正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。**
+**正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。兩者物理隔離。**
 
-兩者徹底分離但可雙向引用：
-
-- requirements.md / design.md / tasks.md / production code → 不寫 waiver / decision 全文 / review 過程紀錄
+- requirements.md / design.md / tasks.md / production code → **完全不出現** review 過程的任何痕跡（waiver / decision content / reviewer references / process narration / review-log 引用 / footnote pointer 全禁止）
 - review-log.md → 集中保留四類 artifact（audit trail / Decisions / Waivers / False Positives）
 
-當正式文件需要交代某處異常（為什麼這個 task 違反 SRP / 為什麼這段 code 看起來不對勁但正確），用 **單行 footnote pointer** 指向 review log。
+當正式文件需要交代「為什麼這個 Component 這樣設計」/ 「為什麼這個 task 看起來大」時，用**中性 design rationale**（技術限制 / codebase 慣例 / 反面後果）整合進對應段落 — **不揭露** reviewer / Decision / review-log。
 
-**為什麼這樣切**：正式文件被讀的次數遠多於 review log；保留 single source of truth 可讀性比節省一次跳轉更重要。Audit trail 與豁免理由屬「meta-info」，混在正式文件內會讓 reader 認知負擔加倍。
+**為什麼 100% 隔離**：
+1. 正式文件被讀的次數遠多於 review log；保留 single source of truth 可讀性是核心 KPI
+2. Footnote pointer 看似輕量，實際讓 agent 養成「我可以在 design.md 提一下 review-log」的習慣，逐步退化成 inline waiver block（1.4.0 實測證明：開了 pointer 後門，agent 自然加 ADR 段落 + reviewer letter tag + Round 過程敘述）
+3. 設計理由用中性技術 prose 即可表達；不需要為了「強調這是討論過的」而引用 reviewer — reader 不需要這層信息，需要這層信息的人去看 review-log
+
+詳細 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 ---
 
@@ -121,51 +124,36 @@
 
 ---
 
-## 引用協定（formal doc → review log）
+## 引用協定 — 完全隔離
 
-### Footnote pointer 格式
+**Formal doc ↔ review-log 之間沒有引用關係**。
 
-正式文件需要交代某處異常時，用 1 行 blockquote pointer：
+1.4.0 曾允許 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer 作為「異常 + tracked」signal。**1.5.0 完全廢止此 pointer 概念** — 因實測 agent 看到 pointer 被允許，會逐步退化成 ADR 段落 + reviewer letter tag + Round 過程敘述（formal doc 100% 隔離才能根除這個 drift）。
 
-```markdown
-> ⓘ <一句話陳述異常與性質> — 詳見 review-log.md §<id>
-```
+### Formal doc 解釋「為什麼這樣設計」的正確方式
 
-**範例**：
+用 **中性 design rationale** 整合進 Component / docstring / task description：
 
-```markdown
-# tasks.md 內
-#### Task 1.4: 合併 5 類 schema 改動
-[task description...]
+| 維度 | 寫法 |
+|---|---|
+| **技術限制** | 「Synchronous for atomicity guarantees」 |
+| **Codebase 慣例** | 「Returns None per upstream convention in UserService」 |
+| **反面後果** | 「Splitting would leave intermediate states violating schema invariants」 |
+| **系統 invariant 依賴** | 「No locking: caller serializes via key-sharded queue (see EventDispatcher)」 |
 
-> ⓘ 此 task SRP 違反為已知並接受 — 詳見 review-log.md §W1
-```
+**禁止**：
 
-```python
-# src/cache.py 內
-def update(self, key, value):
-    # ⓘ 此處未加 lock 為已知 design choice — 詳見 review-log.md §W3
-    self._store[key] = value
-```
+- 「per Decision X」 / 「per Smell Y」 / 「per Bug Z」
+- 「reviewer 建議 / 標記 / 提出」
+- 「user 在 Round N 拍板」
+- 「See review-log.md §X」/ `> ⓘ` / `→ §W1`
+- 整段 `## Architecture Decisions Record` / `## ADR` / `## Decisions`
 
-### 約束
+完整 bad/good 對照（5 種 pattern + 通用改寫公式）：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
-1. **只能 1 行** — 超過就完全寫進 review log，正式文件僅留 pointer
-2. **必含 `→ review-log §<id>` reference** — 沒 reference 的 inline 註解視為違反協定
-3. **用 `> ⓘ` 開頭**（Markdown）或 `# ⓘ` 開頭（code）— 視覺標記為 meta-info
-4. **不可重複描述 log 內容** — pointer 只揭示「異常 + 性質 + 去哪查」，理由完整放 log
+### Review log 內部結構
 
-### 為什麼不用 markdown link anchor
-
-Review log 標題含中文（如 `### W1: T1.4 違反 SRP`），各 markdown renderer 對中文 auto-anchor 處理不一致。改用「§W1」這種純文字 reference + reader 用 search 找標題，跨 renderer 穩定。
-
-若特定使用情境需要可點 link，review log 標題可選加 HTML anchor：
-
-```markdown
-### W1: T1.4 違反 SRP <a id="w1"></a>
-```
-
-不強制。
+Review log 內部使用 letter ID + W / FP 編號 cross-reference（如 §1 Audit Trail 表格 Resolution 欄寫 `→ §3 W1`）。這些**只在 review-log.md 內**，不外溢到 formal doc。
 
 ---
 
@@ -174,13 +162,14 @@ Review log 標題含中文（如 `### W1: T1.4 違反 SRP`），各 markdown ren
 | ✅ 做 | ❌ 不做 |
 |---|---|
 | §1 表格每列 Resolution 欄 1 行；完整理由放對應子節 | Resolution 欄寫 3 行解釋 |
-| Waiver 寫進 §3，正式文件留 1 行 footnote pointer | 在 tasks.md 直接寫 `> **SRP 例外（已知並接受）**：...` 多行區塊 |
+| Waiver 寫進 §3；formal doc 用中性 design rationale 解釋 | 在 tasks.md 寫 `> **SRP 例外（已知並接受）**：...` 多行區塊 |
 | Decision 用 reviewer 原 letter ID（Decision D）| 重新編號（Decision 1, Decision 2）|
 | §3 Waiver 必填 `Trade-off accepted` 欄 | 只寫「為什麼保留」不寫「失去了什麼」|
 | Architecture Decision 拍板後立刻寫進 §2 | 拖到全部 review 收斂後才補寫（細節已模糊）|
 | FP1 寫 Resolution 欄說明如何避免重複提出 | 只記「reviewer 誤判」不記如何防止再犯 |
-| Pointer 寫「異常的性質 + cross-ref」（例「SRP 違反為已知並接受 — §W1」）| 只寫「see §W1」沒交代性質 |
 | 跨 review 種類用獨立 letter 序（D 與 I 各自累加）| 把 design / impl issue 混在同 letter 序 |
+| Formal doc 100% 不出現 review-log reference / pointer / letter tag | 用 `> ⓘ ... — 詳見 review-log §W1` footnote pointer（1.5.0 已廢止）|
+| Formal doc 解釋設計理由用中性 prose（技術 / codebase 慣例 / 反面後果）| 用 `per Decision X` / `reviewer 建議` / `Round N 提出` 等 review-residue |
 
 ---
 

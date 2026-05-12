@@ -77,27 +77,46 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
   - [ ] 包含**測試任務**
   - [ ] 每個任務只做一件事（Single Responsibility）
 
-#### 跨文件 Review-Residue 檢查（NEW）
+#### 跨文件 Review-Residue 檢查
 
-正式文件不准夾雜 review 過程的 audit trail（豁免說明 / Decision 全文 / reviewer 註記）— 這類內容應寫在 `review-log.md`，正式文件最多保留 1 行 footnote pointer。
+正式文件 **100% 隔離原則**：requirements.md / design.md / tasks.md **完全不可**出現 review 過程的任何痕跡 — 包含 Decision content、reviewer references、process narration、豁免說明、review-log 引用、footnote pointer。所有這類 artifact 屬 `review-log.md`，formal doc 物理隔離。
 
 對 requirements.md / design.md / tasks.md 逐一掃描，**發現以下 pattern 視為不通過**：
 
-- [ ] `> **.*例外.*[：:]`（中英冒號）— 結構化豁免區塊（如「SRP 例外（已知並接受）：...」）
-- [ ] `> \*\*Waiver.*\*\*` / `> \*\*WAIVED.*\*\*` — 英文豁免標記
-- [ ] `<!-- REVIEWER NOTE` / `<!-- WAIVED` / `<!-- Round` — HTML 註解形式的 review 註記
-- [ ] `> .*reviewer.*標記.*為.*級` — 引用 reviewer 嚴重度分級的散文敘述
-- [ ] 任何超過 1 行的 `> ⓘ` blockquote pointer（pointer 規定只能 1 行）
-- [ ] 任何引用 `review-log` 但**不**用 `→ review-log.md §<id>` 格式的 reference
+**A. Decisions / ADR 段落（任何形式）**：
+- [ ] `^##+ Architecture Decisions?( Record)?$`
+- [ ] `^##+ Decisions?( Record| Log)?$`
+- [ ] `^##+ ADR( Log| Record)?$`
+- [ ] `^##+ Design Decisions?$`
+- [ ] `^##+ Key (Design )?Decisions?$`
+
+**B. Reviewer letter tag / 編號引用**：
+- [ ] `\(per (user )?(Decision|Bug|Smell|Issue) [A-Z]+\)` — `(per Decision O)`, `(per Smell G)`
+- [ ] `\b(Decision|Bug|Smell) [A-Z]{1,3}\b` 出現於 prose 或 table cell（落單字母如 `Bug A`、`Decision AL`）
+- [ ] `\bRound [DI]?\d+( review)?\b` — 出現 Round 編號（`Round D2`, `Round 3 review`）
+
+**C. Review 過程敘述 / 豁免宣告**：
+- [ ] `reviewer (建議|標記|提出|認為|要求)` — 引用 reviewer 行為的散文
+- [ ] `user (在 Round|拍板|決定)` — 引用 user 在 review 中拍板的敘述
+- [ ] `> \*\*.*例外.*[：:]` / `> \*\*Waiver` / `> \*\*WAIVED` — 結構化豁免區塊
+- [ ] `<!-- (REVIEWER NOTE|WAIVED|Round)` — HTML 註解形式的 review 註記
+
+**D. Review-log 引用 / footnote pointer（1.5.0 起完全禁止）**：
+- [ ] `review-log(\.md)?` — formal doc 內提到 review-log（任何形式）
+- [ ] `> ?ⓘ ` — footnote pointer 符號（曾於 1.4.0 允許，1.5.0 廢止）
+- [ ] `→ §[WD\d]` / `→ Waivers? §` / `→ Decisions? §` / `→ FP\d` — 指向 review-log section 的引用
 
 **允許的形式**（不應被標為違規）：
 
-- 純粹 design rationale 散文（不引用 reviewer / 不標豁免）
-- 1 行 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer
+- 純粹 **中性 design rationale** — 解釋技術決定時用「技術限制 / codebase 慣例 / 反面後果」描述，**不**揭露 reviewer 來源、Decision 編號、review 過程
+  - ✅ 例：「Synchronous for atomicity — splitting would leave intermediate states violating schema invariants」
+  - ✅ 例：「Returns None per upstream convention (see UserService)」
+  - ❌ 例：「Synchronous per Decision AL accepted in Round 3」
 
-**為什麼這樣檢**：使用者觀察到 review/resolve 過程中正式文件會被 inline waiver 區塊污染（例如 tasks.md task 描述中夾帶 6-8 行「SRP 例外（已知並接受）：...」），喪失 single source of truth 可讀性。此 check 強制把這類 artifact 移到 review log。
+**為什麼這樣檢**：使用者實際執行 1.4.0 後觀察到 agent 仍會把整段 Architecture Decisions Record + reviewer letter tag + Round 過程敘述寫進 design.md（即使 1.4.0 verifier 禁止 inline waiver block）。1.5.0 加碼禁止所有 review-process 痕跡，formal doc 與 review-log **物理隔離**。
 
 詳細寫入規範：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`
+Bad / Good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 #### Design vs Requirements 對齊檢查
 - **需求覆蓋**：
