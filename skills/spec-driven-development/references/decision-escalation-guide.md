@@ -290,6 +290,21 @@ options:
 
 ---
 
+## Decision 拍板後寫入 Review Log
+
+User 透過 `AskUserQuestion` 回答 Decision 後，主 agent 必須立即把結論寫進 `review-log.md` §2 Architecture Decisions 區塊。寫入規範詳見 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`，重點：
+
+- Decision 標題用 reviewer 原 letter ID（例 `### Decision D（raised at D2）`），不重新編號
+- 必填欄位：`Problem` / `Options considered` / `Chosen` / `Rationale (user, YYYY-MM-DD)` / `Affects`
+- `Rationale` 欄寫 user 在 AskUserQuestion 補充的 free-text 理由（如有）+ 主 agent 整理 — **不要只寫「user 選了 Option 2」**，要寫「為什麼」
+- 同步更新 §1 Audit Trail 表格：該 Decision 列 Status 改 `decision-resolved`、Resolution 改 `→ §2 Decision <letter>`
+
+**為什麼立即寫入而非 batch**：user 答完 AskUserQuestion 後 rationale 還是原話，等到全部 Decision 都拍板再 batch 補寫，細節已失真且容易遺漏。
+
+**為什麼正式文件不留 Decision 全文**：design.md / tasks.md 應描述「決定後的世界長什麼樣」，不該包含拍板過程的 Options / Trade-offs / 拒絕理由。需要交代某處異常時，正式文件用 1 行 footnote pointer（`> ⓘ <一句話> — 詳見 review-log.md §2 Decision <letter>`），完整 context 留在 log。
+
+---
+
 ## 為什麼不寫 MUST / NEVER
 
 skill-creator 哲學：解釋「為什麼這件事重要」比硬性規定更有效。本指引的「✅/❌」是經驗派的「在這個 plugin context 下做這樣比較好」，不是禁令。例如：

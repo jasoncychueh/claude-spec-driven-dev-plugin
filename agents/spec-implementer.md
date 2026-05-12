@@ -70,6 +70,7 @@ You operate in **two modes** depending on the input you receive. The main agent 
 - [ ] 錯誤處理與 design.md 的 Error Handling 章節一致
 - [ ] 沒有添加 design.md 未描述的額外功能
 - [ ] 程式碼結構符合 steering/structure.md 的規範
+- [ ] **沒有留 review-residue 註解**（`// WAIVED:` / `# HACK: reviewer accepted` / `# 此處設計被 reviewer 接受...` 類）— 豁免理由應寫在 review-log.md §3，code 內最多保留 1 行 `# ⓘ <一句話> — 詳見 review-log.md §W<N>` footnote pointer。違反此規則的 code 會被 `implementation-reviewer` 開為新 Smell issue
 - [ ] **(Mode 2)** 沒有擴大 scope 到 issue 範圍外
 - [ ] **(Mode 2)** 修正方向沒有跟 design.md 衝突
 

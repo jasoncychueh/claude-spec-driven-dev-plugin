@@ -77,6 +77,28 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
   - [ ] 包含**測試任務**
   - [ ] 每個任務只做一件事（Single Responsibility）
 
+#### 跨文件 Review-Residue 檢查（NEW）
+
+正式文件不准夾雜 review 過程的 audit trail（豁免說明 / Decision 全文 / reviewer 註記）— 這類內容應寫在 `review-log.md`，正式文件最多保留 1 行 footnote pointer。
+
+對 requirements.md / design.md / tasks.md 逐一掃描，**發現以下 pattern 視為不通過**：
+
+- [ ] `> **.*例外.*[：:]`（中英冒號）— 結構化豁免區塊（如「SRP 例外（已知並接受）：...」）
+- [ ] `> \*\*Waiver.*\*\*` / `> \*\*WAIVED.*\*\*` — 英文豁免標記
+- [ ] `<!-- REVIEWER NOTE` / `<!-- WAIVED` / `<!-- Round` — HTML 註解形式的 review 註記
+- [ ] `> .*reviewer.*標記.*為.*級` — 引用 reviewer 嚴重度分級的散文敘述
+- [ ] 任何超過 1 行的 `> ⓘ` blockquote pointer（pointer 規定只能 1 行）
+- [ ] 任何引用 `review-log` 但**不**用 `→ review-log.md §<id>` 格式的 reference
+
+**允許的形式**（不應被標為違規）：
+
+- 純粹 design rationale 散文（不引用 reviewer / 不標豁免）
+- 1 行 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer
+
+**為什麼這樣檢**：使用者觀察到 review/resolve 過程中正式文件會被 inline waiver 區塊污染（例如 tasks.md task 描述中夾帶 6-8 行「SRP 例外（已知並接受）：...」），喪失 single source of truth 可讀性。此 check 強制把這類 artifact 移到 review log。
+
+詳細寫入規範：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`
+
 #### Design vs Requirements 對齊檢查
 - **需求覆蓋**：
   - [ ] requirements.md 中的**每個 User Story** 都有對應的 design 元件
@@ -107,6 +129,11 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
 ### tasks.md
 ✅ 編號格式：{pass}/{total} 項通過
 ✅ 內容完整性：{pass}/{total} 項通過
+
+### 跨文件 Review-Residue 檢查
+✅ requirements.md: 無 inline waiver / decision 區塊
+✅ design.md: 無 inline waiver / decision 區塊
+✅ tasks.md: 無 inline waiver / decision 區塊
 
 ### Design vs Requirements 對齊
 ✅ 需求覆蓋：{pass}/{total} 項通過

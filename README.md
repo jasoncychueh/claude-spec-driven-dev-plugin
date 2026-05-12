@@ -5,9 +5,10 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 ## Features
 
 - **Steering Documents**: Project-level guidance (product vision, tech stack, code structure)
-- **Feature Specs**: Requirements, design, and task documents per feature
+- **Feature Specs**: Requirements, design, tasks, and review-log per feature
 - **Automated Verification**: Spec completeness and tasks-design alignment checks
 - **Agent-Based Implementation**: Parallel implementation with cross-agent review
+- **Review Log Discipline**: Waivers / Decisions / round-by-round audit trail live in `review-log.md`; formal docs (requirements / design / tasks / code) stay clean
 
 ## Commands
 
