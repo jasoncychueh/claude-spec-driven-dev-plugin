@@ -34,11 +34,42 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 
 ## Installation
 
-```bash
-claude /install-plugin path/to/claude-spec-driven-dev-plugin
+### From GitHub (recommended)
+
+Run these inside Claude Code. The first command registers this repo as a plugin
+marketplace (defined by `.claude-plugin/marketplace.json`); the second installs
+the plugin from it:
+
+```
+/plugin marketplace add jasoncychueh/claude-spec-driven-dev-plugin
+/plugin install spec-driven-development@claude-spec-driven-dev-plugin
 ```
 
-Or add to your marketplace registry.
+> `spec-driven-development` is the plugin name; `claude-spec-driven-dev-plugin`
+> is the marketplace name. They differ — keep both in the `plugin@marketplace`
+> argument.
+
+You can also install interactively by running `/plugin`, then choosing
+**claude-spec-driven-dev-plugin → spec-driven-development**.
+
+`/plugin marketplace add` also accepts a full git URL if you prefer:
+
+```
+/plugin marketplace add https://github.com/jasoncychueh/claude-spec-driven-dev-plugin.git
+```
+
+### From a local clone (development)
+
+```bash
+git clone https://github.com/jasoncychueh/claude-spec-driven-dev-plugin.git
+```
+
+Then point the marketplace at the local path and install:
+
+```
+/plugin marketplace add path/to/claude-spec-driven-dev-plugin
+/plugin install spec-driven-development@claude-spec-driven-dev-plugin
+```
 
 ## Core Principles
 
