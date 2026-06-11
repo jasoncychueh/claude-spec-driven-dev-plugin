@@ -95,14 +95,18 @@
 | Mode | design-reviewer 讀的 file | implementation-reviewer 讀的 |
 |---|---|---|
 | Spec mode | `.spec/specs/{feature}/design.md` | spec-implementer 寫的 code |
-| Quick fix mode | `~/.claude/plans/<random>.md`（Claude Code 在 EnterPlanMode 時自動建立的 plan file） | 主 agent 寫的 code |
+| Quick fix mode | 主 agent 指定的 plan file path | 主 agent 寫的 code |
 
-Plan file 是真實檔案，跟 design.md 一樣可被 Read。主 agent 在 Plan Mode 期間用 Edit incrementally 修改 plan file，每輪 review 後也是用 Edit 修這個檔案。**Reviewer agent prompt 完全不需要為兩種 mode 分別處理** — 它都是「讀指定 path 的 file → 產 issue list」。
+**Plan file 路徑**：Claude Code 通常在 EnterPlanMode 時自動建立 plan file（以系統實際提供的路徑為準，主 agent 進 Plan Mode 後確認）；若環境沒有提供 plan file，主 agent 自建 `.spec/quickfix/<slug>.md` 代替。不要寫死特定路徑 — 這是版本相依的內部行為。
+
+Plan file 是真實檔案，跟 design.md 一樣可被 Read。主 agent 在 Plan Mode 期間用 Edit incrementally 修改 plan file，每輪 review 後也是用 Edit 修這個檔案。**Reviewer 的核心機制兩種 mode 共用** — 都是「讀主 agent 指定 path 的 file → 產 issue list」，差別只在主 agent 給的 path。
 
 Quick fix mode 的關鍵特性：
 - design-reviewer 多輪 review 在 **Plan Mode 內**完成（已驗證 sub-agent 在 Plan Mode 期間可被 invoke）
 - ExitPlanMode 提交給 user approve 的就是**已 reviewed 的最終版**
 - user 看不到 review 過程，只看到收斂後的 plan
+
+**Steering 與 Quick Fix Mode**：Quick Fix Mode 不要求 steering 存在；但若專案已有 `.spec/steering/`，主 agent 應載入並讓 reviewer 知道（steering alignment 是 review 面向之一），且 quick fix 過程發現的新慣例同樣走 SKILL.md「Steering 演進機制」昇華。
 
 ---
 

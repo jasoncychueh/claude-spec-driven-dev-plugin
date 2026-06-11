@@ -134,7 +134,7 @@
 
 ## Tasks vs Design 對齊檢查
 
-在 `/load-spec` 載入 tasks.md 前，驗證其與 design.md 的對齊性。
+在 `/create-spec` / `/update-spec` 完成時、或 `/verify-spec` Stage 2（Stage 1 通過後）執行，驗證 tasks.md 與 design.md 的對齊性。
 
 ### 1. 元件覆蓋檢查
 
@@ -256,17 +256,17 @@
 ### 執行 Spec 完整性檢查
 
 ```
-觸發條件：/create-spec 完成時
-執行者：主 Agent
+觸發條件：/create-spec 完成時、/update-spec 修改 requirements.md 後、/verify-spec Stage 1
+執行者：spec-verifier agent
 結果：未通過項目需補完
 ```
 
 ### 執行 Tasks vs Design 對齊檢查
 
 ```
-觸發條件：/load-spec 載入 requirements.md 和 design.md 後
-執行者：主 Agent
-結果：通過才載入 tasks.md，否則顯示不一致項目
+觸發條件：/create-spec、/update-spec 完成時，或 /verify-spec Stage 2（Stage 1 通過後）
+執行者：tasks-design-verifier agent
+結果：通過才可執行 /implement，否則顯示不一致項目
 ```
 
 ### 執行設計變更影響評估
@@ -285,7 +285,7 @@
 
 ## Design Review 審查清單
 
-`design-reviewer` agent 在 `/create-spec` 過程中審 design.md 時使用。每輪 review 對應的 issue 須按下列五大類覆蓋。**這個 checklist 不是格式檢查（那是 spec-verifier 的工作），是設計品質檢查**。
+`design-reviewer` agent 審 design.md（Spec Mode）或 plan file（Quick Fix Mode）時使用。每輪 review 對應的 issue 須按下列分類覆蓋。**這個 checklist 不是格式檢查（那是 spec-verifier 的工作），是設計品質檢查**。
 
 ### 1. Hidden Assumptions（隱性假設）
 
@@ -326,7 +326,17 @@
 - [ ] **Under**：明顯會發生的擴展（多租戶 / 多語言）有考慮嗎？
 - [ ] **Under**：MVP 階段必要的 monitoring / auth / audit 有規劃嗎？
 
-### 6. Architecture Decisions（必須 escalate 給使用者）
+### 6. Steering Alignment（與 steering 文件對齊，若 steering 存在）
+
+- [ ] 設計是否違反 tech.md 記錄的技術選型、架構模式、設計哲學？
+- [ ] 是否違反 tech.md 記錄的慣例（錯誤處理風格 / 依賴注入 / logging 等）？
+- [ ] 是否違反 structure.md 的模組邊界、依賴方向、命名規範？
+- [ ] 是否引入 steering 未記錄的新技術 / 框架 / pattern？
+- [ ] 設計是否依賴或確立了 steering 未記錄的專案級原則？（→ 列為 Steering Candidate，不是 issue）
+
+**判斷紀律**：違反 steering 既有條文 → issue（通常 High — 它是專案明文規範）；與 steering 衝突但可能是 steering 過時 → Architecture Decision（user 決定修設計還是更新 steering）；steering 沒寫而本設計確立新原則 → Steering Candidate（見 review-protocol.md）。
+
+### 7. Architecture Decisions（必須 escalate 給使用者）
 
 對每個「兩條路都對得各有 trade-off」的選擇：
 
@@ -338,7 +348,7 @@
 
 ## Implementation Review 審查清單
 
-`implementation-reviewer` agent 在 `/implement` Stage 2 多輪 review loop 中使用。每輪 review 對應的 issue 須按下列六大類覆蓋。
+`implementation-reviewer` agent 在 `/implement` Stage 2（或 Quick Fix Mode 實作後）多輪 review loop 中使用。每輪 review 對應的 issue 須按下列分類覆蓋。
 
 ### 1. 跨 Agent 整合（Stage 1 並行實作的整合衝突）
 
@@ -382,7 +392,16 @@
 - [ ] Mock 是否合理？沒有 mock 太多形同虛設？
 - [ ] 測試是否 deterministic（沒有 race / sleep-based flaky）？
 
-### 6. Architecture Decisions（必須 escalate 給使用者）
+### 6. Steering Alignment（與 steering 文件對齊，若 steering 存在）
+
+- [ ] 程式碼組織 / 命名 / import 是否符合 structure.md？
+- [ ] 實作是否遵循 tech.md 記錄的慣例（錯誤處理風格 / 非同步模式 / logging / test 寫法）？
+- [ ] 是否引入 tech.md 未記錄的新依賴 / 技術？
+- [ ] 實作是否確立了 steering 未記錄的新慣例？（→ 列為 Steering Candidate，不是 issue）
+
+**判斷紀律**：同 Design Review §6 — 違反既有條文 → issue（通常 High）；衝突但可能 steering 過時 → Architecture Decision；未記錄的新原則 → Steering Candidate。
+
+### 7. Architecture Decisions（必須 escalate 給使用者）
 
 對每個「兩條路都對得各有 trade-off」的實作選擇：
 
@@ -390,13 +409,6 @@
 - [ ] 是否說明「為什麼沒有業界共識」？
 - [ ] 主 agent 是否用 AskUserQuestion 把選擇遞給使用者拍板？
 
-### 嚴重度分級（Design Review 與 Implementation Review 共用）
+### 嚴重度分級與收斂規則
 
-| 級別 | 定義 |
-|------|------|
-| Critical | 不修會出 production 事故 |
-| High | 不修 6 個月內變技術債或誤用 |
-| Medium | 不修增加維護成本 |
-| Low | nit-pick，可延後 |
-
-**收斂規則**：所有 Critical/High 必須清零，Medium/Low 可由 user 決定保留。
+以 `review-protocol.md` 為**唯一來源**（嚴重度四級定義、Medium/Low defer-and-batch、收斂保險絲），此處不重複列表 — 兩份清單必然漂移。

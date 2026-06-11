@@ -11,13 +11,13 @@
 **正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。兩者物理隔離。**
 
 - requirements.md / design.md / tasks.md / production code → **完全不出現** review 過程的任何痕跡（waiver / decision content / reviewer references / process narration / review-log 引用 / footnote pointer 全禁止）
-- review-log.md → 集中保留四類 artifact（audit trail / Decisions / Waivers / False Positives）
+- review-log.md → 集中保留五類 artifact（audit trail / Decisions / Waivers / False Positives / Steering Updates）
 
 當正式文件需要交代「為什麼這個 Component 這樣設計」/ 「為什麼這個 task 看起來大」時，用**中性 design rationale**（技術限制 / codebase 慣例 / 反面後果）整合進對應段落 — **不揭露** reviewer / Decision / review-log。
 
 **為什麼 100% 隔離**：
 1. 正式文件被讀的次數遠多於 review log；保留 single source of truth 可讀性是核心 KPI
-2. Footnote pointer 看似輕量，實際讓 agent 養成「我可以在 design.md 提一下 review-log」的習慣，逐步退化成 inline waiver block（1.4.0 實測證明：開了 pointer 後門，agent 自然加 ADR 段落 + reviewer letter tag + Round 過程敘述）
+2. Footnote pointer 看似輕量，實際讓 agent 養成「我可以在 design.md 提一下 review-log」的習慣，逐步退化成 inline waiver block（實測證明：開了 pointer 後門，agent 自然加回 ADR 段落 + reviewer letter tag + Round 過程敘述）
 3. 設計理由用中性技術 prose 即可表達；不需要為了「強調這是討論過的」而引用 reviewer — reader 不需要這層信息，需要這層信息的人去看 review-log
 
 詳細 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
@@ -65,7 +65,7 @@
 
 ---
 
-## 四大區塊寫入規範
+## 五大區塊寫入規範
 
 ### §1 Audit Trail
 
@@ -122,13 +122,27 @@
 
 **為什麼需要這節**：reviewer 是獨立 invocation，沒有跨 round 記憶。沒有 FP 紀錄會讓同個誤判反覆出現，浪費 review round。
 
+### §5 Steering Updates（昇華紀錄）
+
+當開發過程發現的專案級原則經 user 確認寫入 steering 後（依 SKILL.md「Steering 演進機制」），在此記錄一列：
+
+```markdown
+| #   | 日期       | 原則（一句話）                          | 寫入位置                | 來源        |
+|-----|------------|----------------------------------------|------------------------|------------|
+| SU1 | 2026-05-12 | service 層錯誤一律 raise，不用 Result type | tech.md §Error Handling | D2 SC-1    |
+```
+
+**來源欄取值**：reviewer 的 SC 編號（`D2 SC-1`）、Architecture Decision 編號（`Decision D`）、或 `implementer report`（實作過程發現）。
+
+**為什麼需要這節**：steering 改了但沒人記得「為什麼加這條」時，這張表是反查入口 — 從原則回溯到觸發它的 review / Decision 脈絡。steering 本身只寫原則（決定後的世界），不寫來源。
+
 ---
 
 ## 引用協定 — 完全隔離
 
 **Formal doc ↔ review-log 之間沒有引用關係**。
 
-1.4.0 曾允許 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer 作為「異常 + tracked」signal。**1.5.0 完全廢止此 pointer 概念** — 因實測 agent 看到 pointer 被允許，會逐步退化成 ADR 段落 + reviewer letter tag + Round 過程敘述（formal doc 100% 隔離才能根除這個 drift）。
+舊版曾允許 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer 作為「異常 + tracked」signal，**現已完全廢止** — 實測 agent 看到 pointer 被允許，會逐步退化成 ADR 段落 + reviewer letter tag + Round 過程敘述（formal doc 100% 隔離才能根除這個 drift）。
 
 ### Formal doc 解釋「為什麼這樣設計」的正確方式
 
@@ -168,7 +182,8 @@ Review log 內部使用 letter ID + W / FP 編號 cross-reference（如 §1 Audi
 | Architecture Decision 拍板後立刻寫進 §2 | 拖到全部 review 收斂後才補寫（細節已模糊）|
 | FP1 寫 Resolution 欄說明如何避免重複提出 | 只記「reviewer 誤判」不記如何防止再犯 |
 | 跨 review 種類用獨立 letter 序（D 與 I 各自累加）| 把 design / impl issue 混在同 letter 序 |
-| Formal doc 100% 不出現 review-log reference / pointer / letter tag | 用 `> ⓘ ... — 詳見 review-log §W1` footnote pointer（1.5.0 已廢止）|
+| Formal doc 100% 不出現 review-log reference / pointer / letter tag | 用 `> ⓘ ... — 詳見 review-log §W1` footnote pointer（已廢止）|
+| Steering 昇華後在 §5 記一列（原則 / 位置 / 來源）| steering 改了但 review log 無紀錄，未來無從反查為什麼加這條 |
 | Formal doc 解釋設計理由用中性 prose（技術 / codebase 慣例 / 反面後果）| 用 `per Decision X` / `reviewer 建議` / `Round N 提出` 等 review-residue |
 
 ---
@@ -182,6 +197,7 @@ Review log 內部使用 letter ID + W / FP 編號 cross-reference（如 §1 Audi
 3. 若 issue 成為 waiver → 在 §3 補完整 Waiver 區塊，§1 該列 Resolution 改 `→ §3 W{N}`
 4. 若 issue 是 Architecture Decision 拍板 → 在 §2 補完整 Decision 區塊，§1 改 `→ §2 Decision <letter>`
 5. 若 issue 確認為誤判 → 在 §4 補 False Positive 區塊，§1 改 `→ §4 FP{N}`
+6. 若某原則經 user 確認寫入 steering → 完成 steering 編輯後在 §5 加一列（原則 / 寫入位置 / 來源）
 
 **為什麼一筆一筆即時更新而非 batch**：reviewer 結束時 context 還新鮮，wait 太久細節會模糊；user 答 AskUserQuestion 後立即寫入 §2，rationale 還是 user 原話。
 
@@ -242,6 +258,12 @@ drop group_id、rename extracted_*、加 FK CASCADE 任一拆分都會留下 sch
 process_batch 是內部 callee，呼叫端已保證每個 batch_id 只進來一次
 **Resolution**: process_batch docstring 加一行 "idempotency enforced by caller (see src/webhook.py)"，
 避免後續 reviewer 重複提出
+
+## 5. Steering Updates
+
+| #   | 日期       | 原則                                      | 寫入位置                | 來源     |
+|-----|------------|-------------------------------------------|------------------------|----------|
+| SU1 | 2026-05-12 | cache 類元件預設 TTL 失效，不做 explicit invalidation | tech.md §Caching        | Decision D |
 ```
 
 ---

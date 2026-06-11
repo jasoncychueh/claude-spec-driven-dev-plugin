@@ -4,7 +4,7 @@ Formal doc（requirements.md / design.md / tasks.md / production code）與 revi
 
 寫文件前若不確定某段內容該放哪裡，先看本文件對照組。
 
-> 為什麼這份 doc 存在：1.4.0 用 verifier 事後檢測，但 agent 仍會習慣性引入 ADR / reviewer letter tag / Round 過程敘述（業界 Architecture Decision Records 是常見 pattern，agent 訓練資料含大量範例）。1.5.0 加碼 — 在 agent 寫文件當下能 reach 的地方（template、guide、本份 bad-examples）就把 negative pattern 教清楚。
+> 為什麼這份 doc 存在：僅靠 verifier 事後檢測時，agent 仍會習慣性引入 ADR / reviewer letter tag / Round 過程敘述（業界 Architecture Decision Records 是常見 pattern，agent 訓練資料含大量範例）。所以在 agent 寫文件當下能 reach 的地方（template、guide、本份 bad-examples）就把 negative pattern 教清楚。
 
 ---
 
@@ -245,7 +245,7 @@ def update(self, key, value):
 **為什麼錯**：
 
 - 「WAIVED in implementation review Round I2」揭露 review 過程
-- 「See review-log.md §W3」即 1.4.0 footnote pointer，1.5.0 已禁止
+- 「See review-log.md §W3」是 footnote pointer — 任何指向 review-log 的引用都被禁止
 - Reader 看到此註解的反應：「Round I2 哪個 reviewer？User 是誰？理由還成立嗎？」— 答不出來，反而製造焦慮
 
 ### ✅ Good — 中性 code semantic comment

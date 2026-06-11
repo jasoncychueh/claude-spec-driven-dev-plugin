@@ -9,6 +9,7 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 - **Automated Verification**: Spec completeness and tasks-design alignment checks
 - **Agent-Based Implementation**: Parallel implementation with cross-agent review
 - **Review Log Discipline**: Waivers / Decisions / round-by-round audit trail live in `review-log.md`; formal docs (requirements / design / tasks / code) stay clean
+- **Living Steering**: review loops surface unrecorded project principles as steering candidates; user-confirmed updates flow back into steering docs as development progresses
 
 ## Commands
 
@@ -29,8 +30,9 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 | `spec-researcher` | Research existing solutions before design |
 | `spec-verifier` | Verify spec file completeness |
 | `tasks-design-verifier` | Verify tasks-design alignment |
+| `design-reviewer` | Multi-round design review until 0 issues (review only) |
 | `spec-implementer` | Implement code per spec |
-| `implementation-reviewer` | Review + fix implementation |
+| `implementation-reviewer` | Multi-round implementation review until 0 issues (review only) |
 
 ## Installation
 

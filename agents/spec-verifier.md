@@ -23,59 +23,7 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
 
 ### Step 2: 按 Checklist 逐項驗證
 
-按照 checklists.md 中「Spec 完整性檢查」的檢查項目，逐項驗證：
-
-#### requirements.md 檢查
-- **內容完整性**：
-  - [ ] 有 Introduction（功能概述、解決的問題）
-  - [ ] 說明 Alignment with Product Vision
-  - [ ] 所有需求都有 **User Story**（角色、功能、價值）
-  - [ ] 每個需求都有**可驗證的 Acceptance Criteria**
-  - [ ] 列出 Non-Functional Requirements（效能、安全性、可靠性）
-
-- **職責邊界檢查**（確保不越界到 design.md）：
-  - [ ] **不包含**技術架構選擇（如「使用 React」「採用 MVC」）
-  - [ ] **不包含**具體元件/類別設計
-  - [ ] **不包含**資料庫 schema 或資料模型定義
-  - [ ] **不包含**演算法實作細節
-  - [ ] **不包含**程式碼結構或檔案路徑
-  - [ ] 所有內容都是從**用戶視角**描述
-
-#### design.md 檢查
-- **內容完整性**：
-  - [ ] 有 Overview（高階設計概述）
-  - [ ] 說明 Steering Document Alignment
-  - [ ] 有 Code Reuse Analysis（可復用的現有元件）
-  - [ ] 有 Architecture 架構圖（Mermaid）
-  - [ ] 每個 Component 都有：Purpose、Interfaces、Dependencies
-  - [ ] 定義了 Data Models（資料結構）
-  - [ ] 定義了 Error Handling 策略
-  - [ ] 有 Testing Strategy
-
-- **實作細節完整性**（確保包含足夠的技術資訊）：
-  - [ ] 包含 **API 規格**（端點、請求/回應格式）
-  - [ ] 包含**主要函數簽名**（參數、回傳值）
-  - [ ] 包含**演算法或處理流程**說明
-  - [ ] 包含**檔案結構**規劃
-
-- **職責邊界檢查**（確保不越界到 requirements.md）：
-  - [ ] **不重複**描述 User Story（只引用需求編號）
-  - [ ] **不重複**定義業務規則（只引用 requirements.md）
-  - [ ] **不包含**商業目標或價值說明
-  - [ ] 所有內容都是從**技術視角**描述
-
-#### tasks.md 檢查
-- **編號格式**：
-  - [ ] 任務以 **Phase 章節**分組（如 `## Phase 1: Data Layer`）
-  - [ ] 每個 Phase 內任務從 **1 開始**簡單遞增編號
-  - [ ] Phase 之間用 `---` 分隔
-
-- **內容完整性**：
-  - [ ] design.md 中的**所有元件**都有對應任務
-  - [ ] 任務順序考慮**依賴關係**（被依賴的排前面）
-  - [ ] 每個任務都有 **Prompt** 欄位
-  - [ ] 包含**測試任務**
-  - [ ] 每個任務只做一件事（Single Responsibility）
+checklists.md「Spec 完整性檢查」章節是檢查項目的**唯一來源** — requirements.md / design.md / tasks.md 的內容完整性、職責邊界、編號格式、以及「Design vs Requirements 對齊檢查」全部嚴格按該章節逐項執行。本文件**不重複列項**（兩份清單必然漂移），只補充下面這個 checklists.md 未涵蓋、屬於本 agent 特有職責的檢查。
 
 #### 跨文件 Review-Residue 檢查
 
@@ -101,9 +49,9 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
 - [ ] `> \*\*.*例外.*[：:]` / `> \*\*Waiver` / `> \*\*WAIVED` — 結構化豁免區塊
 - [ ] `<!-- (REVIEWER NOTE|WAIVED|Round)` — HTML 註解形式的 review 註記
 
-**D. Review-log 引用 / footnote pointer（1.5.0 起完全禁止）**：
+**D. Review-log 引用 / footnote pointer（完全禁止）**：
 - [ ] `review-log(\.md)?` — formal doc 內提到 review-log（任何形式）
-- [ ] `> ?ⓘ ` — footnote pointer 符號（曾於 1.4.0 允許，1.5.0 廢止）
+- [ ] `> ?ⓘ ` — footnote pointer 符號（已廢止）
 - [ ] `→ §[WD\d]` / `→ Waivers? §` / `→ Decisions? §` / `→ FP\d` — 指向 review-log section 的引用
 
 **允許的形式**（不應被標為違規）：
@@ -113,21 +61,10 @@ You are a Spec Verifier. Your job is to verify that spec files (requirements.md,
   - ✅ 例：「Returns None per upstream convention (see UserService)」
   - ❌ 例：「Synchronous per Decision AL accepted in Round 3」
 
-**為什麼這樣檢**：使用者實際執行 1.4.0 後觀察到 agent 仍會把整段 Architecture Decisions Record + reviewer letter tag + Round 過程敘述寫進 design.md（即使 1.4.0 verifier 禁止 inline waiver block）。1.5.0 加碼禁止所有 review-process 痕跡，formal doc 與 review-log **物理隔離**。
+**為什麼這樣檢**：實測觀察到 agent 會把整段 Architecture Decisions Record + reviewer letter tag + Round 過程敘述寫進 design.md（即使 verifier 已禁止 inline waiver block）。因此禁止**所有** review-process 痕跡，formal doc 與 review-log **物理隔離**。
 
 詳細寫入規範：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`
 Bad / Good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
-
-#### Design vs Requirements 對齊檢查
-- **需求覆蓋**：
-  - [ ] requirements.md 中的**每個 User Story** 都有對應的 design 元件
-  - [ ] requirements.md 中的**每個 Acceptance Criteria** 都能在 design 中找到實現方式
-  - [ ] 沒有 design 元件是 requirements.md **未提及**的功能
-
-- **非功能需求對應**：
-  - [ ] requirements.md 中的**效能需求**在 design.md 中有考慮
-  - [ ] requirements.md 中的**安全需求**在 design.md 中有對應措施
-  - [ ] requirements.md 中的**可靠性需求**在 design.md 中有對應設計
 
 ### Step 3: 輸出驗證報告
 

@@ -1,6 +1,6 @@
 ---
 name: tasks-design-verifier
-description: Use this agent when you need to verify alignment between tasks.md and design.md (Stage 2 of /verify-spec). This agent ensures that all tasks properly cover the design specifications and that there are no gaps or inconsistencies. IMPORTANT: This agent should only be invoked AFTER spec-completeness-verifier has passed (Stage 1). Should be invoked during /create-spec, /update-spec, or /verify-spec commands.
+description: "Use this agent when you need to verify alignment between tasks.md and design.md (Stage 2 of /verify-spec). This agent ensures that all tasks properly cover the design specifications and that there are no gaps or inconsistencies. IMPORTANT: This agent should only be invoked AFTER spec-verifier has passed (Stage 1). Should be invoked during /create-spec, /update-spec, or /verify-spec commands."
 model: sonnet
 color: yellow
 ---

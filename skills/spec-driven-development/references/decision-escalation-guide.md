@@ -172,7 +172,7 @@ options:
 6. **沒用 `preview` 欄位** — function 簽章直接貼 code 比文字描述清楚 100 倍
 7. **二選一框架太窄** — Architecture Decision 通常有 3-4 條路（例如 ContextVar 注入），只給 2 個選項等於 reviewer 已先剪了枝
 
-### 好範例（這份待 Jason 看完調整）
+### 好範例
 
 ```yaml
 question: |
@@ -301,13 +301,19 @@ User 透過 `AskUserQuestion` 回答 Decision 後，主 agent 必須立即把結
 
 **為什麼立即寫入而非 batch**：user 答完 AskUserQuestion 後 rationale 還是原話，等到全部 Decision 都拍板再 batch 補寫，細節已失真且容易遺漏。
 
+### 拍板後的昇華判斷（Steering 演進掛載點）
+
+寫完 §2 後，立即多想一步：這個 Decision 確立的是「**僅此 feature 的選擇**」還是「**專案級原則**」（未來其他 feature 也該遵循）？判斷線索：rationale 是否訴諸 feature 無關的理由（workload 特性、團隊偏好、codebase 一致性）、未來同類選擇是否該直接沿用不再問。
+
+若是專案級原則，依 SKILL.md「Steering 演進機制」當下就提議寫入 steering — user 剛拍完板、context 還在，追問「這條要不要進 tech.md 變成通則？」的成本最低。確認後輕量寫入 + 記入 review-log §5。
+
 ### Decision 結果如何反映到 design.md / tasks.md（中性化原則）
 
-**1.5.0 紀律**：Decision content（Options 比較、Chosen、Rationale、Round 來源）**只能存在於 `review-log.md §2`**。design.md / tasks.md **不得**：
+**隔離紀律**：Decision content（Options 比較、Chosen、Rationale、Round 來源）**只能存在於 `review-log.md §2`**。design.md / tasks.md **不得**：
 
 - 寫 `## Architecture Decisions` / `## Decisions Record` / `## ADR` 段落
 - 寫 `(per Decision X)` reviewer letter tag
-- 寫 `→ review-log §2 Decision X` footnote pointer（1.4.0 曾允許，1.5.0 完全廢止）
+- 寫 `→ review-log §2 Decision X` footnote pointer（已完全廢止）
 - 寫「user 在 Round N 拍板選 Option 2」等 review 過程敘述
 
 **Decision 結果若需要反映到 design.md（例如 user 選了 Option 1 而非 Option 2，這影響某 Component 的設計）**，做法：
@@ -326,7 +332,7 @@ User 對 Decision D 拍板「TTL invalidation, 60s」。
 
 兩者**內容互補但不引用**：design.md 是技術描述、review-log.md 是決策審計，物理隔離。
 
-**為什麼 100% 隔離**：design.md / tasks.md 是反覆閱讀的 truth source；夾雜 Decision audit trail 會稀釋技術描述的密度。1.4.0 允許 footnote pointer 後實測發現 agent 會 drift 成 ADR 段落 + reviewer letter tag — 唯一可靠的紀律是完全禁止任何 review-log reference。完整 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+**為什麼 100% 隔離**：design.md / tasks.md 是反覆閱讀的 truth source；夾雜 Decision audit trail 會稀釋技術描述的密度。實測允許 footnote pointer 後 agent 會 drift 成 ADR 段落 + reviewer letter tag — 唯一可靠的紀律是完全禁止任何 review-log reference。完整 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 ---
 

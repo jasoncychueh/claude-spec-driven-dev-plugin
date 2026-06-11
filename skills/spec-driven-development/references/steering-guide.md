@@ -105,4 +105,7 @@ Steering 文件必須隨專案演進持續維護：
 
 - **每次 /create-spec 時**：檢視新功能是否與 steering 一致，若引入新技術或新模式，應先更新 steering
 - **每次 /update-spec 時**：若設計變更涉及技術方向調整，應同步更新 steering
+- **開發過程中（Steering 演進機制）**：review loop 的 Steering Candidates、Architecture Decision 拍板後的昇華判斷、實作中的發現 — 經 user 確認後即時輕量寫入（不必走完整 /update-steering），詳見 SKILL.md「Steering 演進機制」
 - **定期檢視**：當 steering 描述與實際專案狀態出現落差時，主動建議更新
+
+注意：steering 本身只寫原則（決定後的世界），不寫「這條是哪次 review 加的」— 來源紀錄在對應 feature 的 review-log §5 Steering Updates。

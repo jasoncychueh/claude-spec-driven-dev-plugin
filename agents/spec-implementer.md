@@ -70,7 +70,7 @@ You operate in **two modes** depending on the input you receive. The main agent 
 - [ ] 錯誤處理與 design.md 的 Error Handling 章節一致
 - [ ] 沒有添加 design.md 未描述的額外功能
 - [ ] 程式碼結構符合 steering/structure.md 的規範
-- [ ] **沒有留 review-residue 註解**（`// WAIVED:` / `# HACK: reviewer accepted` / `# 此處設計被 reviewer 接受...` / `# ⓘ ... — see review-log.md §W<N>` footnote pointer 類）— 1.5.0 紀律：code 完全不可出現 review-log reference。豁免理由完整存於 review-log.md §3，code 內若需解釋設計選擇，用**中性 semantic comment**（系統 invariant / precondition / 依賴指向），範例：`# No locking: caller serializes via key-sharded queue (see EventDispatcher)`。違反此規則的 code 會被 `implementation-reviewer` 開為新 Smell issue。完整對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md` Pattern E
+- [ ] **沒有留 review-residue 註解**（`// WAIVED:` / `# HACK: reviewer accepted` / `# 此處設計被 reviewer 接受...` / `# ⓘ ... — see review-log.md §W<N>` footnote pointer 類）— code 完全不可出現 review-log reference。豁免理由完整存於 review-log.md §3，code 內若需解釋設計選擇，用**中性 semantic comment**（系統 invariant / precondition / 依賴指向），範例：`# No locking: caller serializes via key-sharded queue (see EventDispatcher)`。違反此規則的 code 會被 `implementation-reviewer` 開為新 Smell issue。完整對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md` Pattern E
 - [ ] **(Mode 2)** 沒有擴大 scope 到 issue 範圍外
 - [ ] **(Mode 2)** 修正方向沒有跟 design.md 衝突
 
@@ -88,6 +88,7 @@ You operate in **two modes** depending on the input you receive. The main agent 
 - 修改 / 新增的檔案清單
 - 自我驗證結果
 - 建置結果
+- **Steering 候選發現**（如有）：實作過程發現 steering 未記錄的專案級慣例 / 原則（或 design.md 沒規範、你不得不自行確立的 convention），列出供主 agent 評估是否昇華進 steering — **不要自行修改 steering 文件**，提報即可
 
 ---
 
