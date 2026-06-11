@@ -2,6 +2,17 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.2 (2026-06-12)
+
+修正 1.6.1 briefing 實測完全不觸發的問題。根因有二：(a) 純文字輸出步驟沒有 blocking tool call，agent 會跳過或跟下一步擠在同一輪；(b) SKILL.md 在任務開頭載入，briefing 決策點在幾十輪 tool call 之後，步驟指示早已遠離注意焦點（或被 context compaction 摘要掉）。
+
+- **兩拍制停點**：briefing 輸出後必須立即接 AskUserQuestion（「繼續」/「有疑問」）— tool call 才是強制停點，user 確認後才能進下一步（ExitPlanMode / 結束 /create-spec / Stage 1）
+- **三層轉場提醒**（把提醒放在轉場時刻的最新 context，不只靠任務開頭的步驟清單）：
+  1. review-protocol.md 收斂結論模板附帶續步提醒（design 收斂 → briefing 在 ExitPlanMode 前）
+  2. tasks-design-verifier 通過報告附帶 Spec Briefing 續步提醒（原樣輸出指定文字）
+  3. 新增 `hooks/hooks.json`：PreToolUse hook 攔 ExitPlanMode，harness 強制注入 briefing 檢查提醒（永不 block，只注入 systemMessage）— 不依賴模型自覺的最後防線
+- 注意：hooks 在 session 啟動時載入 — 更新 plugin 後需重啟 session 才生效
+
 ## 1.6.1 (2026-06-11)
 
 - **Briefing 機制（Brief Before Build，核心原則 8）**：實作開始前主 agent 用對話輸出 spec / plan 重點摘要，讓 user 低成本進入狀況、在最便宜的時點觸發討論。三個觸發點：

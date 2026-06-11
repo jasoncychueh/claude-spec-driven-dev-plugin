@@ -142,8 +142,13 @@ Review 時讀過 steering 文件後，若發現「本設計 / 實作所依賴或
 
 ### 結論
 [ ] 0 issues — 收斂，可進入下一階段（Steering Candidates 不計入 issue 數）
+    ⚠️ 主 agent 收斂後續步提醒：若 SKILL.md 規定下一步是 Briefing 停點
+    （Quick Fix Mode design 收斂 → ExitPlanMode 前必須先完成 Plan Briefing 兩拍制：
+    briefing 全文 + AskUserQuestion），不可跳過直接進下一階段
 [x] {N} issues found — 主 agent 須處理（修正 + 對 Decision 回問 user）後重新進入下一輪
 ```
+
+**為什麼收斂結論要夾帶續步提醒**：主 agent 的 SKILL.md 指示是任務開頭載入的，經過多輪 review 後早已遠離注意焦點（甚至被 context compaction 摘要掉）。Reviewer 的收斂報告是「轉場時刻的最新 context」— 把下一步提醒放在這裡，主 agent 才會在正確的時刻看到它。
 
 ## Reviewer 共用紀律
 

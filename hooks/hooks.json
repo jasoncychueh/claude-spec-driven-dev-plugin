@@ -1,0 +1,17 @@
+{
+  "description": "Workflow checkpoint enforcement: reminds the main agent that the Plan Briefing two-beat (briefing text + AskUserQuestion stop) is mandatory around ExitPlanMode in spec-driven Quick Fix Mode.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a checkpoint reminder for the spec-driven-development plugin. Its Quick Fix Mode workflow REQUIRES a Plan Briefing checkpoint around ExitPlanMode: the main agent must output a conversational briefing (plan summary in plain language, key concepts, resolved decisions, risks) followed by an AskUserQuestion stop so the user can confirm understanding before implementation. You cannot see the conversation history, so ALWAYS return permissionDecision \"allow\" — never block. Attach this systemMessage verbatim: 'spec-driven-development 停點檢查：若本任務正在走 Quick Fix Mode 且尚未交付 Plan Briefing（兩拍制：briefing 全文 + AskUserQuestion 確認），必須在退出 Plan Mode 後、動手寫任何 code 之前，立即補上 briefing 兩拍 — 依 briefing-guide.md。若 briefing 已交付且 user 已確認，或此 plan 不屬於 spec-driven workflow，忽略本提醒。'",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

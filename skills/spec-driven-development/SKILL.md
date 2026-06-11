@@ -120,7 +120,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 1. **EnterPlanMode** — 確認本次 plan file 的實際路徑（Claude Code 通常自動建立；若環境未提供 plan file，自建 `.spec/quickfix/<slug>.md` 代替）。若專案已有 `.spec/steering/`，一併載入 — reviewer 會做 steering alignment，且發現的新慣例走「Steering 演進機制」
 2. **撰寫 plan draft** — 主 agent 用 Edit tool 把 plan 寫進 plan file。**內容請依 `plan-content-guide.md` 規範**（聚焦 substance，不寫 process narration）。在 plan file 結尾加 `## Review Log` 區段（依 `review-log-template.md` 五大區塊 skeleton）— Quick Fix Mode 的 review log 寫在 plan file 內，不另開檔案
 3. **design-reviewer multi-round loop（強制）** — 告訴 reviewer plan file path，依 `review-protocol.md` 跑到 0 issues（Medium/Low 採 defer-and-batch；第 5 輪仍有新 Critical/High 觸發收斂保險絲）。Architecture Decisions 用 AskUserQuestion 遞給 user 拍板；Bugs/Smells 主 agent 用 Edit 修 plan file；Steering Candidates 累積待批次處理。**每輪結束後依 `review-log-guide.md` 更新 plan file 的 `## Review Log` 區段**（§1 Audit Trail 加新列、Decisions/Waivers 補對應子節）
-4. **Plan Briefing（對話輸出，強制）** — review 收斂後、ExitPlanMode **之前**，依 `briefing-guide.md` 用文字輸出整個規劃的 summary 與重要概念（一句話定位 / 改動重點 / 拍板的 Decisions / 風險），結尾邀請 user 提出疑慮 — ExitPlanMode 呈現的是完整 plan file，briefing 是它的人類入口。User 提出問題 → 口頭澄清或 Edit plan file（涉及設計實質則補一輪 review）
+4. **Plan Briefing（強制，兩拍制）** — review 收斂後、ExitPlanMode **之前**：(a) 依 `briefing-guide.md` 用文字輸出整個規劃的 summary 與重要概念（一句話定位 / 改動重點 / 拍板的 Decisions / 風險）；(b) **立即接 AskUserQuestion**（「沒問題，繼續」/「有疑問要討論」）— 純文字不會停下 agent，這個 tool call 才是強制停點，**不可跳過直接呼叫 ExitPlanMode**。User 提出問題 → 口頭澄清或 Edit plan file（涉及設計實質則補一輪 review）
 5. **ExitPlanMode** — 提交收斂後 plan 給 user approve
 6. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 特例 — 不派工 spec-implementer）
 7. **implementation-reviewer multi-round loop（強制）** — 依 `review-protocol.md` 跑到 0 issues。Bugs/Smells 主 agent 直接修 code（Quick Fix Mode 特例）。**每輪結束後同樣更新 plan file 的 `## Review Log` 區段**
@@ -231,7 +231,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 12. **撰寫 `tasks.md`**（在 design.md 已收斂之後才開始）— 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
 13. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**（含「跨文件 Review-Residue 檢查」確保正式文件無 inline waiver / decision 區塊）
 14. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
-15. **Spec Briefing（對話輸出，強制）** — 兩個 verifier 通過後，依 `references/briefing-guide.md` 用文字摘要整個 spec 的重點與重要概念：一句話定位 / 架構重點與新概念 / 拍板的 Decisions / Waivers 及代價 / 實作展望，結尾明確邀請 user 提出疑慮 — 實作前討論最便宜。User 提出問題 → 口頭澄清，或回頭修 spec（觸發對應 verifier 重跑）
+15. **Spec Briefing（強制，兩拍制）** — 兩個 verifier 通過後：(a) 依 `references/briefing-guide.md` 用文字摘要整個 spec 的重點與重要概念（一句話定位 / 架構重點與新概念 / 拍板的 Decisions / Waivers 及代價 / 實作展望）；(b) **立即接 AskUserQuestion**（「沒問題」/「有疑問要討論」）— 這個 tool call 是強制停點，user 確認後 /create-spec 才算完成。User 提出問題 → 口頭澄清，或回頭修 spec（觸發對應 verifier 重跑）
 
 ---
 
@@ -311,7 +311,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 **重要**：實作階段**必須**使用 agents 執行，**禁止**主 Agent 直接實作程式碼。
 
-**前置（briefing 檢查）**：若本 session 尚未對此 feature 做過 spec briefing（典型情境：隔 session 執行 /implement），先依 `briefing-guide.md` 輸出 **condensed briefing**（10-20 行：定位 / 架構重點 / 已拍板 Decisions / 本次 task 範圍）重建 user context，再進 Stage 1。
+**前置（briefing 檢查）**：若本 session 尚未對此 feature 做過 spec briefing（典型情境：隔 session 執行 /implement），先依 `briefing-guide.md` 輸出 **condensed briefing**（10-20 行：定位 / 架構重點 / 已拍板 Decisions / 本次 task 範圍）重建 user context，**接 AskUserQuestion**（「開始實作」/「先討論」），user 確認後才進 Stage 1。
 
 ---
 

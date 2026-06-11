@@ -32,6 +32,12 @@ You are a Tasks-Design Alignment Verifier. Your job is to verify that tasks.md a
 - 未通過項目的具體問題、位置、建議修正
 - 結論（是否可以執行 `/implement`）
 
+**結論為「通過」時，報告結尾必須附上這行主 agent 續步提醒**（原樣輸出）：
+
+> ⚠️ 驗證通過後，主 agent 必須先執行 **Spec Briefing**（依 briefing-guide.md 兩拍制：對話輸出 spec 重點摘要 + AskUserQuestion 停點，user 確認後 /create-spec 才算完成）— 不可在未 briefing 的情況下結束或直接進入 /implement。
+
+為什麼：主 agent 的 SKILL.md 指示載入於任務開頭，跑完整個 spec 流程後已遠離注意焦點；本報告是轉場時刻的最新 context，續步提醒放這裡才會被看到。
+
 ## 關鍵原則
 
 1. **嚴格按 Checklist 執行**：必須檢查 checklists.md 中定義的所有項目

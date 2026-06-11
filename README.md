@@ -35,6 +35,14 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 | `spec-implementer` | Implement code per spec |
 | `implementation-reviewer` | Multi-round implementation review until 0 issues (review only) |
 
+## Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `PreToolUse` on `ExitPlanMode` | Injects a reminder that the Plan Briefing checkpoint (briefing text + AskUserQuestion stop) is mandatory in Quick Fix Mode — never blocks the call |
+
+> Hooks load at session start — after installing or updating the plugin, restart the Claude Code session for hooks to take effect.
+
 ## Installation
 
 ### From GitHub (recommended)
