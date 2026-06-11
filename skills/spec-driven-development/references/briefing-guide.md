@@ -43,11 +43,27 @@ Briefing 是**對話輸出，不寫入任何文件** — 它不是 formal doc，
 - 但**不要**把 briefing 內容回寫進 design.md / tasks.md（那會變成 process narration，違反隔離紀律）
 - 引用 Decision / Waiver 時可帶編號（`Decision D` / `W1`），user 想深究時對得到 review-log
 
+## 敘事方式：從實際 use case 出發（核心要求）
+
+Briefing 與 plan / design 的差別不是長度，是**敘事視角**：
+
+- plan / design 描述「**系統是什麼**」— 結構化、概念性、按元件組織（為反覆查閱優化）
+- briefing 描述「**使用者 / 系統會經歷什麼**」— 拿 1-2 條代表性 use case 把整個設計走一遍，元件與設計決定在場景中自然出現
+
+純概念條列（「新增 CacheService，採 TTL invalidation，與 EventDispatcher 解耦」）對沒讀過 spec 的人建立不了畫面；同樣內容用場景講 —「使用者更新個人資料後，下一次查詢會先命中 cache，最多 60 秒內可能看到舊值，之後自動更新；這是拍板過的 trade-off，換來查詢不打爆 DB」— 一聽就懂。
+
+做法：
+
+- 挑 **1-2 條代表性 use case**：一條 happy path + 一條最重要的 failure / edge path
+- 沿著場景走流程：元件、新概念、資料流在「它出場的那一刻」才介紹，並用該場景解釋
+- Decisions / Waivers 用**場景後果**講 — 不是「選了 Option 1」，而是「因為這個決定，使用者在 X 情境會經歷 Y」
+- Quick Fix Mode 的敘事形：「這個 bug 在什麼操作下會發生 → 修了之後同個操作會變成怎樣 → 剩下什麼風險」
+
 ## 內容結構（建議順序，依任務規模取捨）
 
 1. **一句話定位** — 這個 feature / fix 做什麼、為什麼現在做
-2. **架構重點** — 核心元件與資料流的口語化描述（2-5 點）；引入的新概念第一次出現就給一句定義
-3. **關鍵設計決定** — review 過程拍板的 Decisions 結果 + 各一行理由（不是重列 Options，是講結論與影響）
+2. **Use case 走讀** — 上述 1-2 條場景敘事。**這是 briefing 的主體** — 架構重點、新概念、資料流都在場景中帶出，不另立概念清單
+3. **關鍵設計決定** — 場景走讀沒涵蓋到的 Decisions 結果，各一行場景化後果
 4. **刻意接受的限制** — Waivers + 各自付出的代價（user 該知道「我們放棄了什麼」）
 5. **實作展望** — Phase 結構、會動到哪些區域、大致範圍（Quick Fix：改動檔案清單 + 驗證方式）
 6. **明確邀請討論** — 結尾固定邀請：「如果哪裡跟你的預期不符，現在提出 — 比實作後改便宜得多」
@@ -56,6 +72,7 @@ Briefing 是**對話輸出，不寫入任何文件** — 它不是 formal doc，
 
 | ✅ 做 | ❌ 不做 |
 |---|---|
+| 從實際 use case 走流程，概念在場景中出場時才介紹 | 純概念條列 — 元件名 + pattern 名堆疊，user 建立不了畫面 |
 | 全文 user 2-3 分鐘讀完（Spec Mode 約 20-40 行；Quick Fix / condensed 約 10-20 行）| 把 design.md 段落整段重貼 — briefing 是**翻譯**不是節錄 |
 | 口語 prose 為主，完整句子 | bullet 碎片堆疊、縮寫鏈、機械式填表 |
 | 新概念 / 專案特有術語第一次出現給一句解釋 | 假設 user 記得 design.md 裡的所有命名 |
@@ -75,4 +92,4 @@ Briefing 的價值在於觸發討論 — user 回應後依性質處理：
 
 ## Condensed briefing（/implement 隔 session 啟動時）
 
-完整 briefing 的壓縮版（10-20 行）：一句話定位、架構重點（2-3 點）、已拍板 Decisions / Waivers 各一行、本次 /implement 會執行的 task 範圍。同樣**兩拍制** — 輸出後接 AskUserQuestion（「開始實作」/「先討論」），user 確認才進 Stage 1。目的是重建 context，不是重新討論 — spec 在上個 session 已收斂，除非 user 主動提出異議。
+完整 briefing 的壓縮版（10-20 行）：一句話定位、一條最短的 use case 主線（happy path 走一遍）、已拍板 Decisions / Waivers 各一行、本次 /implement 會執行的 task 範圍。同樣**兩拍制** — 輸出後接 AskUserQuestion（「開始實作」/「先討論」），user 確認才進 Stage 1。目的是重建 context，不是重新討論 — spec 在上個 session 已收斂，除非 user 主動提出異議。

@@ -2,9 +2,14 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.3 (2026-06-12)
+
+- **Briefing 敘事方式改為 use-case-driven**：briefing 與 plan / design 的本質差異是敘事視角 — 文件描述「系統是什麼」（概念性、為反覆查閱優化），briefing 描述「使用者會經歷什麼」（為第一次理解優化）。以 1-2 條代表性 use case（happy path + 關鍵 failure path）走流程，元件 / 新概念 / Decisions 的後果在場景中帶出，取代純概念條列；Quick Fix 敘事形：「bug 在什麼操作下發生 → 修完同個操作變怎樣 → 剩什麼風險」
+- **1.6.2 根因記錄修正**：實測發現 briefing 並非完全沒觸發 — 是文字輸出後緊接 ExitPlanMode，被 plan 審核視窗蓋掉看不到（UI 層問題）。1.6.2 的兩拍制剛好同時解決可見性（AskUserQuestion 小選項框在 plan 大視窗之前，briefing 文字就在其上方可見）；三層提醒保留，防真正跳過的情況
+
 ## 1.6.2 (2026-06-12)
 
-修正 1.6.1 briefing 實測完全不觸發的問題。根因有二：(a) 純文字輸出步驟沒有 blocking tool call，agent 會跳過或跟下一步擠在同一輪；(b) SKILL.md 在任務開頭載入，briefing 決策點在幾十輪 tool call 之後，步驟指示早已遠離注意焦點（或被 context compaction 摘要掉）。
+針對 briefing 實測沒有出現的問題加固（後於 1.6.3 確認實際根因是 UI 遮蔽，本版的結構性修正仍然有效且必要）：(a) 純文字輸出步驟沒有 blocking tool call，agent 可能跳過或跟下一步擠在同一輪；(b) SKILL.md 在任務開頭載入，briefing 決策點在幾十輪 tool call 之後，步驟指示已遠離注意焦點（或被 context compaction 摘要掉）。
 
 - **兩拍制停點**：briefing 輸出後必須立即接 AskUserQuestion（「繼續」/「有疑問」）— tool call 才是強制停點，user 確認後才能進下一步（ExitPlanMode / 結束 /create-spec / Stage 1）
 - **三層轉場提醒**（把提醒放在轉場時刻的最新 context，不只靠任務開頭的步驟清單）：
