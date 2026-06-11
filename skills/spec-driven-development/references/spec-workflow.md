@@ -82,6 +82,8 @@
     │           ├── Steering Candidate（若專案有 steering）→ 累積批次處理
     │           └── 直到當輪 0 issues 才退出
     │
+    ├── Plan Briefing（對話輸出 plan summary + 重要概念 → 邀請討論）
+    │
     ├── ExitPlanMode（提交已 reviewed 版本給 user approve）
     │
     ├── 主 agent 動手實作（按 plan file 內容）
@@ -118,11 +120,13 @@
     │
     ├── 撰寫 tasks.md
     ├── spec-verifier (Stage 1: 完整性)
-    └── tasks-design-verifier (Stage 2: 對齊)
+    ├── tasks-design-verifier (Stage 2: 對齊)
+    └── Spec Briefing（對話輸出 spec 重點摘要 + 拍板 Decisions / Waivers → 邀請討論）
 
 
 [/implement]
     │
+    ├── (若本 session 尚未 briefing → condensed briefing 重建 context)
     ├── Stage 1: spec-implementer (Mode 1) 並行 / 順序寫初版 + 自驗 + 建置
     │
     ├── Stage 2: implementation-reviewer 多輪 review loop（強制）

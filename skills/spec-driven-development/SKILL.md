@@ -120,10 +120,11 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 1. **EnterPlanMode** — 確認本次 plan file 的實際路徑（Claude Code 通常自動建立；若環境未提供 plan file，自建 `.spec/quickfix/<slug>.md` 代替）。若專案已有 `.spec/steering/`，一併載入 — reviewer 會做 steering alignment，且發現的新慣例走「Steering 演進機制」
 2. **撰寫 plan draft** — 主 agent 用 Edit tool 把 plan 寫進 plan file。**內容請依 `plan-content-guide.md` 規範**（聚焦 substance，不寫 process narration）。在 plan file 結尾加 `## Review Log` 區段（依 `review-log-template.md` 五大區塊 skeleton）— Quick Fix Mode 的 review log 寫在 plan file 內，不另開檔案
 3. **design-reviewer multi-round loop（強制）** — 告訴 reviewer plan file path，依 `review-protocol.md` 跑到 0 issues（Medium/Low 採 defer-and-batch；第 5 輪仍有新 Critical/High 觸發收斂保險絲）。Architecture Decisions 用 AskUserQuestion 遞給 user 拍板；Bugs/Smells 主 agent 用 Edit 修 plan file；Steering Candidates 累積待批次處理。**每輪結束後依 `review-log-guide.md` 更新 plan file 的 `## Review Log` 區段**（§1 Audit Trail 加新列、Decisions/Waivers 補對應子節）
-4. **ExitPlanMode** — 提交收斂後 plan 給 user approve
-5. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 特例 — 不派工 spec-implementer）
-6. **implementation-reviewer multi-round loop（強制）** — 依 `review-protocol.md` 跑到 0 issues。Bugs/Smells 主 agent 直接修 code（Quick Fix Mode 特例）。**每輪結束後同樣更新 plan file 的 `## Review Log` 區段**
-7. **Summary** — 報告前先把累積的 Steering Candidates 依「Steering 演進機制」批次處理完。報告改動檔案、review 歷史（指向 plan file `## Review Log`）、user 拍板的 Decisions、steering 更新、建置狀態
+4. **Plan Briefing（對話輸出，強制）** — review 收斂後、ExitPlanMode **之前**，依 `briefing-guide.md` 用文字輸出整個規劃的 summary 與重要概念（一句話定位 / 改動重點 / 拍板的 Decisions / 風險），結尾邀請 user 提出疑慮 — ExitPlanMode 呈現的是完整 plan file，briefing 是它的人類入口。User 提出問題 → 口頭澄清或 Edit plan file（涉及設計實質則補一輪 review）
+5. **ExitPlanMode** — 提交收斂後 plan 給 user approve
+6. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 特例 — 不派工 spec-implementer）
+7. **implementation-reviewer multi-round loop（強制）** — 依 `review-protocol.md` 跑到 0 issues。Bugs/Smells 主 agent 直接修 code（Quick Fix Mode 特例）。**每輪結束後同樣更新 plan file 的 `## Review Log` 區段**
+8. **Summary** — 報告前先把累積的 Steering Candidates 依「Steering 演進機制」批次處理完。報告改動檔案、review 歷史（指向 plan file `## Review Log`）、user 拍板的 Decisions、steering 更新、建置狀態
 
 **重要約束**：Quick Fix Mode 允許主 agent 直接動手寫 code；Spec Mode 仍然嚴格禁止。
 
@@ -230,6 +231,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 12. **撰寫 `tasks.md`**（在 design.md 已收斂之後才開始）— 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
 13. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**（含「跨文件 Review-Residue 檢查」確保正式文件無 inline waiver / decision 區塊）
 14. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
+15. **Spec Briefing（對話輸出，強制）** — 兩個 verifier 通過後，依 `references/briefing-guide.md` 用文字摘要整個 spec 的重點與重要概念：一句話定位 / 架構重點與新概念 / 拍板的 Decisions / Waivers 及代價 / 實作展望，結尾明確邀請 user 提出疑慮 — 實作前討論最便宜。User 提出問題 → 口頭澄清，或回頭修 spec（觸發對應 verifier 重跑）
 
 ---
 
@@ -308,6 +310,8 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 - Spec 已存在（`.spec/specs/{feature}/` 目錄包含 requirements.md、design.md、tasks.md）
 
 **重要**：實作階段**必須**使用 agents 執行，**禁止**主 Agent 直接實作程式碼。
+
+**前置（briefing 檢查）**：若本 session 尚未對此 feature 做過 spec briefing（典型情境：隔 session 執行 /implement），先依 `briefing-guide.md` 輸出 **condensed briefing**（10-20 行：定位 / 架構重點 / 已拍板 Decisions / 本次 task 範圍）重建 user context，再進 Stage 1。
 
 ---
 
@@ -488,16 +492,17 @@ Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過
 5. **No Architectural Overreach** — reviewer 遇到沒共識的設計選擇不拍板，遞給 user
 6. **Separate "What Is" from "Why"** — 正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。豁免 / Decision / 跨輪 audit trail 一律寫進 review log，不污染正式文件
 7. **Steering is Living** — 開發中浮現的專案級原則經 user 確認後即時昇華進 steering（見「Steering 演進機制」），不等大檢視
+8. **Brief Before Build** — 實作開始前用對話輸出 spec / plan 的重點摘要（`briefing-guide.md`），讓 user 低成本進入狀況、在最便宜的時點觸發討論
 
 **Spec Mode 特有**：
-8. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
-9. **Design is Truth** — design.md 是唯一真理來源
-10. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
+9. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
+10. **Design is Truth** — design.md 是唯一真理來源
+11. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
 
 **Quick Fix Mode 特有**：
-11. **Plan File is Truth** — plan file 是真理來源（含內嵌的 `## Review Log` 區段；路徑於 EnterPlanMode 時確認）
-12. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
-13. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
+12. **Plan File is Truth** — plan file 是真理來源（含內嵌的 `## Review Log` 區段；路徑於 EnterPlanMode 時確認）
+13. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
+14. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
 
 ---
 
@@ -514,6 +519,7 @@ Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過
 | `references/review-log-guide.md` | Review Log 撰寫規範（format / ID / 中性化原則 / 範例）|
 | `references/review-log-bad-examples.md` | 5 種 review-residue pattern 的 bad / good 對照 + 通用改寫公式 |
 | `references/decision-escalation-guide.md` | Architecture Decision 呈現紀律（含拍板後寫入 review log §2 + design.md 中性化反映）|
+| `references/briefing-guide.md` | Spec / Plan Briefing 指引（實作前對話摘要 — 觸發時點 / 內容結構 / 認知校準）|
 | `templates/review-log-template.md` | review-log.md 最小 skeleton（/create-spec 與 Quick Fix Mode 用） |
 
 所有路徑前綴：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`
