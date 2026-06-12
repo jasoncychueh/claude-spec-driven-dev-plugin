@@ -373,10 +373,13 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 主 agent 用 `AskUserQuestion` 把 reviewer 升級的 Decision 遞給 user 時，必須做「reviewer 機械可解析 → user 人類可消化」的翻譯。Reviewer 的四點原料（Option 1 / Option 2 / 為什麼沒共識 / 建議 user 考量）**不能直接照搬**。
 
+**兩拍制（適用本 skill 所有 AskUserQuestion — Decision / waiver 批次 / steering candidates）**：先用對話文字輸出問題 briefing（review 脈絡 + **以實際 use case 講問題** + code 對照，依 briefing-guide.md 的 use-case-driven 原則），再發 **stem 很短**的 AskUserQuestion。Context 塞進 question stem 會在 UI 對話框裡難讀且 code 被折疊。
+
 | ✅ 做 | ❌ 不做 |
 |---|---|
-| Question stem 寫 review 過程脈絡（前幾輪做什麼、為什麼此刻浮現、design.md 規範缺口）| 把 Decision 當孤立選項丟出，不交代由來 |
-| Function / SQL / config 直接貼 code 片段 + 同 codebase 對照組 | Prose 描述 code（「在 line 142 回傳 bool」）|
+| 先文字 briefing（脈絡 / use case / code），再短 stem 提問 | 全部 context 塞 question stem；或不交代由來直接丟選項 |
+| Briefing 用實際 use case 講問題、術語第一次出現就解釋 | 純概念命題 + 未解釋的專案術語 |
+| Function / SQL / config 直接貼 code 片段 + 同 codebase 對照組（放第一拍）| Prose 描述 code（「在 line 142 回傳 bool」）|
 | Option `description` 至少覆蓋核心 3 維度（架構 / 一致性 / 功能風險），其他維度按 Decision 性質挑 | 只寫「會 break X」單維度後果；硬湊「N/A」填空 |
 | 用 `preview` 欄位放 before/after diff 或完整 function | Code 細節用文字描述但不顯示 |
 | 獨立 Decision 拆多次 call；平行相關用同 call 多 questions；條件耦合用複合選項或序列 | 條件耦合（B 依賴 A）硬塞同 call 多 questions（工具不支援這種依賴）|

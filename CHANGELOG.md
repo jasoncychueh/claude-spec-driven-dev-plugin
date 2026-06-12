@@ -2,6 +2,11 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.4 (2026-06-12)
+
+- **AskUserQuestion 全面兩拍制**（實測截圖回饋：Decision 提問時 user 看不懂在問什麼）：context 塞進 question stem 的策略與 TUI 對抗 — stem 對話框窄小難讀、code preview 被折疊，且內容易壓縮成未解釋的行話。改為：(1) 先用對話文字輸出問題 briefing（review 脈絡 + 以實際 use case 講問題 + code 對照，markdown 完整渲染）；(2) 再發 stem 很短（1-3 行）的 AskUserQuestion。適用所有 AskUserQuestion 互動：Decision 拍板、Medium/Low waiver 批次、Steering Candidates 批次
+- decision-escalation-guide 的好範例改寫為兩拍制示範，第一拍以 use case 開場（「列表頁圖示 → A 看到 B 的記憶暗示」），不從概念詞開場
+
 ## 1.6.3 (2026-06-12)
 
 - **Briefing 敘事方式改為 use-case-driven**：briefing 與 plan / design 的本質差異是敘事視角 — 文件描述「系統是什麼」（概念性、為反覆查閱優化），briefing 描述「使用者會經歷什麼」（為第一次理解優化）。以 1-2 條代表性 use case（happy path + 關鍵 failure path）走流程，元件 / 新概念 / Decisions 的後果在場景中帶出，取代純概念條列；Quick Fix 敘事形：「bug 在什麼操作下發生 → 修完同個操作變怎樣 → 剩什麼風險」
