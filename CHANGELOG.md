@@ -2,6 +2,13 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.5 (2026-06-12)
+
+- **Briefing / 提問改為「回合終止交付」**（實測回饋：1.6.4 兩拍制下 briefing 仍然看不到）：根因 — 夾在 tool call 前的「回合中段文字」顯示不可靠，CLI 與 remote-control 都會整段隱形，只有**回合最終訊息**在所有 client 保證顯示。修正：
+  - Briefing（Plan / Spec / condensed）必須以**回合最終訊息**交付並**結束回合**（同回合不接 AskUserQuestion / ExitPlanMode / 任何工具）；結尾固定確認問句，**user 的回覆就是確認** — briefing 停點不再需要 AskUserQuestion 選項卡
+  - Decision escalation 的兩拍制改為**兩個回合**：briefing 回合（最終訊息 + 結束回合）→ user 回覆 → 提問回合（短 stem AskUserQuestion；user 已在回覆中表態則跳過）
+  - 三層提醒（review-protocol 收斂結論 / tasks-design-verifier 報告 / ExitPlanMode hook）措辭同步；briefing-guide 新增「補救」節（user 反映沒看到 → 以回合最終訊息重新交付）
+
 ## 1.6.4 (2026-06-12)
 
 - **AskUserQuestion 全面兩拍制**（實測截圖回饋：Decision 提問時 user 看不懂在問什麼）：context 塞進 question stem 的策略與 TUI 對抗 — stem 對話框窄小難讀、code preview 被折疊，且內容易壓縮成未解釋的行話。改為：(1) 先用對話文字輸出問題 briefing（review 脈絡 + 以實際 use case 講問題 + code 對照，markdown 完整渲染）；(2) 再發 stem 很短（1-3 行）的 AskUserQuestion。適用所有 AskUserQuestion 互動：Decision 拍板、Medium/Low waiver 批次、Steering Candidates 批次
