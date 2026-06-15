@@ -39,7 +39,7 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 
 | Hook | Purpose |
 |------|---------|
-| `PreToolUse` on `ExitPlanMode` | Injects a reminder that the Plan Briefing checkpoint (briefing text + AskUserQuestion stop) is mandatory in Quick Fix Mode — never blocks the call |
+| `PreToolUse` on `ExitPlanMode` | A deterministic, stateless Node command hook (`hooks/briefing-checkpoint.js`) for the Quick Fix Mode Plan Briefing. It **only acts inside a spec-driven Quick Fix cycle** (detected via a design-reviewer invocation) — **plain plan mode is untouched**. In scope, it **allows** when a real user reply immediately precedes the call (the turn-final briefing flow) and **blocks** a straight plan-write → ExitPlanMode skip with a short reminder. Fail-open on any uncertainty, so it never deadlocks or breaks plan mode; reads the transcript only and writes nothing anywhere. |
 
 > Hooks load at session start — after installing or updating the plugin, restart the Claude Code session for hooks to take effect.
 

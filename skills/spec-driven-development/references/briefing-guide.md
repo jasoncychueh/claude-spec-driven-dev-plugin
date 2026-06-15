@@ -35,7 +35,7 @@ SKILL.md 在任務開頭載入；briefing 的決策點在幾十輪 tool call 之
 
 1. **Reviewer 收斂報告**（review-protocol.md 結論模板）— design-reviewer 報 0 issues 時附帶續步提醒
 2. **tasks-design-verifier 通過報告** — Spec Mode 驗證通過時附帶 Spec Briefing 續步提醒
-3. **PreToolUse hook（ExitPlanMode）** — harness 強制注入，不依賴模型自覺，補 Quick Fix Mode 的最後防線
+3. **PreToolUse command hook（ExitPlanMode）** — harness 強制執行的 deterministic Node 腳本（`hooks/briefing-checkpoint.js`）。**範圍限縮**：只在「這個 plan cycle 跑過 design-reviewer」（= spec-driven Quick Fix 流程）時才 enforce —— **普通 plan mode 完全不碰**,裝了 plugin 不會綁架內建 plan mode。cycle 起點用**最近一次進 plan mode**（`permission-mode:plan` / `mode:plan` / `EnterPlanMode` tool_use）界定;design-reviewer 須在起點**之後**才算數,所以兩輪之間（例如 Spec Mode `/create-spec`,也會跑 design-reviewer 但不在 plan mode）的呼叫不會被誤計。**找不到 cycle 起點就放行**（能呼叫 ExitPlanMode 代表一定進過 plan mode,找不到起點＝偵測不確定→不 enforce,而**不是**退而用上一個 ExitPlanMode 當邊界——那是上一輪的結尾,會把空檔折進來)。在範圍內時讀 transcript 判斷「ExitPlanMode 前一則是否為使用者回覆」:是 → 放行；agent 沒 briefing 直接從寫 plan 接 ExitPlanMode → 擋並回一句簡短提醒。**fail-open**（任何不確定一律放行），所以**不會 deadlock、也不會破壞 plan mode**。這取代了 1.6.2–1.6.5 的 prompt hook —— 那版由 LLM 判斷、看不到歷史,會自我推翻「永遠放行」而在 briefing 完的 retry 上誤擋。
 
 ### 補救
 

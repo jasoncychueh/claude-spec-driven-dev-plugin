@@ -2,6 +2,19 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.6 (2026-06-15)
+
+ExitPlanMode 的 briefing checkpoint 從 **prompt hook 改為 deterministic command hook**，根治 1.6.2–1.6.5 的 deadlock。（註:本版號先前曾有一個「移除 hook」的短命提交被 push 後又 force-push 撤回、未留存於遠端;此 1.6.6 為正式版本。若本機 plugin cache 殘留舊的 1.6.6 目錄,需清除後重新拉取才會取得此版內容。）
+
+- **根因**：prompt hook 的判斷者是一個 LLM、看不到對話歷史。即使被指示「永遠放行」，它仍會因「無法確認 briefing 是否已交付」保守 block ExitPlanMode —— briefing 已正確交付、user 已確認的情況下照樣擋，造成 agent 無法 propose plan 的 deadlock（實測連 block 兩次）。LLM 會自我推翻 prompt 指令，無法當可靠的 gate。
+- **解法**：改用 Node command hook（`hooks/briefing-checkpoint.js`，deterministic code，非 LLM）。讀 transcript 判斷「ExitPlanMode 前一則是否為真正的 user 回覆」—— turn-final briefing 紀律保證合法流程一定緊接 user 回覆；skip 一定是 assistant / tool_result。是 → 放行；skip → 擋並回一句簡短提醒。
+- **範圍限縮（不綁架正常 plan mode）**：hook 雖掛在所有 ExitPlanMode，但**只在「這個 plan cycle 跑過 design-reviewer」**（= spec-driven Quick Fix 流程）時才 enforce。cycle 起點用**最近一次進 plan mode**（`permission-mode:plan` / `mode:plan` / `EnterPlanMode` tool_use）界定,design-reviewer 須在起點之後才算數 —— 兩輪之間（如 Spec Mode `/create-spec`,也跑 design-reviewer 但不在 plan mode）的呼叫不會被誤計。**找不到 cycle 起點即放行**(不退用「上一個 ExitPlanMode」當邊界,那是上一輪結尾、會把空檔折進來造成 false-positive)。普通 plan mode 沒有 design-reviewer → 一律放行,裝了 plugin 不會影響內建 plan mode。
+- **不會 deadlock**：briefing 完 + user 回覆後前一則就是 user 訊息 → 放行；且 **fail-open** —— 讀不到 transcript / 解析失敗 / 非 Quick Fix cycle 一律放行，只在「確定是 spec-driven cycle 內的 skip」才擋。
+- **判別細節**：subagent 呼叫在 transcript 是 `Agent`/`Task` tool_use + `input.subagent_type`；hook 據此偵測 design-reviewer。並濾除 `isSidechain`（subagent 內部訊息,否則會 false-deny）與 `isMeta`（注入的 local-command / reminder,否則 false-allow）。真人回覆是 `type:user` 且 content 為 string。
+- **marker 經實測驗證**（對真實 transcript）：user 手動 shift+tab 進 plan mode → `{type:"permission-mode", permissionMode:"plan"}`；agent 用工具進 → `EnterPlanMode` tool_use。兩條 cycle-start 路徑都偵測得到,所以「user 先手動進 plan mode」不會造成漏判。（`mode` 欄位在 bypassPermissions session 恆為 `"normal"`,plan 狀態存在 `permissionMode`。）
+- **跨平台 + 無狀態**：純 Node（Claude Code 自帶），Windows/Linux/Mac 通用；只讀 stdin + transcript（唯讀），不在任何地方（含專案資料夾）寫檔。命令用 `node "${CLAUDE_PLUGIN_ROOT}/hooks/briefing-checkpoint.js"`。
+- briefing-guide「三層提醒架構」第 3 層改述為 command hook；README Hooks 章節同步。
+
 ## 1.6.5 (2026-06-12)
 
 - **Briefing / 提問改為「回合終止交付」**（實測回饋：1.6.4 兩拍制下 briefing 仍然看不到）：根因 — 夾在 tool call 前的「回合中段文字」顯示不可靠，CLI 與 remote-control 都會整段隱形，只有**回合最終訊息**在所有 client 保證顯示。修正：
