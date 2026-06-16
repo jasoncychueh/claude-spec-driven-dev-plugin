@@ -2,6 +2,16 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.7 (2026-06-16)
+
+briefing 全面覆蓋 + /update-spec 升級到與 /create-spec 同等紀律。
+
+- **briefing 重新定位**：briefing 是為了**降低讀完整 plan/spec 的認知負擔**,不只是審核 gate。所以凡 user 即將面對一大坨 plan/spec 的時刻都該有 briefing,不只 Quick Fix。
+- **新增 briefing 點**：/create-spec plan-exit（方向確認,輕量）、/update-spec plan-exit（改動規劃）、/update-spec 結尾（改動定案 Spec Briefing）。原有的 /create-spec 結尾 Spec Briefing、Quick Fix Plan Briefing、/implement condensed 不變。
+- **/update-spec 升級**：design.md 有實質變更時,跑與 /create-spec **同等的強制 design-reviewer 多輪 loop**（到 0 issues,同協定:Decisions 兩拍、Critical/High 必修、Medium/Low defer-and-batch、Steering Candidates、保險絲、100% 隔離）;plan-exit + 結尾各一個 briefing。改已完成的 spec 風險不亞於新建,不該是更輕的路徑。純 requirements 釐清 / 純 tasks 狀態 bookkeeping 可略過 loop。
+- **hook 改為保護「每一個 ExitPlanMode」**（移除 1.6.6 的 design-reviewer cycle-scoping）：理由 — briefing 降認知負擔對任何 plan 都有益,且 hook fail-open 不會弄壞 plan mode,故不限縮。好處:create-spec/update-spec 的 plan-exit 不會漏（其 design-reviewer Mode A 是 optional,scoping 會漏判）;普通 plan mode 也一併受保護（多一道摘要、無害）。hook 因此**大幅簡化** — 只剩「ExitPlanMode 前一則是否為 user 回覆」的 skip 判斷 + isSidechain/isMeta 濾除 + fail-open,移除了 design-reviewer 偵測與 cycle-start 界定整套。
+- 連帶:design-reviewer 適用範圍加 /update-spec、review-protocol 收斂提醒改 mode-aware、briefing-guide 觸發表 + 認知負擔原則 + 三層架構第 3 層同步。
+
 ## 1.6.6 (2026-06-15)
 
 ExitPlanMode 的 briefing checkpoint 從 **prompt hook 改為 deterministic command hook**，根治 1.6.2–1.6.5 的 deadlock。（註:本版號先前曾有一個「移除 hook」的短命提交被 push 後又 force-push 撤回、未留存於遠端;此 1.6.6 為正式版本。若本機 plugin cache 殘留舊的 1.6.6 目錄,需清除後重新拉取才會取得此版內容。）

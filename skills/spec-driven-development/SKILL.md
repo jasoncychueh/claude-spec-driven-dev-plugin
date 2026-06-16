@@ -80,7 +80,7 @@ A development workflow with **two routing modes**, both backed by multi-round ar
 | `spec-researcher` | 搜尋現有方案、library、最佳實踐 | /create-spec 規劃階段 | review only |
 | `spec-verifier` | 驗證 spec 文件**完整性與格式**（cookie-cutter check） | /verify-spec Stage 1, /create-spec | review only |
 | `tasks-design-verifier` | 驗證 tasks.md 與 design.md **對齊** | /verify-spec Stage 2, /create-spec, /update-spec | review only |
-| `design-reviewer` | 資深軟體工程師視角審 **design 品質**（多輪到 0 issues） | /create-spec design 階段；Quick Fix Mode 審 plan file | review only（產 issue list） |
+| `design-reviewer` | 資深軟體工程師視角審 **design 品質**（多輪到 0 issues） | /create-spec design 階段；/update-spec design 有變更時；Quick Fix Mode 審 plan file | review only（產 issue list） |
 | `spec-implementer` | 寫 / 修 code + 自驗 + 建置（兩種 mode） | /implement Stage 1 (Mode 1) + 接 reviewer issue list (Mode 2) | **write / fix code** |
 | `implementation-reviewer` | 資深軟體工程師視角審 **implementation 品質**（多輪到 0 issues） | /implement Stage 2；Quick Fix Mode 實作後 | review only（產 issue list） |
 
@@ -208,7 +208,7 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
    - Agent 會回 **challenge list + Architecture Decisions**
    - 對 Architecture Decision，**用 AskUserQuestion 把選擇遞給使用者拍板**，不要主 agent 自己決定
    - 修改 design 思路後可以再 invoke 一次（這是 optional 的非強制循環）
-8. 與用戶確認後退出 Plan Mode
+8. **Plan Briefing（強制，回合最終訊息交付）** — ExitPlanMode **之前**：依 `briefing-guide.md` 以實際 use case / 場景輸出「我打算建這個 feature 的什麼、核心設計方向、目前浮現的關鍵取捨」，結尾問「方向有沒有跟你預期不符？」→ **結束回合等 user 回覆 → 才 ExitPlanMode**（同回合不接任何工具）。這是「方向確認」briefing（design 尚未寫，故偏輕量）；完整的在 step 15 結尾
 9. 建立 `.spec/specs/{feature}/` 目錄
 10. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
     - `requirements.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
@@ -255,20 +255,23 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 修改功能 spec 文件。
 
+**核心原則**：改一個已完成的 spec，風險不亞於、甚至高於新建（可能打破原設計建立的 invariant、影響已實作的 code）。所以 **design.md 有實質變更時，/update-spec 跑與 /create-spec 同等的強制 design-review loop**，且同樣有 plan 階段與結尾兩個 briefing。
+
 **執行步驟**：
 
 1. 載入 steering documents
 2. 載入功能 spec 文件（含 review-log.md）
 3. **進入 Plan Mode**（使用 EnterPlanMode tool）
-4. 規劃修改內容，與用戶確認後退出 Plan Mode
-5. 執行修改
-6. **Steering 同步檢查**：若設計變更涉及技術方向調整，同步更新 steering
-7. **若修改觸發新的 design-reviewer / implementation-reviewer 多輪 loop**：依 `review-log-guide.md` 更新 `review-log.md`（§1 新 round 的 issue list、§2/§3/§4 對應補項）
-8. 重新執行對應檢查：
-   - 修改 requirements.md → 使用 `spec-verifier` agent 執行 **Spec 完整性檢查**（含 review-residue 檢查）
-   - 修改 design.md 或 tasks.md → 使用 `tasks-design-verifier` agent 進行 **Tasks vs Design 對齊檢查**
-
-**設計變更時的任務更新**（當已有實作程式碼）：識別影響範圍 → 更新 tasks.md 標記（受影響改 `[~]`、刪除改 `[-]`、新增 task）→ 顯示變更摘要。詳細流程見 `references/checklists.md` 的「設計變更影響評估」章節。
+4. 規劃修改內容（要動 r/d/t 的哪些部分、為什麼）；**(Optional)** 可邀 `design-reviewer` Mode A challenge 改動方向
+5. **Plan Briefing（強制，回合最終訊息交付）** — ExitPlanMode **之前**：依 `briefing-guide.md` 以實際 use case / 場景輸出「這次要改什麼 → 改完會變怎樣 → 會影響既有設計 / 已實作 code 的哪裡」，結尾問「有沒有跟你預期不符？」→ **結束回合等 user 回覆 → 才 ExitPlanMode**（同回合不接任何工具）
+6. 執行修改（套用到 requirements / design / tasks）
+7. **Steering 同步檢查**：若設計變更涉及技術方向調整，同步更新 steering
+8. **design.md 有實質變更 → 強制 `design-reviewer` Mode B 多輪 review loop（直到 0 issues）** — 與 /create-spec step 11 **同一套協定**：issue list append 進 review-log §1、Architecture Decisions 兩拍 AskUserQuestion 拍板後寫 §2 + 昇華判斷、Critical/High 必修、Medium/Low defer-and-batch、Steering Candidates 批次、誤判寫 §4、第 5 輪仍有新 Critical/High 觸發保險絲、正式文件 100% 隔離。**純 requirements 文字釐清（design 未動）或純 tasks 狀態 bookkeeping 可略過此 loop**
+9. **設計變更影響評估**（已有實作 code 時）：識別影響範圍 → 更新 tasks.md 標記（受影響改 `[~]`、刪除改 `[-]`、新增 task）。詳細流程見 `references/checklists.md` 的「設計變更影響評估」章節
+10. 重新執行對應 verifier：
+    - 改 requirements.md → `spec-verifier`（**Spec 完整性檢查**，含 review-residue 檢查）
+    - 改 design.md 或 tasks.md → `tasks-design-verifier`（**Tasks vs Design 對齊檢查**）
+11. **Spec Briefing（強制，回合最終訊息交付）** — 依 `briefing-guide.md` 摘要「**這次改了什麼、為什麼、review 拍板的新 Decisions/Waivers、對既有 tasks / 已實作 code 的影響**」（use-case-driven），**結束回合等 user 回覆**。User 確認後 /update-spec 才算完成；有問題 → 口頭澄清或再修（觸發對應 verifier / 必要時補一輪 design-review）
 
 > **注意**：`/update-spec` 只更新文件和任務狀態，不執行實作。實際程式碼修改在 `/implement` 時進行。
 

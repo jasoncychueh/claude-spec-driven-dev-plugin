@@ -1,5 +1,5 @@
 {
-  "description": "Quick Fix Mode briefing checkpoint: a deterministic, stateless Node command hook on ExitPlanMode. It ONLY enforces inside a spec-driven Quick Fix cycle (detected by a design-reviewer subagent invocation in the cycle) — plain plan mode is never affected. When in scope it allows when a real user reply immediately precedes the call (turn-final Plan Briefing flow) and blocks a straight plan-write -> ExitPlanMode skip. Fail-open on any uncertainty, so it never deadlocks or breaks plan mode. Reads the transcript only; writes nothing anywhere.",
+  "description": "Plan Briefing checkpoint: a deterministic, stateless Node command hook on EVERY ExitPlanMode (Quick Fix Mode, /create-spec & /update-spec plan phases, and plain plan mode). It allows when a real user reply immediately precedes the call (the turn-final Plan Briefing flow) and blocks a straight planning -> ExitPlanMode skip with a short reminder. Fail-open on any uncertainty, so it never deadlocks. Filters subagent (isSidechain) and injected (isMeta) entries. Reads the transcript only; writes nothing anywhere.",
   "hooks": {
     "PreToolUse": [
       {

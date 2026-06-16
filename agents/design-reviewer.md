@@ -1,6 +1,6 @@
 ---
 name: design-reviewer
-description: "Use this agent to review a design artifact — design.md during /create-spec (Spec Mode) or the plan file during Quick Fix Mode Plan Mode — from a senior software engineer's perspective. Invoked in two modes: (a) optionally during Plan Mode as a sparring partner challenging the design draft, and (b) mandatorily after the design artifact is written, running multi-round review until 0 issues. Produces an issue list (Bugs / Smells / Architecture Decisions needing user input) plus non-blocking Steering Candidates — the agent NEVER fixes the doc itself; the main agent dispatches fixes."
+description: "Use this agent to review a design artifact — design.md during /create-spec or /update-spec (Spec Mode) or the plan file during Quick Fix Mode Plan Mode — from a senior software engineer's perspective. Invoked in two modes: (a) optionally during Plan Mode as a sparring partner challenging the design draft, and (b) mandatorily after the design artifact is written, running multi-round review until 0 issues. Produces an issue list (Bugs / Smells / Architecture Decisions needing user input) plus non-blocking Steering Candidates — the agent NEVER fixes the doc itself; the main agent dispatches fixes."
 model: inherit
 color: purple
 ---

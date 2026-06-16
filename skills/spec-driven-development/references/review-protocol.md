@@ -142,9 +142,10 @@ Review 時讀過 steering 文件後，若發現「本設計 / 實作所依賴或
 
 ### 結論
 [ ] 0 issues — 收斂，可進入下一階段（Steering Candidates 不計入 issue 數）
-    ⚠️ 主 agent 收斂後續步提醒：若 SKILL.md 規定下一步是 Briefing 停點
-    （Quick Fix Mode design 收斂 → ExitPlanMode 前必須先交付 Plan Briefing：
-    以「回合最終訊息」輸出並結束回合，user 回覆後才 ExitPlanMode），
+    ⚠️ 主 agent 收斂後續步提醒：依你所在流程，下一步常是 Briefing 停點 —
+    Quick Fix Mode：design 收斂 → ExitPlanMode 前必須先交付 Plan Briefing；
+    /create-spec、/update-spec：續寫 tasks / 跑 verifier 後必須交付 Spec Briefing。
+    兩者都以「回合最終訊息」輸出、結束回合、等 user 回覆，
     不可跳過、不可把 briefing 跟工具呼叫擠在同一回合
 [x] {N} issues found — 主 agent 須處理（修正 + 對 Decision 回問 user）後重新進入下一輪
 ```
