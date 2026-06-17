@@ -39,7 +39,7 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 
 | Hook | Purpose |
 |------|---------|
-| `PreToolUse` on `ExitPlanMode` | A deterministic, stateless Node command hook (`hooks/briefing-checkpoint.js`) for the Quick Fix Mode Plan Briefing. It **only acts inside a spec-driven Quick Fix cycle** (detected via a design-reviewer invocation) — **plain plan mode is untouched**. In scope, it **allows** when a real user reply immediately precedes the call (the turn-final briefing flow) and **blocks** a straight plan-write → ExitPlanMode skip with a short reminder. Fail-open on any uncertainty, so it never deadlocks or breaks plan mode; reads the transcript only and writes nothing anywhere. |
+| `PreToolUse` on `ExitPlanMode` | A deterministic, stateless Node command hook (`hooks/briefing-checkpoint.js`) that enforces the Plan Briefing on **every** `ExitPlanMode` (Quick Fix Mode, `/create-spec` & `/update-spec` plan phases, and plain plan mode — a briefing lowers reading load for any plan, and fail-open keeps plain plan mode safe). It **allows** when a real user reply precedes the call (the turn-final briefing flow) — skipping the agent's mechanical tool turns (e.g. the `ToolSearch` that loads a deferred `ExitPlanMode`, a post-approval `Edit`) so they don't break the check — and **blocks** a straight plan-write → `ExitPlanMode` skip with a short reminder. Fail-open on any uncertainty, so it never deadlocks; filters subagent (`isSidechain`) and injected (`isMeta`) entries; reads the transcript only and writes nothing anywhere. |
 
 > Hooks load at session start — after installing or updating the plugin, restart the Claude Code session for hooks to take effect.
 
@@ -91,3 +91,7 @@ Then point the marketplace at the local path and install:
 5. **Steering Stays Current**
 6. **Self-Verify**
 7. **Verify Before Deliver**
+
+## Acknowledgments
+
+This project is inspired by [spec-workflow-mcp](https://github.com/Pimzino/spec-workflow-mcp) — its steering-documents + spec (requirements / design / tasks) workflow shaped the core model here. This plugin reimagines that workflow natively for Claude Code (skill + commands + agents + hooks) rather than as an MCP server, and adds its own emphases: review-log isolation from formal docs, living steering, multi-round agent review loops, and the Brief-Before-Build briefing checkpoint.
