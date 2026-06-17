@@ -2,6 +2,13 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.6.8 (2026-06-16)
+
+修正 hook 對 **deferred ExitPlanMode** 的誤擋。實測:user 批准後,agent 必須先 `ToolSearch` 載入 deferred 的 ExitPlanMode 工具（並常回一句確認）,這些 agent 回合插在「user 批准」與「ExitPlanMode」之間 → hook 看到緊鄰的是 agent 動作而非 user 回覆 → 誤擋,逼 user 再批准一次。
+
+- **修法**：hook 往回找時**略過 agent 的機械性回合**（任何帶 `tool_use` 的 assistant 回合 —— ExitPlanMode 本身、載入它的 ToolSearch、批准後的 Edit 等）+ tool_result + 注入訊息,只認第一個「實質」訊息:user 回覆 → 放行；agent 純文字（其後無 user 回覆）→ 擋。
+- 「agent 講完話沒等 user 回覆就 ExitPlanMode」仍擋得住；deferred-tool ToolSearch、批准後小編輯不再誤擋。代價:純靠 tool call、完全無文字敘述的 skip 可能漏（安全方向,絕不 false-block）。
+
 ## 1.6.7 (2026-06-16)
 
 briefing 全面覆蓋 + /update-spec 升級到與 /create-spec 同等紀律。

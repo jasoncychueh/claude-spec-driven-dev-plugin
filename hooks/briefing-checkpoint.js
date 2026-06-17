@@ -14,26 +14,34 @@
  * satisfiable, so it never blocks you for real.
  *
  * SIGNAL (stateless, from the transcript):
- *   The turn-final briefing discipline guarantees a real *human* message sits
- *   immediately before a legitimate ExitPlanMode:
- *       ...assistant briefing (turn ends) -> HUMAN reply -> assistant ExitPlanMode
- *   A *skip* chains straight from planning to ExitPlanMode with no human reply
- *   (only assistant turns, tool_result deliveries, or injected entries). So the
- *   first "real" message before ExitPlanMode being human -> ALLOW; being the
- *   agent's own -> DENY (short reminder to brief turn-final and wait).
+ *   The turn-final briefing discipline guarantees a real *human* reply sits
+ *   between the briefing and a legitimate ExitPlanMode. Walking back from the
+ *   ExitPlanMode call we SKIP the agent's MECHANICAL turns — any assistant turn
+ *   that makes a tool call (the ExitPlanMode call itself; the ToolSearch that
+ *   loads ExitPlanMode when it is a deferred tool; a post-approval Edit; etc.) —
+ *   plus tool_result deliveries and injected entries. The first remaining
+ *   "real" message:
+ *     - a human user reply        -> ALLOW (user was briefed and responded)
+ *     - an assistant text message -> DENY (agent's own words with no human reply
+ *       after them — it skipped the briefing, or didn't wait for one)
+ *
+ *   Skipping tool-call turns is what makes the check robust: a deferred
+ *   ExitPlanMode forces a ToolSearch between the user's approval and the exit,
+ *   and the agent often acknowledges approval before exiting — none of that
+ *   should count as "no briefing". (Cost: a skip done purely via tool calls with
+ *   no narration may slip through — the safe direction; we never false-block.)
  *
  * NEVER DEADLOCKS: after a deny the agent briefs turn-final, the user replies,
- *   and the retry sees that human reply -> allow. (This is exactly why the old
- *   prompt hook, 1.6.2-1.6.5, was replaced: an LLM judge could not see history
- *   and blocked even AFTER a confirmed briefing.)
+ *   and the retry sees that human reply -> allow. (This is why the old prompt
+ *   hook, 1.6.2-1.6.5, was replaced: an LLM judge could not see history and
+ *   blocked even AFTER a confirmed briefing.)
  *
  * FAIL-OPEN: any uncertainty (no transcript, parse error, unexpected shape, no
  *   conclusive preceding message) -> allow.
  *
  * Filters (verified against live transcripts):
  *   - isSidechain: subagent messages — not the main conversation.
- *   - isMeta: injected user entries (local-command caveats, reminders) — not a
- *     real human reply.
+ *   - isMeta: injected user entries (local-command caveats, reminders).
  *   - tool_result-only user messages: a tool delivery, not a human reply.
  *   (A human reply is type:"user" with string / text content.)
  *
@@ -55,8 +63,8 @@ const deny = (reason) => emit('deny', reason);
 
 const DENY_REASON =
   '退出 plan mode 前請先交付 Plan Briefing：依 briefing-guide.md 以「回合最終訊息」輸出 use-case-driven 的重點摘要、' +
-  '結束回合、等 user 回覆，再呼叫 ExitPlanMode。（此檢查看「ExitPlanMode 前一則是否為使用者回覆」— ' +
-  '直接從規劃接 ExitPlanMode 會被擋；briefing 完且 user 回覆後重試即放行。）';
+  '結束回合、等 user 回覆，再呼叫 ExitPlanMode。（此檢查略過 agent 的工具回合，看「最近一則實質訊息是不是使用者回覆」— ' +
+  'agent 講完話沒等 user 回覆就 ExitPlanMode 會被擋；briefing 完且 user 回覆後重試即放行。）';
 
 // ---- read hook input ----
 let input;
@@ -78,22 +86,21 @@ function classify(obj) {
   if (role !== 'user' && role !== 'assistant') return null;
 
   const content = msg && msg.content;
-  let hasToolResult = false, hasExitPlanMode = false, hasHumanText = false;
+  let hasToolResult = false, hasToolUse = false, hasHumanText = false;
   if (typeof content === 'string') {
     if (content.trim()) hasHumanText = true; // plain string content = typed text
   } else if (Array.isArray(content)) {
     for (const b of content) {
       if (!b || typeof b !== 'object') continue;
       if (b.type === 'tool_result') hasToolResult = true;
-      else if (b.type === 'tool_use' && b.name === 'ExitPlanMode') hasExitPlanMode = true;
+      else if (b.type === 'tool_use') hasToolUse = true;
       else if (b.type === 'text' && b.text && b.text.trim()) hasHumanText = true;
     }
   }
-  return { role, isMeta: !!obj.isMeta, hasToolResult, hasExitPlanMode, hasHumanText };
+  return { role, isMeta: !!obj.isMeta, hasToolResult, hasToolUse, hasHumanText };
 }
 
-// ---- walk back to the first "real" message before the current ExitPlanMode ----
-let passedCurrentExit = false;
+// ---- walk back to the first "real" (non-mechanical) message before ExitPlanMode ----
 for (let i = lines.length - 1; i >= 0; i--) {
   const raw = lines[i];
   if (!raw || !raw.trim()) continue;
@@ -101,12 +108,12 @@ for (let i = lines.length - 1; i >= 0; i--) {
   const c = classify(obj);
   if (!c) continue;
 
-  if (c.role === 'assistant' && c.hasExitPlanMode && !passedCurrentExit) { passedCurrentExit = true; continue; } // current ExitPlanMode
-  if (c.role === 'user' && c.isMeta) continue;                            // injected entry, not a human reply
-  if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue;  // tool_result delivery
+  if (c.role === 'assistant' && c.hasToolUse) continue;                  // mechanical agent turn (ExitPlanMode / ToolSearch / Edit / ...)
+  if (c.role === 'user' && c.isMeta) continue;                           // injected entry, not a human reply
+  if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue; // tool_result delivery
 
-  if (c.role === 'user' && c.hasHumanText) allow(); // human replied right before -> briefing flow
-  if (c.role === 'assistant') deny(DENY_REASON);    // agent chained to ExitPlanMode -> skip
+  if (c.role === 'user' && c.hasHumanText) allow(); // a human reply precedes (mechanical turns aside) -> briefing flow
+  if (c.role === 'assistant') deny(DENY_REASON);    // agent's own text with no human reply after -> skip / didn't wait
   allow(); // ambiguous -> fail-open
 }
 

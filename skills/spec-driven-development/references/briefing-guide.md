@@ -40,7 +40,7 @@ SKILL.md 在任務開頭載入；briefing 的決策點在幾十輪 tool call 之
 
 1. **Reviewer 收斂報告**（review-protocol.md 結論模板）— design-reviewer 報 0 issues 時附帶續步提醒
 2. **tasks-design-verifier 通過報告** — Spec Mode 驗證通過時附帶 Spec Briefing 續步提醒
-3. **PreToolUse command hook（ExitPlanMode）** — harness 強制執行的 deterministic Node 腳本（`hooks/briefing-checkpoint.js`），保護**每一個 ExitPlanMode**（Quick Fix / create-spec / update-spec / 一般 plan mode 皆然 —— briefing 對任何 plan 都降認知負擔,且 fail-open 不會弄壞 plan mode,所以不限縮)。讀 transcript 判斷「ExitPlanMode 前一則是否為使用者回覆」:是 → 放行；agent 沒 briefing 直接從規劃接 ExitPlanMode（前一則是 assistant / tool_result / 注入訊息）→ 擋並回一句簡短提醒。**fail-open**（讀不到 transcript / 解析失敗 / 結構意外一律放行），**不會 deadlock**（briefing 完 + user 回覆後前一則就是 user 訊息 → 放行）。濾除 `isSidechain`（subagent 訊息）與 `isMeta`（注入的 local-command / reminder）。這取代了 1.6.2–1.6.5 的 prompt hook —— 那版由 LLM 判斷、看不到歷史,會自我推翻「永遠放行」而在 briefing 完的 retry 上誤擋。
+3. **PreToolUse command hook（ExitPlanMode）** — harness 強制執行的 deterministic Node 腳本（`hooks/briefing-checkpoint.js`），保護**每一個 ExitPlanMode**（Quick Fix / create-spec / update-spec / 一般 plan mode 皆然 —— briefing 對任何 plan 都降認知負擔,且 fail-open 不會弄壞 plan mode,所以不限縮)。讀 transcript,**略過 agent 的機械性工具回合**（載入 deferred ExitPlanMode 的 ToolSearch、批准後的 Edit 等帶 tool_use 的 assistant 回合）+ tool_result + 注入訊息後,看「第一個實質訊息是否為使用者回覆」:是 → 放行；agent 純文字（其後無 user 回覆,＝沒 briefing 或沒等回覆就退）→ 擋並回一句簡短提醒。**fail-open**（讀不到 transcript / 解析失敗 / 結構意外一律放行），**不會 deadlock**（briefing 完 + user 回覆後前一則就是 user 訊息 → 放行）。濾除 `isSidechain`（subagent 訊息）與 `isMeta`（注入的 local-command / reminder）。這取代了 1.6.2–1.6.5 的 prompt hook —— 那版由 LLM 判斷、看不到歷史,會自我推翻「永遠放行」而在 briefing 完的 retry 上誤擋。
 
 ### 補救
 
