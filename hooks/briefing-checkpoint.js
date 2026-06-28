@@ -31,6 +31,16 @@
  *   should count as "no briefing". (Cost: a skip done purely via tool calls with
  *   no narration may slip through — the safe direction; we never false-block.)
  *
+ *   ANCHORED TO THE CURRENT PLAN SESSION: the walk also stops at the point this
+ *   plan mode was (re-)entered — a manual {type:"permission-mode",permissionMode:
+ *   "plan"} marker (user shift+tab) OR an EnterPlanMode tool call (agent). Hitting
+ *   that boundary before any human reply means no briefing happened since entering
+ *   -> DENY. This stops a deny from pointing at stale text from BEFORE a Claude
+ *   Code restart, and correctly asks for a fresh briefing when the user had to
+ *   manually re-enter plan mode to resume a flow (a restart drops plan-mode state).
+ *   Briefing in every plan session is the intended policy; anchoring just keeps the
+ *   check satisfiable per-session instead of leaking across a restart boundary.
+ *
  * NEVER DEADLOCKS: after a deny the agent briefs turn-final, the user replies,
  *   and the retry sees that human reply -> allow. (This is why the old prompt
  *   hook, 1.6.2-1.6.5, was replaced: an LLM judge could not see history and
@@ -63,8 +73,8 @@ const deny = (reason) => emit('deny', reason);
 
 const DENY_REASON =
   '退出 plan mode 前請先交付 Plan Briefing：依 briefing-guide.md 以「回合最終訊息」輸出 use-case-driven 的重點摘要、' +
-  '結束回合、等 user 回覆，再呼叫 ExitPlanMode。（此檢查略過 agent 的工具回合，看「最近一則實質訊息是不是使用者回覆」— ' +
-  'agent 講完話沒等 user 回覆就 ExitPlanMode 會被擋；briefing 完且 user 回覆後重試即放行。）';
+  '結束回合、等 user 回覆，再呼叫 ExitPlanMode。（此檢查以「當前這次進入 plan mode」為界 — 看自進入後是否有 briefing + user 回覆；' +
+  'restart 後手動重進 plan mode 續流程也算新一次，請補一段 condensed briefing 再退出。briefing 完且 user 回覆後重試即放行。）';
 
 // ---- read hook input ----
 let input;
@@ -86,18 +96,18 @@ function classify(obj) {
   if (role !== 'user' && role !== 'assistant') return null;
 
   const content = msg && msg.content;
-  let hasToolResult = false, hasToolUse = false, hasHumanText = false;
+  let hasToolResult = false, hasToolUse = false, hasHumanText = false, hasEnterPlan = false;
   if (typeof content === 'string') {
     if (content.trim()) hasHumanText = true; // plain string content = typed text
   } else if (Array.isArray(content)) {
     for (const b of content) {
       if (!b || typeof b !== 'object') continue;
       if (b.type === 'tool_result') hasToolResult = true;
-      else if (b.type === 'tool_use') hasToolUse = true;
+      else if (b.type === 'tool_use') { hasToolUse = true; if (b.name === 'EnterPlanMode') hasEnterPlan = true; }
       else if (b.type === 'text' && b.text && b.text.trim()) hasHumanText = true;
     }
   }
-  return { role, isMeta: !!obj.isMeta, hasToolResult, hasToolUse, hasHumanText };
+  return { role, isMeta: !!obj.isMeta, hasToolResult, hasToolUse, hasHumanText, hasEnterPlan };
 }
 
 // ---- walk back to the first "real" (non-mechanical) message before ExitPlanMode ----
@@ -105,16 +115,26 @@ for (let i = lines.length - 1; i >= 0; i--) {
   const raw = lines[i];
   if (!raw || !raw.trim()) continue;
   let obj; try { obj = JSON.parse(raw); } catch (_) { continue; }
+
+  // Plan-session boundary (manual entry): user shift+tab -> {type:"permission-mode", permissionMode:"plan"}.
+  // Reaching it first (before any human reply) means no briefing+reply happened since (re-)entering plan
+  // mode -> DENY. (Forces a fresh briefing; recoverable. Stops the deny from leaking past a restart.)
+  // Checked on the raw entry (classify nulls permission-mode), but main-conversation-only like classify.
+  if (obj && !obj.isSidechain && obj.type === 'permission-mode' && obj.permissionMode === 'plan') deny(DENY_REASON);
+
   const c = classify(obj);
   if (!c) continue;
+
+  // Plan-session boundary (agent entry): the EnterPlanMode tool call that opened this plan session.
+  if (c.role === 'assistant' && c.hasEnterPlan) deny(DENY_REASON);
 
   if (c.role === 'assistant' && c.hasToolUse) continue;                  // mechanical agent turn (ExitPlanMode / ToolSearch / Edit / ...)
   if (c.role === 'user' && c.isMeta) continue;                           // injected entry, not a human reply
   if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue; // tool_result delivery
 
-  if (c.role === 'user' && c.hasHumanText) allow(); // a human reply precedes (mechanical turns aside) -> briefing flow
+  if (c.role === 'user' && c.hasHumanText) allow(); // a human reply since entry (mechanical turns aside) -> briefing flow
   if (c.role === 'assistant') deny(DENY_REASON);    // agent's own text with no human reply after -> skip / didn't wait
   allow(); // ambiguous -> fail-open
 }
 
-allow(); // nothing conclusive -> fail-open
+allow(); // nothing conclusive (plan entry scrolled off / compacted) -> fail-open

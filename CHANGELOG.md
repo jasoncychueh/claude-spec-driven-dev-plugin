@@ -2,6 +2,16 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.7.1 (2026-06-28)
+
+修正 briefing checkpoint hook 在**手動進入 plan mode**（尤其 restart 後重進）會誤擋、卡住的問題。
+
+- **根因**：1.6.7 把 hook 改成「保護每一個 ExitPlanMode」，但用「最近一則實質訊息是不是 user 回覆」判斷，而它**看不見手動進入 plan mode 的標記**（`{type:"permission-mode",permissionMode:"plan"}` 不是 user/assistant，被 classify 當雜訊跳過）。於是往回走會越過手動重進的標記、甚至越過 restart，撞到 restart **之前**的 agent 文字就 DENY —— deny 指向跟這次 plan session 無關的過時文字，agent 搞不清狀況而卡住。典型觸發：agent 進 plan mode → 過陣子重開 Claude Code（plan mode 狀態掉了）→ user 手動 shift+tab 重進續流程 → ExitPlanMode 被卡。
+- **修法**：把檢查**錨定在「當前這次 plan session」**。往回走遇到 plan mode 的（重）進入邊界就停 —— 手動的 `permission-mode:"plan"` 標記，或 agent 的 `EnterPlanMode` tool call。邊界之後沒有 briefing + user 回覆 → DENY（但可解：brief → 結束回合等回覆 → 重試即放行）；邊界之後有 user 回覆 → 放行。如此 deny 不再洩漏到 restart 之前的過時文字，且 restart 後重進會正確要求補一段新的 briefing。
+- **配套**：briefing-guide 新增「restart 後手動重進 plan mode 續流程 → ExitPlanMode 前補 condensed briefing」觸發，沿用既有「/implement 隔 session condensed briefing」pattern，讓 agent 自動補 briefing、全程不卡。
+- 新增 `hooks/briefing-checkpoint.test.js`：用真實 transcript 的標記形狀構造情境（spec-driven 有/無 briefing、手動重進有/無 briefing、不可洩漏到 restart 前的 stale reply 等），`node` 直接跑、免 test framework。鎖住這個曾在 1.6.6 漏掉手動進入路徑的回歸。
+- hooks.json / README Hooks 章節同步描述錨定行為。
+
 ## 1.7.0 (2026-06-28)
 
 把「為人類認知負擔校準」昇華為主 agent 全域準則，並讓 review 與 briefing 共用同一個「使用情境 + 執行流程 + 資料結構」透鏡。

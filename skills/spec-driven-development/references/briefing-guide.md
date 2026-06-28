@@ -12,6 +12,7 @@
 | /update-spec | design-review + verifier 通過後（改動定案） | 完整 Spec Briefing |
 | /implement | 啟動時、本 session 尚未對此 feature briefing 過（典型：隔 session 實作） | Condensed briefing |
 | Quick Fix Mode | design-reviewer loop 收斂後、**ExitPlanMode 之前** | Plan Briefing |
+| 任意 plan 流程（resume） | restart 後 plan mode 已掉、手動重進續流程，**ExitPlanMode 之前** | Condensed briefing（重建 context） |
 
 **通則**：凡是 user 即將面對「一大坨 plan 或 spec 要消化」的時刻都要 briefing。所有 **ExitPlanMode 之前**的 Plan Briefing 由 hook 強制保護（見下方「三層提醒架構」第 3 層）；結尾的 Spec Briefing 靠 verifier 報告提醒（第 2 層）+ SKILL 步驟。
 
@@ -103,6 +104,8 @@ Briefing 的價值在於觸發討論 — user 回應後依性質處理：
   - Quick Fix Mode：直接 Edit plan file；改動若涉及設計實質，補一輪 design-reviewer 再 ExitPlanMode
 - **新的偏好 / 原則浮現** → 依「Steering 演進機制」評估是否昇華進 steering
 
-## Condensed briefing（/implement 隔 session 啟動時）
+## Condensed briefing（/implement 隔 session 啟動、或 restart 後重進 plan mode）
 
 完整 briefing 的壓縮版（10-20 行）：一句話定位、一條最短的 use case 主線（happy path 走一遍）、已拍板 Decisions / Waivers 各一行、本次 /implement 會執行的 task 範圍。同樣**以回合最終訊息交付** — 輸出後結束回合，user 回覆確認才進 Stage 1。目的是重建 context，不是重新討論 — spec 在上個 session 已收斂，除非 user 主動提出異議。
+
+**restart 後手動重進 plan mode 續流程**也是 condensed briefing 的時機：Claude Code 重開會掉 plan mode 狀態，user 為了續接會手動 shift+tab 重進。此時在 ExitPlanMode 之前先補一段 condensed briefing（這次 plan 的重點 + 接下來要做什麼），既幫 user（與你自己）重建中斷的 context，也滿足 briefing checkpoint hook 對「當前這次 plan session」的要求（hook 把手動重進當成新一次 plan session，要求自重進後要有 briefing + user 回覆）。
