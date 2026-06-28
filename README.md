@@ -11,6 +11,7 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 - **Review Log Discipline**: Waivers / Decisions / round-by-round audit trail live in `review-log.md`; formal docs (requirements / design / tasks / code) stay clean
 - **Living Steering**: review loops surface unrecorded project principles as steering candidates; user-confirmed updates flow back into steering docs as development progresses
 - **Brief Before Build**: before implementation starts, a conversational summary of key points, resolved decisions, and waivers gets the user oriented without reading the full spec — cheapest moment to catch misunderstandings
+- **Calibrate for Cognitive Load**: a global discipline — the main agent digests and abstracts before every message, narrates through real use cases + execution flow + data structures, and re-surfaces context from earlier turns; review and briefing use the same lens to find and explain the core design concepts
 
 ## Commands
 
@@ -91,6 +92,7 @@ Then point the marketplace at the local path and install:
 5. **Steering Stays Current**
 6. **Self-Verify**
 7. **Verify Before Deliver**
+8. **Calibrate for Cognitive Load** — every message to the user is digested and abstracted first, narrated through real use cases + execution flow, never assuming the user remembers earlier-turn structures; review and briefing share this one lens
 
 ## Acknowledgments
 

@@ -2,6 +2,16 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.7.0 (2026-06-28)
+
+把「為人類認知負擔校準」昇華為主 agent 全域準則，並讓 review 與 briefing 共用同一個「使用情境 + 執行流程 + 資料結構」透鏡。
+
+- **新增全域準則（核心原則 9）「Calibrate for Cognitive Load」**：主 agent 對 user 的任何輸出（mode 宣告 / 進度 / 問題說明 / review 結論 / summary / Decision 升級 / briefing）都先消化、抽象再呈現。過去認知負擔校準的哲學散落在 briefing-guide 與 decision-escalation-guide 兩個檢查點，沒有一條全域準則 — SKILL.md 新增「為人類認知負擔校準」節統一三個下游應用。放 SKILL.md 而非 reference：reference 只在跑到該檢查點才 lazy load，全域準則必須常駐 context。
+- **review 改為 use-case-first**：`review-protocol.md` 新增「Review 方法：先建使用情境模型，再交叉比對」 — 先盤點真實 use cases + 資料結構 + 執行流程當判斷基準，而非從 checklist 條目逐條套。design-reviewer / implementation-reviewer 工作流程加「先建使用情境模型」步驟，checklists.md 兩節開頭加 gating note 指向協定（不重述，防漂移）。
+- **新增上位判準「無使用情境的邊緣 case 不過度設計」**：理論可達但無真實情境驅動、不應發生的路徑 → 不寫防禦程式碼，改 fail-fast + error log（不可 silent）。明文界定這是「不過度設計」非忽略 robustness — 有真實情境的失敗路徑照常要 robust。凌駕 Failure Modes / Bugs 面向。
+- **briefing 與 review 收斂為同一透鏡**：briefing-guide 強化「從 use case 出發」→ 帶出該情境觸及的執行流程與資料結構、不假設 user 記得前幾輪講過的結構（人類跨輪 / 長期會忘記架構）；明講 briefing 重點說明的就是 review 找出的核心設計概念。decision-escalation-guide 加 cross-link 標明它是全域準則的具體化。
+- 連帶：核心原則清單 Spec / Quick Fix Mode 編號順移（9–14 → 10–15，#1–#8 不動，CHANGELOG 對「核心原則 8」的引用不受影響）；README Core Principles 同步。
+
 ## 1.6.8 (2026-06-16)
 
 修正 hook 對 **deferred ExitPlanMode** 的誤擋。實測:user 批准後,agent 必須先 `ToolSearch` 載入 deferred 的 ExitPlanMode 工具（並常回一句確認）,這些 agent 回合插在「user 批准」與「ExitPlanMode」之間 → hook 看到緊鄰的是 agent 動作而非 user 回覆 → 誤擋,逼 user 再批准一次。

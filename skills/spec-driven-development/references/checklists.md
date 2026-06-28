@@ -287,6 +287,8 @@
 
 `design-reviewer` agent 審 design.md（Spec Mode）或 plan file（Quick Fix Mode）時使用。每輪 review 對應的 issue 須按下列分類覆蓋。**這個 checklist 不是格式檢查（那是 spec-verifier 的工作），是設計品質檢查**。
 
+> **套用前先建使用情境模型**（見 `review-protocol.md`「Review 方法」）：先盤點真實 use cases + 相關資料結構 + 執行流程，再用下列面向交叉比對。對每個想開的 issue 先問「**哪個真實 use case 會踩到？**」— 答不出來、純理論可達而無情境驅動的路徑，**不要求防禦處理，改採 fail-fast + error log**（這是「不過度設計」，非忽略 robustness；有真實情境的失敗路徑照常要 robust 處理）。
+
 ### 1. Hidden Assumptions（隱性假設）
 
 - [ ] 是否假設「使用者一定登入 / 網路一定通 / DB 一定可寫」？
@@ -349,6 +351,8 @@
 ## Implementation Review 審查清單
 
 `implementation-reviewer` agent 在 `/implement` Stage 2（或 Quick Fix Mode 實作後）多輪 review loop 中使用。每輪 review 對應的 issue 須按下列分類覆蓋。
+
+> **套用前先建使用情境模型**（見 `review-protocol.md`「Review 方法」）：先盤點程式碼服務的真實 use cases + 資料結構 + 執行流程，再交叉比對。對每個想開的 issue 先問「**哪個真實 use case 會踩到？**」— 純理論可達而無情境驅動的路徑不要求防禦處理，改採 fail-fast + error log（§3「過度防禦」的上位依據；非忽略 robustness）。
 
 ### 1. 跨 Agent 整合（Stage 1 並行實作的整合衝突）
 

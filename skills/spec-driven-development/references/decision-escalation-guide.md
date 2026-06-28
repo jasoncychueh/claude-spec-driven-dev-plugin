@@ -8,6 +8,8 @@
 
 ## 核心原則：為人類的認知極限校準
 
+> 本指引是 SKILL.md「為人類認知負擔校準」全域準則在 **Architecture Decision 升級**場景的具體化 — 同一個「先消化抽象、以實際 use case 敘事、不假設 user 記得前文」的透鏡，這裡用在把 reviewer 的 issue list 翻譯成 user 能拍板的對話。
+
 Reviewer 產的 issue list 是 raw material，**主 agent 不能直接照搬**。原因：
 
 - 人類無法像 LLM 即時撐起一個龐大的心智圖。Round 9 的 review 對 reviewer 是 cheap context；對 user 是新鮮 cold start

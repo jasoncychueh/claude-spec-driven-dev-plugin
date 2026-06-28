@@ -354,6 +354,35 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 ---
 
+## 為人類認知負擔校準（全域溝通準則）
+
+主 agent 對 user 的**任何輸出** — mode 宣告、進度回報、問題說明、review 結論、summary、Decision 升級、briefing — 都要先**消化、抽象**再呈現，不把未經整理的大量資訊原樣傾倒給 user。這不是某個檢查點的規則，是貫穿整個流程的溝通基線。
+
+**為什麼**：agent 能即時撐起的心智圖遠大於人類能當場消化的量。未抽象的大量資訊丟給 user → 認知過載 → 重點被淹沒 → 誤解到實作後才浮現，修正成本高一個數量級。降低認知負擔不是客套，是把「觸發討論」移到最便宜的時點。
+
+**核心做法 — 一個透鏡同時服務分析與溝通**：「**使用情境 + 執行流程 + 資料結構**」是同一個透鏡的兩種用途：
+
+- **分析（review）** 用它找出「真實情境驅動的核心設計概念」，排除無情境的理論性邊緣 case（見 `references/review-protocol.md`「Review 方法」）
+- **溝通（briefing / 任何說明）** 把那些核心概念用同一透鏡呈現：以實際 use case 走流程，元件、資料結構、執行流程在場景中出場時才介紹
+
+橋樑是「**核心設計概念**」 — review 判斷什麼重要（情境驅動的才重要），溝通就重點講那些重要的、略過理論性噪音。**review 與 briefing 職責不同，底層透鏡同一個。**
+
+**三條具體紀律**：
+
+1. **以實際 use case 搭執行流程敘事** — 純概念條列（元件名 + pattern 名堆疊）建立不了畫面；場景敘事（「使用者做 X 時，因為某決定，會經歷 Y」）一聽就懂。
+2. **不假設 user 記得前文** — 人類跨對話輪次會忘、程式久了會忘記專案完整架構。說明時不輕易省略前幾輪提過的資料結構、執行流程、抽象概念；必要時主動重述，幫 user 重建心智模型。
+3. **資訊量剛剛好** — 不夠則 user 無法判斷，過量則無法消化；需要細節時指向文件位置（design.md §X / plan file 段落），而非全文重貼。
+
+**三個下游應用**（本準則的具體化，各有詳細指引）：
+
+| 應用場景 | 指引 |
+|---|---|
+| 實作前的 Spec / Plan Briefing | `references/briefing-guide.md` |
+| Architecture Decision / waiver / steering candidate 升級給 user | `references/decision-escalation-guide.md` |
+| Review 分析（用同一透鏡找核心設計概念） | `references/review-protocol.md`「Review 方法」 |
+
+---
+
 ## Plan / Design 文件內容指引
 
 寫 plan file（Quick Fix Mode）或 design.md（Spec Mode）時，**聚焦 substance，不寫 process narration**：
@@ -499,16 +528,17 @@ Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過
 6. **Separate "What Is" from "Why"** — 正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。豁免 / Decision / 跨輪 audit trail 一律寫進 review log，不污染正式文件
 7. **Steering is Living** — 開發中浮現的專案級原則經 user 確認後即時昇華進 steering（見「Steering 演進機制」），不等大檢視
 8. **Brief Before Build** — 實作開始前用對話輸出 spec / plan 的重點摘要（`briefing-guide.md`），讓 user 低成本進入狀況、在最便宜的時點觸發討論
+9. **Calibrate for Cognitive Load（為人類認知負擔校準）** — 主 agent 對 user 的**任何輸出**都先消化、抽象再呈現，以實際 use case 搭執行流程敘事、不假設 user 記得前幾輪講過的資料結構 / 流程 / 概念。這是 #8 Brief Before Build 與「Architecture Decision 呈現紀律」共同的根（見「為人類認知負擔校準」節）
 
 **Spec Mode 特有**：
-9. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
-10. **Design is Truth** — design.md 是唯一真理來源
-11. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
+10. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
+11. **Design is Truth** — design.md 是唯一真理來源
+12. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
 
 **Quick Fix Mode 特有**：
-12. **Plan File is Truth** — plan file 是真理來源（含內嵌的 `## Review Log` 區段；路徑於 EnterPlanMode 時確認）
-13. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
-14. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
+13. **Plan File is Truth** — plan file 是真理來源（含內嵌的 `## Review Log` 區段；路徑於 EnterPlanMode 時確認）
+14. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
+15. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
 
 ---
 
