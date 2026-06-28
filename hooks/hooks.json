@@ -1,5 +1,5 @@
 {
-  "description": "Plan Briefing checkpoint: a deterministic, stateless Node command hook on EVERY ExitPlanMode (Quick Fix Mode, /create-spec & /update-spec plan phases, and plain plan mode). It allows when a real user reply precedes the call — skipping the agent's mechanical tool turns (e.g. the ToolSearch that loads a deferred ExitPlanMode, a post-approval Edit) so they do not break the check — and blocks a straight planning -> ExitPlanMode skip with a short reminder. The check is anchored to the current plan session: it stops at where plan mode was (re-)entered (a manual permission-mode:plan marker, or an EnterPlanMode tool call), so a briefing is required since entering and a deny never points at stale text from before a Claude Code restart (a restart drops plan-mode state, forcing a manual re-entry to resume). Fail-open on any uncertainty, so it never deadlocks. Filters subagent (isSidechain) and injected (isMeta) entries. Reads the transcript only; writes nothing anywhere.",
+  "description": "Two hooks. (1) PreToolUse on ExitPlanMode — Plan Briefing checkpoint: a deterministic, stateless Node command hook on EVERY ExitPlanMode (Quick Fix Mode, /create-spec & /update-spec plan phases, and plain plan mode). It allows when a real user reply precedes the call — skipping the agent's mechanical tool turns (e.g. the ToolSearch that loads a deferred ExitPlanMode, a post-approval Edit) so they do not break the check — and blocks a straight planning -> ExitPlanMode skip with a short reminder. The check is anchored to the current plan session: it stops at where plan mode was (re-)entered (a manual permission-mode:plan marker, or an EnterPlanMode tool call), so a briefing is required since entering and a deny never points at stale text from before a Claude Code restart (a restart drops plan-mode state, forcing a manual re-entry to resume). Fail-open on any uncertainty, so it never deadlocks. Filters subagent (isSidechain) and injected (isMeta) entries. Reads the transcript only; writes nothing anywhere. (2) SessionStart on startup/resume — injects a short reminder (session-start-skill-reminder.js) to load and use the spec-driven-development skill for any code work. Static context injection, no project detection: the reminder itself states the 'if this is a code project' condition and lets the agent judge. Writes nothing.",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,18 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/briefing-checkpoint.js\"",
             "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start-skill-reminder.js\"",
+            "timeout": 10
           }
         ]
       }

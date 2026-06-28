@@ -2,6 +2,14 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.7.2 (2026-06-28)
+
+新增 SessionStart hook，在 session 啟動 / resume 時注入一段提醒，要 agent 載入並使用 spec-driven-development skill（補強 skill 容易被 under-trigger 的問題）。
+
+- 新增 `hooks/session-start-skill-reminder.js`：固定輸出 `hookSpecificOutput.additionalContext` 一段提醒 —— 「本專案安裝了此 skill；若為程式專案，規劃/動手前先載入並使用（會自動分流 Quick Fix / Spec Mode 並跑強制 review loop）；非程式專案略過」。掛在 hooks.json 的 SessionStart，matcher `startup|resume`（不含 compact，避免 session 中途注入）。
+- **不做專案偵測**：是否為程式專案的判斷直接寫進 prompt、交給 agent。SessionStart 每次啟動都跑，靜態字串最輕量，省去 file-scan 成本與型別誤判。
+- SessionStart 無法 block、純注入 context；腳本唯讀、無副作用。hooks.json / README Hooks 章節同步描述兩個 hook。
+
 ## 1.7.1 (2026-06-28)
 
 修正 briefing checkpoint hook 在**手動進入 plan mode**（尤其 restart 後重進）會誤擋、卡住的問題。
