@@ -2,6 +2,17 @@
 
 Claude Code plugin for spec-driven development workflow. Enforces "no spec, no code" discipline with structured steering documents, feature specs, verification, and agent-based implementation.
 
+## Philosophy
+
+The workflow has two jobs — catch design flaws while they're cheap to fix, and keep the human in the loop without drowning them — and both run on **one lens**: read every change through its **real use cases + execution flow + data structures**.
+
+- **Review uses the lens to find what matters.** A reviewer starts from "which real scenario does this serve?", not from a checklist — surfacing the *core design concepts* and ignoring theoretical edge cases no use case drives (those get fail-fast + an error log, not defensive code). Review runs multi-round until 0 issues; reviewers raise issues, never fix them.
+- **Communication uses the same lens to explain what matters.** What review found important is exactly what the user must understand — so briefings, and every message to the user, are digested and abstracted first, told through a real scenario, and never assume the user still remembers structures discussed turns ago. Lowering the human's cognitive load is a *global* discipline, not just a briefing step.
+
+The bridge is the **core design concept**: review decides what's important; communication spends the user's attention there.
+
+Two disciplines keep the docs honest: **formal docs describe the decided world** — the *why* (waivers, decisions, rejected paths) lives in `review-log.md`, never polluting requirements/design/tasks/code — and **steering is living — but restrained**: the rare project-spanning principle whose absence would cause cross-feature inconsistency is promoted once the user confirms; by default, things stay out (spec-specific choices, implementation details, and one-off decisions don't belong in steering).
+
 ## Features
 
 - **Steering Documents**: Project-level guidance (product vision, tech stack, code structure)
@@ -97,4 +108,4 @@ Then point the marketplace at the local path and install:
 
 ## Acknowledgments
 
-This project is inspired by [spec-workflow-mcp](https://github.com/Pimzino/spec-workflow-mcp) — its steering-documents + spec (requirements / design / tasks) workflow shaped the core model here. This plugin reimagines that workflow natively for Claude Code (skill + commands + agents + hooks) rather than as an MCP server, and adds its own emphases: review-log isolation from formal docs, living steering, multi-round agent review loops, and the Brief-Before-Build briefing checkpoint.
+This project is inspired by [spec-workflow-mcp](https://github.com/Pimzino/spec-workflow-mcp) — its steering-documents + spec (requirements / design / tasks) workflow shaped the core model here. This plugin reimagines that workflow natively for Claude Code (skill + commands + agents + hooks) rather than as an MCP server, and adds its own emphases: review-log isolation from formal docs, living steering, multi-round agent review loops, use-case-first review, the Brief-Before-Build briefing checkpoint, and calibrating every interaction for the human's cognitive load.
