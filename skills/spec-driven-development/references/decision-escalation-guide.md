@@ -331,7 +331,7 @@ User 透過 `AskUserQuestion` 回答 Decision 後，主 agent 必須立即把結
 
 ### 拍板後的昇華判斷（Steering 演進掛載點）
 
-寫完 §2 後，立即多想一步：這個 Decision 確立的是「**僅此 feature 的選擇**」還是「**專案級原則**」（未來其他 feature 也該遵循）？判斷線索：rationale 是否訴諸 feature 無關的理由（workload 特性、團隊偏好、codebase 一致性）、未來同類選擇是否該直接沿用不再問。
+寫完 §2 後，立即多想一步：這個 Decision 確立的是「**僅此 feature 的選擇**」還是「**專案級原則**」（未來其他 feature 也該遵循）？判斷線索：rationale 是否訴諸 feature 無關的理由（workload 特性、團隊偏好、codebase 一致性）、未來同類選擇是否該直接沿用不再問。**預設是「僅此 feature」、不昇華** — 只有明確訴諸 feature 無關的理由、且不記進 steering 會造成未來不一致時，才當專案級原則處理；多數 Decision 屬前者。
 
 若是專案級原則，依 SKILL.md「Steering 演進機制」當下就提議寫入 steering — user 剛拍完板、context 還在，追問「這條要不要進 tech.md 變成通則？」的成本最低。確認後輕量寫入 + 記入 review-log §5。
 

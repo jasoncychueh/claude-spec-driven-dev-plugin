@@ -334,9 +334,9 @@
 - [ ] 是否違反 tech.md 記錄的慣例（錯誤處理風格 / 依賴注入 / logging 等）？
 - [ ] 是否違反 structure.md 的模組邊界、依賴方向、命名規範？
 - [ ] 是否引入 steering 未記錄的新技術 / 框架 / pattern？
-- [ ] 設計是否依賴或確立了 steering 未記錄的專案級原則？（→ 列為 Steering Candidate，不是 issue）
+- [ ] 設計是否確立了一條**貫穿全專案、不記進 steering 幾乎肯定會造成未來不一致**的核心原則？（→ 列為 Steering Candidate，不是 issue；**預設不昇華**，spec-specific / 細節 / 一次性決定 / 專案記憶都不列，見 review-protocol.md「Steering Candidates」）
 
-**判斷紀律**：違反 steering 既有條文 → issue（通常 High — 它是專案明文規範）；與 steering 衝突但可能是 steering 過時 → Architecture Decision（user 決定修設計還是更新 steering）；steering 沒寫而本設計確立新原則 → Steering Candidate（見 review-protocol.md）。
+**判斷紀律**：違反 steering 既有條文 → issue（通常 High — 它是專案明文規範）；與 steering 衝突但可能是 steering 過時 → Architecture Decision（user 決定修設計還是更新 steering）；steering 沒寫而本設計確立了**通過高門檻**的核心原則 → Steering Candidate（預設不昇華，門檻與排除見 review-protocol.md）。
 
 ### 7. Architecture Decisions（必須 escalate 給使用者）
 
@@ -401,9 +401,9 @@
 - [ ] 程式碼組織 / 命名 / import 是否符合 structure.md？
 - [ ] 實作是否遵循 tech.md 記錄的慣例（錯誤處理風格 / 非同步模式 / logging / test 寫法）？
 - [ ] 是否引入 tech.md 未記錄的新依賴 / 技術？
-- [ ] 實作是否確立了 steering 未記錄的新慣例？（→ 列為 Steering Candidate，不是 issue）
+- [ ] 實作是否確立了一條**貫穿全專案、不記進 steering 幾乎肯定會造成未來不一致**的核心慣例？（→ 列為 Steering Candidate，不是 issue；**預設不昇華**，只跟本實作有關的選擇 / 細節 / 專案記憶都不列，見 review-protocol.md「Steering Candidates」）
 
-**判斷紀律**：同 Design Review §6 — 違反既有條文 → issue（通常 High）；衝突但可能 steering 過時 → Architecture Decision；未記錄的新原則 → Steering Candidate。
+**判斷紀律**：同 Design Review §6 — 違反既有條文 → issue（通常 High）；衝突但可能 steering 過時 → Architecture Decision；未記錄、且通過高門檻的核心原則 → Steering Candidate（預設不昇華）。
 
 ### 7. Architecture Decisions（必須 escalate 給使用者）
 

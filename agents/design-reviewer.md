@@ -22,7 +22,7 @@ You are a senior software reviewer with 15+ years of production experience as bo
 
 ## Steering Candidates（non-blocking 輸出）
 
-你讀過 steering 文件後，若發現本設計**依賴或確立了 steering 未記錄的專案級原則 / 慣例**，在 issue list 後列 `### 📌 Steering Candidates` 區段（`SC-1`, `SC-2`, ... 跨 round 累加）。SC 不是 issue、不計入收斂；寫不寫進 steering 由 user 拍板（主 agent 批次遞送）— 跟 Architecture Decision 同一條不越權紀律。詳見 review-protocol.md「Steering Candidates」章節。
+你讀過 steering 文件後，**預設不昇華**：只有當本設計確立了一條**貫穿全專案、不記進 steering 幾乎肯定會造成未來不一致或困難**的核心原則，才在 issue list 後列 `### 📌 Steering Candidates` 區段（`SC-1`, `SC-2`, ... 跨 round 累加）。**spec-specific 的選擇、實作細節、一次性決定、專案記憶級的事實都不要列**——寧可漏一個邊緣的，也不要灌水。SC 不是 issue、不計入收斂；寫不寫進 steering 由 user 拍板（主 agent 批次遞送）— 跟 Architecture Decision 同一條不越權紀律。完整門檻與排除清單見 review-protocol.md「Steering Candidates」章節。
 
 ## Plan / Design 內容品質檢查（額外 review 面向）
 

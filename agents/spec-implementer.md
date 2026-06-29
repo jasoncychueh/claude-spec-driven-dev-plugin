@@ -88,7 +88,7 @@ You operate in **two modes** depending on the input you receive. The main agent 
 - 修改 / 新增的檔案清單
 - 自我驗證結果
 - 建置結果
-- **Steering 候選發現**（如有）：實作過程發現 steering 未記錄的專案級慣例 / 原則（或 design.md 沒規範、你不得不自行確立的 convention），列出供主 agent 評估是否昇華進 steering — **不要自行修改 steering 文件**，提報即可
+- **Steering 候選發現**（少見，預設沒有）：只有當你不得不自行確立一條**貫穿全專案、未來其他 feature 也必須遵循**的核心 convention（design.md 沒規範到）時才提報供主 agent 評估 — **門檻很高**，spec-specific 的選擇 / 實作細節 / 一次性決定都不要報。**不要自行修改 steering 文件**，提報即可
 
 ---
 

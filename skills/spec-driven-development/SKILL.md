@@ -477,7 +477,11 @@ Plan Mode + design-reviewer loop → ExitPlanMode →
 
 ## Steering 演進機制
 
-Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過程中持續浮現，**昇華的最佳時機是原則浮現的當下**（context 還在、user 剛拍板），不是某次大檢視。三個掛載點：
+Steering 是活文件 — 真正**貫穿全專案的核心原則 / 慣例**會在開發過程中持續浮現，**昇華的最佳時機是原則浮現的當下**（context 還在、user 剛拍板），不是某次大檢視。
+
+**但門檻很高、預設不昇華**：絕大多數 review / 實作中冒出的東西是 spec-specific、實作細節、或專案記憶級的事實，**都不該進 steering**；只昇華「不記進去幾乎肯定會造成未來不一致或困難」的少數核心原則（完整門檻與排除清單見 `references/review-protocol.md`「Steering Candidates」）。寧缺勿濫——灌水會稀釋護欄、也洗版 user 的注意力。
+
+三個掛載點：
 
 | 掛載點 | 時機 | 形式 |
 |---|---|---|
@@ -494,7 +498,7 @@ Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過
 
 **界線**：本機制處理「新增原則 / 慣例條目」級別的增量；方向性大改（換架構模式、改技術堆疊）仍走 `/update-steering`。Quick Fix Mode 若專案已有 steering，同樣適用。
 
-**為什麼**：steering 過時是漸進式的 — 每個 feature 確立一兩條沒被記錄的慣例，半年後 steering 與 codebase 實況脫節，reviewer 的 steering alignment 檢查就形同虛設。即時昇華讓 steering 跟著專案長大，而不是定期重寫。
+**為什麼即時、但克制**：steering 過時是漸進式的 — 真有跨 feature 的核心慣例沒被記錄，半年後 steering 與 codebase 脫節、alignment 檢查就形同虛設，所以該昇華的要當下昇華。但反過來，**過度昇華（把 spec-specific / 細節 / 一次性決定灌進 steering）在實務上是更常見的失敗** — 它稀釋護欄、讓真正重要的條文被淹沒、每輪浪費 user 的注意力。兩個方向都要避免，而**預設偏向克制**：昇華少數真正貫穿全專案的核心，不是每輪都加。
 
 ---
 
@@ -526,7 +530,7 @@ Steering 是活文件 — 專案級原則 / 慣例 / 設計哲學會在開發過
 4. **Review Until Convergence** — multi-round 到 0 issues，不接受「夠好就停」；但 reviewer 雙向誠實（不假收斂、也不發明 issue），連續 5 輪有新 Critical/High 走保險絲升級 user
 5. **No Architectural Overreach** — reviewer 遇到沒共識的設計選擇不拍板，遞給 user
 6. **Separate "What Is" from "Why"** — 正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。豁免 / Decision / 跨輪 audit trail 一律寫進 review log，不污染正式文件
-7. **Steering is Living** — 開發中浮現的專案級原則經 user 確認後即時昇華進 steering（見「Steering 演進機制」），不等大檢視
+7. **Steering is Living (but restrained)** — 開發中浮現、真正貫穿全專案的核心原則經 user 確認後即時昇華（見「Steering 演進機制」），不等大檢視；但**門檻很高、預設不昇華** — spec-specific / 實作細節 / 一次性決定 / 專案記憶都不進 steering，寧缺勿濫
 8. **Brief Before Build** — 實作開始前用對話輸出 spec / plan 的重點摘要（`briefing-guide.md`），讓 user 低成本進入狀況、在最便宜的時點觸發討論
 9. **Calibrate for Cognitive Load（為人類認知負擔校準）** — 主 agent 對 user 的**任何輸出**都先消化、抽象再呈現，以實際 use case 搭執行流程敘事、不假設 user 記得前幾輪講過的資料結構 / 流程 / 概念。這是 #8 Brief Before Build 與「Architecture Decision 呈現紀律」共同的根（見「為人類認知負擔校準」節）
 

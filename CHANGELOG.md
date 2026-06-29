@@ -2,6 +2,14 @@
 
 版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
 
+## 1.7.3 (2026-06-28)
+
+把 Steering Candidate 的門檻大幅拉高、預設不昇華 —— 解決「每輪 review / 實作後幾乎都冒出一堆其實是 spec-specific / 太細節 / 專案記憶級、不該進 steering 的昇華候選」的過度觸發問題。
+
+- **根因**：SC 生成點（review-protocol「Steering Candidates」、兩個 reviewer 的 SC 段、checklists §6）門檻又低又模糊（「依賴或確立 steering 未記錄的專案級原則 / 慣例」就列）；SKILL「Steering 演進機制」的「為什麼」又偏向多昇華（強調不昇華會讓 steering 過時）；真正的排除清單只在 steering-guide，reviewer 生成 SC 時根本不會讀到。
+- **新門檻（權威定義在 `review-protocol.md`「Steering Candidates」）**：**預設不昇華**。三條同時成立才列 SC —— (1) 貫穿整個專案的核心概念 / 原則 / 慣例；(2) 不記進 steering 幾乎肯定會造成未來規劃或實作的不一致或困難（「不記會出事」而非「記了比較好」）；(3) steering 目前確實沒寫。**明確排除** spec-specific 選擇、實作細節、專案記憶級事實、「記了比較整齊但沒它也不會出事」的東西。判斷不出來就不是 SC。寧可漏一個邊緣的，也不要灌水（灌水稀釋護欄、洗版 user 注意力 —— 呼應 v1.7.0 的認知負擔準則）。
+- **同步收緊**：design-reviewer / implementation-reviewer 的 SC 段、checklists §6（Design + Impl）、spec-implementer 的候選提報、decision-escalation 的「拍板後昇華判斷」都改成高門檻 + 預設不昇華；SKILL「Steering 演進機制」加克制原則、「為什麼」改成平衡（過度昇華是更常見的實務失敗）；核心原則 #7 `Steering is Living` → `Steering is Living (but restrained)`。
+
 ## 1.7.2 (2026-06-28)
 
 新增 SessionStart hook，在 session 啟動 / resume 時注入一段提醒，要 agent 載入並使用 spec-driven-development skill（補強 skill 容易被 under-trigger 的問題）。

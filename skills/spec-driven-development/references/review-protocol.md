@@ -121,15 +121,34 @@ Round 3: Bug H, Smell I
 
 ## Steering Candidates（steering 昇華候選）
 
-Review 時讀過 steering 文件後，若發現「本設計 / 實作所依賴或確立的某個專案級原則、慣例、設計哲學，steering 並未記錄」，把它列為 **Steering Candidate**（編號 `SC-1`, `SC-2`, ... 跨 round 累加），放在 issue list 後的專屬區段。
+**預設不昇華。** Steering 是專案的護欄，不是開發筆記；絕大多數 review 發現的東西**不該**進 steering。Steering Candidate 的門檻刻意拉得很高——**除非必要，否則不昇華**。寧可漏一個邊緣的，也不要灌水：灌水會稀釋護欄、淹沒真正重要的條文，也是對 user 注意力的浪費（見 SKILL.md「為人類認知負擔校準」）。真正重要的原則會在未來反覆出現、自然再被提起，漏一個的成本遠低於每輪灌一堆雜訊。
+
+**三條同時成立才列為 SC**（缺一不可）：
+
+1. 是**貫穿整個專案的核心概念 / 原則 / 慣例** — 未來其他、不相關的 feature 也必須遵循才會一致；
+2. **不記進 steering 幾乎肯定會造成**未來規劃或實作的不一致或困難 — 是「不記會出事」，不是「記了比較好」；
+3. steering 目前確實沒寫（已存在的不必列）。
+
+**明確排除**（即使在 review 中出現，也**不是** SC）：
+
+- **spec-specific** — 只跟這個 feature 有關的選擇（某個 cache TTL、某支 API 的參數）→ 留在該 feature 的 design / review-log；
+- **實作細節** — 演算法、backoff 參數、一次性的命名決定 → 屬於 code / design；
+- **專案記憶級的事實** — 「legacy 模組 X 用 callback 風格」這類描述現況的 note，不是前瞻性的專案原則；
+- **「記了比較整齊」但沒有它也不會出事**的任何東西。
+
+判斷不出來算不算 → **就不是 SC**。
+
+**但門檻高 ≠ 永不昇華。** 真的同時滿足上述三條的核心原則，就該**有自信地列出來** — 那正是 living steering 要抓的、不記會讓 steering 與 codebase 漸漸脫節的東西，壓掉它跟灌水一樣有害。克制是為了濾掉雜訊，不是把真正重要的也一起壓掉；「寧可漏一個」只針對**邊緣 / 拿不準**的候選，不適用於清楚命中三條的。目標是「**精準的少數**」，不是「零」。
+
+其餘紀律：
 
 - SC **不是 issue、不計入收斂** — 「文件該補一條慣例」不該 block 品質防線
 - Reviewer 不自行判定「該寫進 steering」 — 跟 Architecture Decision 同一條不越權紀律：寫不寫由 user 拍板，主 agent 負責批次遞送（依 SKILL.md「Steering 演進機制」）
 - 與「違反 steering」區分清楚：
   - 設計**違反** steering 既有條文 → 開正常 issue（明文規範的違反通常 High）
   - 設計與 steering 衝突，但你無法斷定誰對（steering 可能過時）→ 開 Architecture Decision，讓 user 決定「修設計」還是「更新 steering」
-  - steering **沒寫**，而本設計確立了新原則 → Steering Candidate
-- 已存在於你讀到的 steering 內容中的原則不必列；跨 round 重複列出尚未處理的 candidate 沒關係，主 agent 負責去重
+  - steering **沒寫**，而本設計確立了**通過上述三條門檻**的核心原則 → Steering Candidate
+- 跨 round 重複列出尚未處理的 candidate 沒關係，主 agent 負責去重
 
 ## 輸出格式
 
