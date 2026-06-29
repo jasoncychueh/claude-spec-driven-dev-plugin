@@ -72,9 +72,9 @@ const allow = () => emit('allow');
 const deny = (reason) => emit('deny', reason);
 
 const DENY_REASON =
-  '退出 plan mode 前請先交付 Plan Briefing：依 briefing-guide.md 以「回合最終訊息」輸出 use-case-driven 的重點摘要、' +
-  '結束回合、等 user 回覆，再呼叫 ExitPlanMode。（此檢查以「當前這次進入 plan mode」為界 — 看自進入後是否有 briefing + user 回覆；' +
-  'restart 後手動重進 plan mode 續流程也算新一次，請補一段 condensed briefing 再退出。briefing 完且 user 回覆後重試即放行。）';
+  'Before exiting plan mode, deliver a Plan Briefing first: per briefing-guide.md, output a use-case-driven summary of the key points as a turn-final message, ' +
+  'end the turn, wait for the user to reply, and only then call ExitPlanMode. (This check is bounded to "the current entry into plan mode" — it checks whether there has been a briefing + user reply since entering; ' +
+  'manually re-entering plan mode after a restart to resume the flow also counts as a new entry, so add a condensed briefing before exiting. Once the briefing is done and the user has replied, retrying will allow it.)';
 
 // ---- read hook input ----
 let input;

@@ -1,8 +1,8 @@
 ---
-description: "建立功能 spec 三文件（requirements.md, design.md, tasks.md）"
+description: "Create the three feature spec documents (requirements.md, design.md, tasks.md)"
 argument-hint: "<feature>"
 ---
 
-載入 `spec-driven-development` SKILL，然後執行 `/create-spec` 流程。
+Load the `spec-driven-development` SKILL, then run the `/create-spec` flow.
 
-功能名稱: $ARGUMENTS
+Feature name: $ARGUMENTS

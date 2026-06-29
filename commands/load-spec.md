@@ -1,8 +1,8 @@
 ---
-description: "載入功能 spec 並顯示進度"
+description: "Load a feature spec and show its progress"
 argument-hint: "<feature>"
 ---
 
-載入 `spec-driven-development` SKILL，然後執行 `/load-spec` 流程。
+Load the `spec-driven-development` SKILL, then run the `/load-spec` flow.
 
-功能名稱: $ARGUMENTS
+Feature name: $ARGUMENTS

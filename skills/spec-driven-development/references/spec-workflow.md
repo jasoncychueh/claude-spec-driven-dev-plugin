@@ -1,252 +1,252 @@
-# 功能 Spec 撰寫指南
+# Feature Spec Authoring Guide
 
-每個功能在實作前，必須完成三個 spec 文件：需求、設計、任務。
+Before implementing any feature, three spec documents must be completed: requirements, design, and tasks.
 
-## 三個文件
+## The Three Documents
 
-| 順序 | 文件 | 用途 | 模板 |
+| Order | Document | Purpose | Template |
 |------|------|------|------|
-| 1 | `requirements.md` | 定義做什麼（What） | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` |
-| 2 | `design.md` | 定義怎麼做（How） | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` |
-| 3 | `tasks.md` | 分解成可執行任務 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` |
+| 1 | `requirements.md` | Defines what to build (What) | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` |
+| 2 | `design.md` | Defines how to build it (How) | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` |
+| 3 | `tasks.md` | Breaks it down into executable tasks | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` |
 
 ---
 
-## 文件職責區分
+## Separation of Document Responsibilities
 
-**嚴格區分 requirements.md 與 design.md 的內容範疇**，避免職責混淆。
+**Strictly separate the content scope of requirements.md and design.md** to avoid responsibility confusion.
 
-### requirements.md - 業務需求層（What）
+### requirements.md - Business Requirements Layer (What)
 
-專注於**用戶視角**的功能描述，回答「系統要做什麼」：
+Focus on feature descriptions from the **user's perspective**, answering "what the system should do":
 
-| 應該包含 | 不應該包含 |
+| Should include | Should not include |
 |----------|------------|
-| User Story（角色、功能、價值） | 技術架構選擇 |
-| Acceptance Criteria（可驗證的行為） | 具體的元件/類別設計 |
-| 業務規則與邏輯 | 資料庫 schema / 資料模型 |
-| 非功能性需求（效能指標、安全政策） | 演算法實作細節 |
-| 功能範圍（In Scope / Out of Scope） | 程式碼結構、檔案路徑 |
+| User Story (role, feature, value) | Technical architecture choices |
+| Acceptance Criteria (verifiable behavior) | Specific component/class design |
+| Business rules and logic | Database schema / data models |
+| Non-functional requirements (performance metrics, security policies) | Algorithm implementation details |
+| Feature scope (In Scope / Out of Scope) | Code structure, file paths |
 
-### design.md - 技術設計層（How）
+### design.md - Technical Design Layer (How)
 
-專注於**技術視角**的實作方案，回答「系統如何實現」：
+Focus on the implementation approach from the **technical perspective**, answering "how the system realizes it":
 
-| 應該包含 | 不應該包含 |
+| Should include | Should not include |
 |----------|------------|
-| 系統架構與元件關係 | 重複描述 User Story |
-| 元件設計（Purpose、Interfaces、Dependencies） | 業務規則的重新定義 |
-| 資料模型與 Schema | 商業目標與價值 |
-| API 規格與函數簽名 | 可量化的業務指標 |
-| 錯誤處理策略 | |
-| 演算法與處理流程 | |
-| 測試策略 | |
+| System architecture and component relationships | Repeating User Stories |
+| Component design (Purpose, Interfaces, Dependencies) | Redefining business rules |
+| Data models and Schema | Business goals and value |
+| API specs and function signatures | Quantifiable business metrics |
+| Error handling strategy | |
+| Algorithms and processing flows | |
+| Testing strategy | |
 
-### 判斷原則
+### Decision Principle
 
 ```
-❓ 這個內容是否涉及技術選型、程式碼結構、或實作細節？
-   ├─ 是 → 寫在 design.md
-   └─ 否 →
-      ❓ 這個內容是否描述用戶行為、業務規則、或功能期望？
-         ├─ 是 → 寫在 requirements.md
-         └─ 否 → 可能不需要寫
+❓ Does this content involve technology selection, code structure, or implementation details?
+   ├─ Yes → write it in design.md
+   └─ No →
+      ❓ Does this content describe user behavior, business rules, or feature expectations?
+         ├─ Yes → write it in requirements.md
+         └─ No → it probably doesn't need to be written
 ```
 
-## 撰寫工作流程
+## Authoring Workflow
 
-### 兩條路徑
+### Two Paths
 
-本 skill 支援兩條開發路徑（詳見 `mode-selection.md`），下面分別呈現流程概覽。
+This skill supports two development paths (see `mode-selection.md` for details); below is an overview of each flow.
 
 ---
 
-### Quick Fix Mode 流程
+### Quick Fix Mode Flow
 
 ```
-[使用者請求小改動：bug fix / refactor / 小擴展]
+[User requests a small change: bug fix / refactor / small extension]
     │
-    ├── 主 agent 宣告走 Quick Fix Mode（給 user 調整機會）
+    ├── Main agent declares it's going Quick Fix Mode (gives the user a chance to adjust)
     │
     ├── EnterPlanMode
     │     │
-    │     ├── 確認 plan file 實際路徑（通常由 Claude Code 自動建立；
-    │     │   環境未提供時自建 .spec/quickfix/<slug>.md）
-    │     ├── 主 agent 用 Edit tool 寫 plan draft（context / 計畫 / 風險 / 驗證）
+    │     ├── Confirm the plan file's actual path (usually auto-created by Claude Code;
+    │     │   if the environment doesn't provide one, create .spec/quickfix/<slug>.md)
+    │     ├── Main agent uses the Edit tool to write the plan draft (context / plan / risks / verification)
     │     │
-    │     └── design-reviewer 多輪 review loop（強制）
-    │           ├── 主 agent 告訴 reviewer plan file path
-    │           ├── reviewer 用 Read 讀 plan file，產 issue list
-    │           ├── Architecture Decision → AskUserQuestion 遞給 user
-    │           ├── Bugs/Smells → 主 agent 用 Edit 修 plan file
-    │           ├── Steering Candidate（若專案有 steering）→ 累積批次處理
-    │           └── 直到當輪 0 issues 才退出
+    │     └── design-reviewer multi-round review loop (mandatory)
+    │           ├── Main agent tells the reviewer the plan file path
+    │           ├── Reviewer uses Read to read the plan file, produces an issue list
+    │           ├── Architecture Decision → AskUserQuestion, handed to the user
+    │           ├── Bugs/Smells → main agent uses Edit to fix the plan file
+    │           ├── Steering Candidate (if the project has steering) → accumulate for batch handling
+    │           └── Exit only when the round reaches 0 issues
     │
-    ├── Plan Briefing（輸出 summary → AskUserQuestion 停點，user 確認才往下）
+    ├── Plan Briefing (output summary → AskUserQuestion stop point; proceed only after user confirms)
     │
-    ├── ExitPlanMode（提交已 reviewed 版本給 user approve）
+    ├── ExitPlanMode (submit the reviewed version for the user to approve)
     │
-    ├── 主 agent 動手實作（按 plan file 內容）
-    │     ↳ 注意：Quick Fix Mode 允許主 agent 直接寫 code（與 Spec Mode 不同）
+    ├── Main agent implements directly (per the plan file content)
+    │     ↳ Note: Quick Fix Mode allows the main agent to write code directly (unlike Spec Mode)
     │
-    └── implementation-reviewer 多輪 review loop（強制）
-          ├── reviewer 產 issue list
-          ├── Architecture Decision → AskUserQuestion 遞給 user
-          ├── Bugs/Smells → 主 agent 自己修 code
-          └── 直到當輪 0 issues 才退出
+    └── implementation-reviewer multi-round review loop (mandatory)
+          ├── Reviewer produces an issue list
+          ├── Architecture Decision → AskUserQuestion, handed to the user
+          ├── Bugs/Smells → main agent fixes the code itself
+          └── Exit only when the round reaches 0 issues
 ```
 
 ---
 
-### Spec Mode 流程
+### Spec Mode Flow
 
 ```
 [/create-spec]
     │
-    ├── 載入 steering
+    ├── Load steering
     ├── Plan Mode
-    │     ├── spec-researcher (背景研究)
-    │     └── (optional) design-reviewer Mode A — 對話夥伴 challenge 設計草稿
+    │     ├── spec-researcher (background research)
+    │     └── (optional) design-reviewer Mode A — conversational partner challenging the design draft
     │
-    ├── 撰寫 requirements.md
-    ├── 撰寫 design.md (draft)
+    ├── Write requirements.md
+    ├── Write design.md (draft)
     │
-    ├── design-reviewer Mode B 多輪 review loop（強制）
-    │     ├── reviewer 產 issue list（Bugs / Smells / Decisions / Steering Candidates）
-    │     ├── Architecture Decision → 主 agent 用 AskUserQuestion 遞給使用者拍板
-    │     ├── Bugs/Smells → 主 agent 修 design.md（Medium/Low defer-and-batch）
-    │     ├── Steering Candidate → 累積，批次遞 user（Steering 演進機制）
-    │     └── 直到當輪 0 issues 才退出（第 5 輪仍有新 Critical/High → 保險絲）
+    ├── design-reviewer Mode B multi-round review loop (mandatory)
+    │     ├── Reviewer produces an issue list (Bugs / Smells / Decisions / Steering Candidates)
+    │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
+    │     ├── Bugs/Smells → main agent fixes design.md (Medium/Low defer-and-batch)
+    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
+    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse)
     │
-    ├── 撰寫 tasks.md
-    ├── spec-verifier (Stage 1: 完整性)
-    ├── tasks-design-verifier (Stage 2: 對齊)
-    └── Spec Briefing（輸出重點摘要 + 拍板 Decisions / Waivers → AskUserQuestion 停點）
+    ├── Write tasks.md
+    ├── spec-verifier (Stage 1: completeness)
+    ├── tasks-design-verifier (Stage 2: alignment)
+    └── Spec Briefing (output a summary of key points + resolved Decisions / Waivers → AskUserQuestion stop point)
 
 
 [/implement]
     │
-    ├── (若本 session 尚未 briefing → condensed briefing + AskUserQuestion 確認)
-    ├── Stage 1: spec-implementer (Mode 1) 並行 / 順序寫初版 + 自驗 + 建置
+    ├── (If this session hasn't briefed yet → condensed briefing + AskUserQuestion confirmation)
+    ├── Stage 1: spec-implementer (Mode 1) writes the initial version in parallel / sequentially + self-verify + build
     │
-    ├── Stage 2: implementation-reviewer 多輪 review loop（強制）
-    │     ├── reviewer 產 issue list（整合/Bugs/Smells/Fidelity/Tests/Steering/Decisions）
-    │     ├── Architecture Decision → 主 agent 用 AskUserQuestion 遞給使用者拍板
-    │     ├── Bugs/Smells → 派工給 spec-implementer (Mode 2) 修（Medium/Low defer-and-batch）
-    │     ├── Steering Candidate → 累積，批次遞 user（Steering 演進機制）
-    │     └── 直到當輪 0 issues 才退出（第 5 輪仍有新 Critical/High → 保險絲）
+    ├── Stage 2: implementation-reviewer multi-round review loop (mandatory)
+    │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
+    │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
+    │     ├── Bugs/Smells → dispatch to spec-implementer (Mode 2) to fix (Medium/Low defer-and-batch)
+    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
+    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse)
     │
     └── Stage 3: Summary
 ```
 
-兩個 mode 的差異只在「文件層次（plan file vs steering+spec docs）」與「動手者（主 agent vs spec-implementer）」 — review loop 機制完全共用（同一份 `review-protocol.md`）。
+The two modes differ only in "the document layer (plan file vs steering+spec docs)" and "who does the writing (main agent vs spec-implementer)" — the review loop mechanism is fully shared (the same `review-protocol.md`).
 
 ---
 
-### 1. requirements.md - 需求文件
+### 1. requirements.md - Requirements Document
 
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` 完整內容。
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`.
 
-定義內容：
-- Introduction - 功能概述、解決的問題
-- Alignment with Product Vision - 如何支援產品願景
-- Requirements - 使用 User Story + Acceptance Criteria
-- Non-Functional Requirements - 效能、安全性、可靠性
+Content to define:
+- Introduction - feature overview, the problem solved
+- Alignment with Product Vision - how it supports the product vision
+- Requirements - using User Story + Acceptance Criteria
+- Non-Functional Requirements - performance, security, reliability
 
-#### User Story 格式
-
-```
-As a [角色], I want [功能], so that [價值]
-```
-
-#### Acceptance Criteria 格式
+#### User Story Format
 
 ```
-WHEN [事件] THEN [系統] SHALL [行為]
-IF [前置條件] THEN [系統] SHALL [行為]
-WHEN [事件] AND [條件] THEN [系統] SHALL [行為]
+As a [role], I want [feature], so that [value]
 ```
 
-**撰寫要點**：
-- 每個需求都有明確的 User Story
-- Acceptance Criteria 必須可驗證
-- **禁止**在需求中描述技術實作（架構、元件、資料模型）
-- **禁止**指定程式碼結構或檔案路徑
-- 參考 `steering/product.md` 確保對齊產品願景
-- 專注於「用戶能做什麼」而非「系統如何做」
+#### Acceptance Criteria Format
+
+```
+WHEN [event] THEN [system] SHALL [behavior]
+IF [precondition] THEN [system] SHALL [behavior]
+WHEN [event] AND [condition] THEN [system] SHALL [behavior]
+```
+
+**Authoring points**:
+- Every requirement has a clear User Story
+- Acceptance Criteria must be verifiable
+- **Forbidden** to describe technical implementation in requirements (architecture, components, data models)
+- **Forbidden** to specify code structure or file paths
+- Reference `steering/product.md` to ensure alignment with the product vision
+- Focus on "what the user can do" rather than "how the system does it"
 
 ---
 
-### 2. design.md - 設計文件
+### 2. design.md - Design Document
 
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` 完整內容。
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`.
 
-定義內容：
-- Overview - 高階設計概述
-- Steering Document Alignment - 遵循 tech.md 和 structure.md
-- Code Reuse Analysis - 可復用的現有元件
-- Architecture - 架構圖（Mermaid）
-- Components and Interfaces - 元件設計、公開 API
-- Data Models - 資料結構定義
-- Error Handling - 錯誤處理策略
-- Testing Strategy - 測試計畫
+Content to define:
+- Overview - high-level design overview
+- Steering Document Alignment - following tech.md and structure.md
+- Code Reuse Analysis - reusable existing components
+- Architecture - architecture diagram (Mermaid)
+- Components and Interfaces - component design, public API
+- Data Models - data structure definitions
+- Error Handling - error handling strategy
+- Testing Strategy - test plan
 
-**撰寫要點**：
-- 架構圖清楚表達元件關係
-- 每個元件有 Purpose、Interfaces、Dependencies
-- 識別可復用的現有程式碼
-- 確保符合 `steering/tech.md` 的技術選型
-- 確保符合 `steering/structure.md` 的命名規範
-- **包含所有實作細節**：API 規格、函數簽名、演算法流程
-- **不重複** requirements.md 的 User Story，只需引用需求編號
-- 專注於「系統如何實現」而非「用戶能做什麼」
+**Authoring points**:
+- The architecture diagram clearly expresses component relationships
+- Each component has Purpose, Interfaces, Dependencies
+- Identify reusable existing code
+- Ensure conformance to the technology selection in `steering/tech.md`
+- Ensure conformance to the naming conventions in `steering/structure.md`
+- **Include all implementation details**: API specs, function signatures, algorithm flows
+- **Do not repeat** the User Stories from requirements.md, just reference the requirement numbers
+- Focus on "how the system realizes it" rather than "what the user can do"
 
 ---
 
-### 3. tasks.md - 任務清單
+### 3. tasks.md - Task List
 
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` 完整內容。
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`.
 
-定義內容：
-- 將設計分解為可執行的任務
-- 每個任務對應一個可交付的單元
-- 按依賴順序排列
+Content to define:
+- Break the design down into executable tasks
+- Each task corresponds to one deliverable unit
+- Arrange them in dependency order
 
-#### 任務格式
+#### Task Format
 
 ```markdown
-- [ ] {序號}. {任務標題}
-  - File: {檔案路徑}
-  - {任務描述}
-  - Purpose: {這個任務的目的}
-  - Design ref: {design.md 中對應的章節/元件}
-  - _Leverage: {可復用的現有程式碼}_
-  - _Requirements: {對應的需求編號}_
+- [ ] {number}. {task title}
+  - File: {file path}
+  - {task description}
+  - Purpose: {the purpose of this task}
+  - Design ref: {the corresponding section/component in design.md}
+  - _Leverage: {reusable existing code}_
+  - _Requirements: {corresponding requirement numbers}_
 ```
 
-**撰寫要點**：
-- 每個任務只做一件事（Single Responsibility）
-- 任務大小適中（0.5-2 天可完成）
-- 被依賴的任務放前面
-- 每個任務完成後可獨立測試
-- Design ref 明確指向 design.md 的對應章節，實作細節由 agent 直接從 design.md 讀取
+**Authoring points**:
+- Each task does only one thing (Single Responsibility)
+- Task size is moderate (completable in 0.5-2 days)
+- Tasks that are depended upon come first
+- Each task can be tested independently once complete
+- Design ref clearly points to the corresponding section in design.md; implementation details are read directly from design.md by the agent
 
 ---
 
-## 核心原則：Design as Single Source of Truth
+## Core Principle: Design as Single Source of Truth
 
-design.md 是實作的唯一真理來源。tasks.md 負責定義「做什麼」和「做的順序」，具體「怎麼做」由 agent 直接從 design.md 的對應章節讀取。
+design.md is the single source of truth for implementation. tasks.md is responsible for defining "what to do" and "the order of doing it"; the concrete "how to do it" is read directly by the agent from the corresponding section in design.md.
 
-這意味著：
-- tasks.md 不需要重複 design.md 的實作細節
-- `Design ref` 欄位建立任務與設計的明確對應關係
-- 當 design.md 更新時，對應任務的實作方式自動跟隨更新
+This means:
+- tasks.md does not need to repeat the implementation details in design.md
+- The `Design ref` field establishes a clear correspondence between tasks and the design
+- When design.md is updated, the implementation approach of the corresponding tasks automatically follows
 
 ---
 
-## 輸出位置
+## Output Location
 
-完成的文件放置於：
+Completed documents are placed in:
 
 ```
 .spec/specs/{feature-name}/

@@ -1,124 +1,124 @@
 # Mode Selection: Quick Fix vs Spec
 
-本 skill 支援兩條開發路徑。**任何**寫 / 改 code 的工作都應該走其中一條，不要繞過去直接動手 — 兩條路徑都強制走 multi-round review loop，這是品質防線。
+This skill supports two development paths. **Any** work that writes / modifies code should take one of them; don't bypass them and write directly — both paths mandatorily run the multi-round review loop, which is the quality line of defense.
 
 | | Quick Fix Mode | Spec Mode |
 |---|---|---|
-| 文件產出 | 無（plan mode 對話取代）| requirements.md + design.md + tasks.md |
-| 動手者 | 主 agent 直接動手 | `spec-implementer` agents |
-| design-reviewer loop | **強制**（對 plan 內容多輪審到 0 issues） | **強制**（對 design.md 多輪審到 0 issues） |
-| implementation-reviewer loop | **強制**（多輪審到 0 issues） | **強制**（多輪審到 0 issues） |
-| 適用情境 | bug fix / refactor / 小擴展 | 新功能 / 大型 refactor / 跨多元件 |
+| Document output | None (replaced by plan mode conversation) | requirements.md + design.md + tasks.md |
+| Who writes | main agent writes directly | `spec-implementer` agents |
+| design-reviewer loop | **mandatory** (multi-round review of the plan content to 0 issues) | **mandatory** (multi-round review of design.md to 0 issues) |
+| implementation-reviewer loop | **mandatory** (multi-round review to 0 issues) | **mandatory** (multi-round review to 0 issues) |
+| Applicable situations | bug fix / refactor / small extension | new feature / large refactor / cross-component |
 
-兩條路徑共享 multi-round review loop 紀律 — 完整協定見 `review-protocol.md`。
-
----
-
-## 判斷標準
-
-### 走 Quick Fix Mode 的情境
-
-- **修 bug**：包含單行 fix、邏輯錯誤、邊界條件、race condition
-- **重構**：行為不變的程式碼結構調整（rename / extract / inline / move）
-- **既有架構內的小擴展**：在現有元件上加一個小 feature（不引入新概念）
-- **改 config / 文件 / typo**：純文字 / 設定修改
-- **效能微調**：在既有 hot path 上做局部優化
-
-關鍵特徵：
-- 不需要新建 component / data model / API
-- 改動範圍可控（通常 < 5 個檔案）
-- user 對需求理解清楚，不需要正式的 requirements / acceptance criteria
-
-### 走 Spec Mode 的情境
-
-- **新功能**：引入新 component / data model / API endpoint / 流程
-- **大型 refactor**：架構層級調整（拆 module / 重組責任邊界）
-- **跨多元件協作**：改動需要同步動到 3+ 個元件
-- **引入新概念**：對 codebase 加入未曾出現過的設計 pattern / 抽象
-- **需要 user 對齊需求**：功能目標還需要在 requirements 層級先談清楚
-
-關鍵特徵：
-- 需要正式 design 文件來追溯「為什麼這樣設計」
-- 改動範圍大或不確定
-- 可能跨 multiple PR / 多次 session 才能完成
+Both paths share the multi-round review loop discipline — see `review-protocol.md` for the full protocol.
 
 ---
 
-## 模糊情境的處理
+## Decision criteria
 
-很多任務介於兩者之間。處理原則：
+### Situations for Quick Fix Mode
 
-### 主 agent 主動判斷 + 通知
+- **Fixing a bug**: includes single-line fixes, logic errors, boundary conditions, race conditions
+- **Refactoring**: behavior-preserving code structure adjustments (rename / extract / inline / move)
+- **A small extension within the existing architecture**: adding a small feature on an existing component (introducing no new concept)
+- **Changing config / docs / typo**: pure text / settings modification
+- **Performance micro-tuning**: a local optimization on an existing hot path
 
-主 agent 收到任務時，依上述標準做初判，然後**明確告知 user**：
+Key characteristics:
+- No need to create a new component / data model / API
+- The change scope is controllable (typically < 5 files)
+- The user understands the requirement clearly, with no need for formal requirements / acceptance criteria
 
-> 「這個工作我打算走 quick fix mode（單元件 bug fix，scope 小）。如果你覺得需要走 spec mode，告訴我。」
+### Situations for Spec Mode
 
-### User 可以調整
+- **New feature**: introduces a new component / data model / API endpoint / flow
+- **Large refactor**: architecture-level adjustment (splitting a module / reorganizing responsibility boundaries)
+- **Cross-component collaboration**: the change requires touching 3+ components in sync
+- **Introducing a new concept**: adding a design pattern / abstraction not previously present in the codebase
+- **Needs requirement alignment with the user**: the feature goal still needs to be talked through clearly at the requirements level first
 
-- 「升級成 spec mode」— user 認為值得 formal design
-- 「降級成 quick fix」— user 認為主 agent 高估了複雜度
-
-### 進行中發現走錯路徑的處理
-
-**Quick fix mode 中發現需要正式 spec**：
-- 表徵：plan mode 期間發現「要動的東西比想像多」/「需要新 component」/「跨太多元件」
-- 處理：在 plan mode 內停下來告訴 user：「這個 scope 比預期大，建議升級到 spec mode」，user 確認後執行 `/create-spec`
-
-**Spec mode 中發現過度設計**：
-- 表徵：spec 過程中發現「這其實是個 bug fix，不需要新 design」
-- 處理：告訴 user 並建議切換到 quick fix mode（已寫的 requirements/design 可保留作為 reference）
+Key characteristics:
+- A formal design document is needed to trace "why it is designed this way"
+- The change scope is large or uncertain
+- It may span multiple PRs / multiple sessions before it can be completed
 
 ---
 
-## 邊界案例參考
+## Handling ambiguous situations
 
-| 任務 | 推薦 mode | 理由 |
+Many tasks fall between the two. Handling principle:
+
+### The main agent judges proactively + notifies
+
+When the main agent receives a task, it makes an initial judgment per the criteria above, then **tells the user explicitly**:
+
+> "For this work I'm planning to take quick fix mode (single-component bug fix, small scope). If you think it needs spec mode, tell me."
+
+### The user can adjust
+
+- "Upgrade to spec mode" — the user thinks it's worth a formal design
+- "Downgrade to quick fix" — the user thinks the main agent overestimated the complexity
+
+### Handling discovery of the wrong path mid-flight
+
+**Discovering in quick fix mode that a formal spec is needed**:
+- Symptom: during plan mode you find "there's more to touch than imagined" / "a new component is needed" / "it crosses too many components"
+- Handling: stop within plan mode and tell the user: "This scope is bigger than expected, I suggest upgrading to spec mode", and run `/create-spec` after the user confirms
+
+**Discovering over-engineering in spec mode**:
+- Symptom: during the spec process you find "this is actually a bug fix, it doesn't need a new design"
+- Handling: tell the user and suggest switching to quick fix mode (the requirements/design already written can be kept as reference)
+
+---
+
+## Boundary case reference
+
+| Task | Recommended mode | Reason |
 |---|---|---|
-| 把一個函數的 NULL 處理修好 | quick fix | 單元件、bug fix |
-| 抽出一個 shared utility（從 2 個檔案）| quick fix | refactor、scope 可控 |
-| 修一個 race condition | quick fix | bug fix，即使涉及 async logic |
-| 加一個新的 CLI 命令 | quick fix 或 spec | 看新命令複雜度 — 純薄殼走 quick fix；含新業務邏輯走 spec |
-| 改 ORM model 加一個欄位 | quick fix | 單 schema 變動 |
-| 新增一個 connector（如 Slack）| **spec** | 引入新元件 + 新 data flow |
-| 替換 auth library | **spec** | 跨多元件 + 涉及安全設計 |
-| 大改 cache 策略 | **spec** | 架構層級調整 |
-| 修一個 ConfigParser bug | quick fix | bug fix |
-| 加 prometheus metrics | quick fix 或 spec | 散落幾處就 quick fix；做一套 instrumentation framework 就 spec |
+| Fix the NULL handling of a function | quick fix | single-component, bug fix |
+| Extract a shared utility (from 2 files) | quick fix | refactor, controllable scope |
+| Fix a race condition | quick fix | bug fix, even though it involves async logic |
+| Add a new CLI command | quick fix or spec | depends on the new command's complexity — pure thin shell goes quick fix; with new business logic goes spec |
+| Add a field to an ORM model | quick fix | single schema change |
+| Add a new connector (e.g. Slack) | **spec** | introduces a new component + new data flow |
+| Replace the auth library | **spec** | cross-component + involves security design |
+| Overhaul the cache strategy | **spec** | architecture-level adjustment |
+| Fix a ConfigParser bug | quick fix | bug fix |
+| Add prometheus metrics | quick fix or spec | scattered in a few places goes quick fix; building a whole instrumentation framework goes spec |
 
 ---
 
-## 兩條路徑的 review loop 對象
+## The review loop targets of the two paths
 
-兩條路徑都跑 design-reviewer + implementation-reviewer multi-round loop。**reviewer 一律讀 file**（用 Read tool），主 agent 只負責告知 file path。差別僅在 file 在哪：
+Both paths run the design-reviewer + implementation-reviewer multi-round loop. **The reviewer always reads the file** (using the Read tool); the main agent is only responsible for telling it the file path. The only difference is where the file is:
 
-| Mode | design-reviewer 讀的 file | implementation-reviewer 讀的 |
+| Mode | File design-reviewer reads | What implementation-reviewer reads |
 |---|---|---|
-| Spec mode | `.spec/specs/{feature}/design.md` | spec-implementer 寫的 code |
-| Quick fix mode | 主 agent 指定的 plan file path | 主 agent 寫的 code |
+| Spec mode | `.spec/specs/{feature}/design.md` | the code written by spec-implementer |
+| Quick fix mode | the plan file path specified by the main agent | the code written by the main agent |
 
-**Plan file 路徑**：Claude Code 通常在 EnterPlanMode 時自動建立 plan file（以系統實際提供的路徑為準，主 agent 進 Plan Mode 後確認）；若環境沒有提供 plan file，主 agent 自建 `.spec/quickfix/<slug>.md` 代替。不要寫死特定路徑 — 這是版本相依的內部行為。
+**Plan file path**: Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode); if the environment provides no plan file, the main agent creates `.spec/quickfix/<slug>.md` itself instead. Don't hard-code a specific path — this is version-dependent internal behavior.
 
-Plan file 是真實檔案，跟 design.md 一樣可被 Read。主 agent 在 Plan Mode 期間用 Edit incrementally 修改 plan file，每輪 review 後也是用 Edit 修這個檔案。**Reviewer 的核心機制兩種 mode 共用** — 都是「讀主 agent 指定 path 的 file → 產 issue list」，差別只在主 agent 給的 path。
+The plan file is a real file and, like design.md, can be Read. The main agent uses Edit to modify the plan file incrementally during Plan Mode, and after each round of review it also uses Edit to modify this file. **The reviewer's core mechanism is shared by both modes** — both are "read the file at the path the main agent specifies → produce an issue list", differing only in the path the main agent gives.
 
-Quick fix mode 的關鍵特性：
-- design-reviewer 多輪 review 在 **Plan Mode 內**完成（已驗證 sub-agent 在 Plan Mode 期間可被 invoke）
-- ExitPlanMode 提交給 user approve 的就是**已 reviewed 的最終版**
-- user 看不到 review 過程，只看到收斂後的 plan
+Key characteristics of quick fix mode:
+- design-reviewer's multi-round review is completed **within Plan Mode** (it is verified that a sub-agent can be invoked during Plan Mode)
+- What ExitPlanMode submits to the user to approve is the **already-reviewed final version**
+- The user doesn't see the review process, only the converged plan
 
-**Steering 與 Quick Fix Mode**：Quick Fix Mode 不要求 steering 存在；但若專案已有 `.spec/steering/`，主 agent 應載入並讓 reviewer 知道（steering alignment 是 review 面向之一），且 quick fix 過程發現的新慣例同樣走 SKILL.md「Steering 演進機制」昇華。
+**Steering and Quick Fix Mode**: Quick Fix Mode does not require steering to exist; but if the project already has `.spec/steering/`, the main agent should load it and let the reviewer know (steering alignment is one of the review facets), and a new convention discovered during the quick fix likewise goes through SKILL.md "Steering Evolution Mechanism" for promotion.
 
 ---
 
-## 為什麼 quick fix mode 也強制 review loop
+## Why quick fix mode is also forced to run the review loop
 
-可能有人會問：「修一個 typo 也要跑 review loop 嗎？」
+Someone might ask: "Do I have to run the review loop even to fix a typo?"
 
-答案是 yes，理由：
+The answer is yes, and the reasons:
 
-1. **小 fix 的 review value 反而更高** — 1 行 weak-ref bug 比 100 行新 feature 更難發現。review 在小範圍更聚焦
-2. **review discipline 一鬆懈就回不去** — 一旦允許「這個太小不用 review」，閾值會持續往上飄
-3. **0 issues 收斂在小 scope 很快** — typo fix 大概率 review 第一輪就 0 issues，loop overhead 幾乎為零
-4. **review loop 是設計品質防線，不是文件儀式** — 防線的價值在於「永遠在」，不在於「對複雜任務在」
+1. **A small fix has even higher review value** — a 1-line weak-ref bug is harder to spot than a 100-line new feature. Review is more focused in a small scope
+2. **Once review discipline slackens it can't come back** — once you allow "this is too small to review", the threshold keeps drifting upward
+3. **Converging to 0 issues is fast in a small scope** — a typo fix most likely reaches 0 issues on the first review round, with near-zero loop overhead
+4. **The review loop is a design quality line of defense, not a document ritual** — the value of a line of defense lies in "always being there", not in "being there for complex tasks"
 
-如果某個 fix 真的太小（例如改 README 的 typo）連 review 都覺得 overkill，這時應該重新評估：這還算「開發任務」嗎？單純文字編輯可以走非開發流程。
+If some fix really is too small (e.g. fixing a typo in the README) that even reviewing feels overkill, this is the time to reassess: does this even count as a "development task"? Pure text editing can take a non-development flow.

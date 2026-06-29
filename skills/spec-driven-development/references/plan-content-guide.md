@@ -1,49 +1,49 @@
-# Plan / Design 文件內容指引
+# Plan / Design Document Content Guide
 
-本文件規範**設計類文件**（quick fix mode 的 plan file、spec mode 的 design.md）應該寫什麼、不應該寫什麼。兩種文件原則一致 — 差別只是長度與正式程度。
+This document governs what a **design-type document** (the quick fix mode plan file, the spec mode design.md) should and should not contain. The principle is the same for both document types — the only difference is length and degree of formality.
 
-## 核心原則：寫實質，不寫流程
+## Core principle: write substance, not process
 
-文件讀者（人或 reviewer agent）關心「**這次要做什麼、為什麼、有什麼風險**」。**Process 細節由 skill 本身保證**，不需 plan / design 重複敘述。
+The document's readers (humans or the reviewer agent) care about "**what is being done this time, why, and what the risks are**". **Process details are guaranteed by the skill itself**, and don't need to be restated by the plan / design.
 
-寫 process narration 等於：
-- 重複 SKILL.md 已承諾的內容
-- 浪費 reviewer 的 token
-- 模糊真正重要的 substance — user 看完不知道你要改哪些 file
+Writing process narration amounts to:
+- Repeating what SKILL.md already promises
+- Wasting the reviewer's tokens
+- Blurring the substance that actually matters — after reading it, the user doesn't know which files you're going to change
 
-## ✅/❌ 對照表
+## ✅/❌ comparison table
 
-| ✅ 寫 | ❌ 不寫 |
+| ✅ Write | ❌ Don't write |
 |---|---|
-| **Context** — 觸發原因、當前問題、預期改變後狀態 | **Process narration** — 「我會 invoke X 然後 X 會 ...」 |
-| **改動清單** — 具體 file path + 改動範圍 | **Skill 紀律重述** — review-protocol.md 條款搬進 plan |
-| **風險評估** — 具體 regression / API break / 行為變更 | **Mode 對比表** — 「為什麼不走另一個 mode」（mode-selection.md 已涵蓋）|
-| **Architecture Decisions**（**僅 Quick Fix Mode plan file 內 `## Review Log` 區段**）— Quick Fix 的 plan file 本身就是 review log 容器，Decisions 暫存於此並由 user 拍板 | **`## Architecture Decisions` / `## Decisions Record` / `## ADR` 段落寫進 spec mode 的 design.md** — Spec Mode 一切 Decision content 只能存在於 review-log.md §2，design.md 完全乾淨無 reference |
-| **驗證方式** — 具體可執行指令 / 測試清單 | **預估幾輪 review** — reviewer 決定，不該預估 |
-| **Out-of-scope**（spec mode）— 明確邊界 | **Definition of Done** — skill 自動執行的退出條件 |
-| **中性 design rationale**（spec mode design.md）— 若 Component 設計需要解釋「為什麼這樣設計」，用技術限制 / codebase 慣例的中性 prose 整合進 Component 描述 | **Agent invocation sequence** 完整 narration |
-| | **任何 reviewer letter tag**（Decision X / Bug Y / Smell Z）/ **Round 過程敘述** / **指向 review-log.md 的引用 / footnote pointer** — formal doc 100% 隔離 |
+| **Context** — the trigger cause, the current problem, the expected post-change state | **Process narration** — "I'll invoke X and then X will ..." |
+| **Change list** — specific file paths + change scope | **Skill discipline restatement** — moving review-protocol.md clauses into the plan |
+| **Risk assessment** — specific regression / API break / behavior change | **Mode comparison table** — "why not the other mode" (mode-selection.md already covers it) |
+| **Architecture Decisions** (**only inside the `## Review Log` section of the Quick Fix Mode plan file**) — the Quick Fix plan file is itself the review log container; Decisions are staged here and resolved by the user | **`## Architecture Decisions` / `## Decisions Record` / `## ADR` sections written into spec mode's design.md** — in Spec Mode all Decision content can exist only in review-log.md §2, while design.md is completely clean with no reference |
+| **Verification method** — specific runnable commands / test list | **Estimated number of review rounds** — the reviewer decides; it shouldn't be estimated |
+| **Out-of-scope** (spec mode) — explicit boundaries | **Definition of Done** — the exit conditions the skill executes automatically |
+| **Neutral design rationale** (spec mode design.md) — if a Component design needs to explain "why it is designed this way", integrate it into the Component description using neutral prose about technical constraints / codebase conventions | **Agent invocation sequence** full narration |
+| | **Any reviewer letter tag** (Decision X / Bug Y / Smell Z) / **Round process narrative** / **a reference / footnote pointer to review-log.md** — the formal doc is 100% isolated |
 
-## 範例對照
+## Example comparison
 
-### Substance（好範例 — Quick Fix Mode plan file）
+### Substance (good example — Quick Fix Mode plan file)
 
 ```markdown
 ## Context
-user_service.py::get_user_profile() 在 user_id=None 時 throw NPE。
-需要加 input validation。錯誤處理策略待 review 階段決定。
+user_service.py::get_user_profile() throws an NPE when user_id=None.
+Input validation needs to be added. The error-handling strategy is to be decided in the review stage.
 
-## 改動清單
-- agent_service/services/user_service.py:42 — 加 null guard
-- tests/services/test_user_service.py — None / 空字串 / 正常值 三組 test
+## Change list
+- agent_service/services/user_service.py:42 — add a null guard
+- tests/services/test_user_service.py — three test groups: None / empty string / normal value
 
-## 風險
-- 既有 caller 若依賴 None silent return，改 raise 會 break
-- public API 錯誤類型若改變需同步更新 caller
+## Risks
+- If an existing caller relies on a None silent return, changing to raise will break it
+- If the public API's error type changes, callers must be updated in sync
 
-## 驗證方式
+## Verification method
 1. `pytest tests/services/test_user_service.py -v`
-2. `grep -r 'get_user_profile' agent_service/` 確認 caller 對齊
+2. `grep -r 'get_user_profile' agent_service/` to confirm callers are aligned
 3. `podman compose build agent-service`
 
 ## Review Log
@@ -52,74 +52,74 @@ user_service.py::get_user_profile() 在 user_id=None 時 throw NPE。
 |-------|-----|----------|--------|------------|
 
 ### 2. Architecture Decisions
-**Decision A — 錯誤處理策略**
-- Option 1: raise ValueError — fail-fast、明確；break 既有 silent caller
-- Option 2: return None — 向下相容；延續 silent bug
-- 待 review 階段由 user 拍板（拍板後補 Chosen + Rationale）
+**Decision A — error-handling strategy**
+- Option 1: raise ValueError — fail-fast, explicit; breaks existing silent callers
+- Option 2: return None — backward-compatible; perpetuates the silent bug
+- To be resolved by the user in the review stage (after resolution, add Chosen + Rationale)
 
 ### 3. Waivers / 4. False Positives
-_(無)_
+_(none)_
 ```
 
-**關鍵差異**：Architecture Decisions 寫在 plan file 內專屬的 `## Review Log` 段落（plan file 本身就是 Quick Fix Mode 的 review log 容器），**不放在 plan 主體**。
+**Key difference**: Architecture Decisions are written in the plan file's dedicated `## Review Log` section (the plan file is itself the Quick Fix Mode review log container), **not in the plan body**.
 
-### Spec Mode design.md 的好範例
+### Good example of Spec Mode design.md
 
-design.md **完全不寫** Architecture Decisions 段落。若 Component 設計需要解釋「為什麼這樣做」，用**中性 design rationale**整合進 Component 描述：
+design.md **does not write** an Architecture Decisions section at all. If a Component design needs to explain "why it's done this way", integrate it into the Component description with **neutral design rationale**:
 
 ```markdown
 ## Components and Interfaces
 
 ### UserService
-- **Purpose:** 處理 user profile 讀寫
+- **Purpose:** handle user profile reads and writes
 - **Interfaces:**
   ```python
   def get_user_profile(user_id: str) -> UserProfile:
       """Raise ValueError if user_id is None or empty.
 
       Rationale: fail-fast aligns with service layer convention
-      (AuthService, BillingService 同 module 內已採此 pattern)；
-      silent None return 在 caller 端會延後表面化 bug。
+      (AuthService, BillingService already adopt this pattern in the same module);
+      a silent None return defers the surfacing of the bug at the caller's end.
       """
   ```
 - **Dependencies:** UserRepository
 ```
 
-**這段中性 rationale 不提**：reviewer、Decision letter、review-log、Round N。
-**它提**：技術理由（fail-fast）+ codebase 慣例參照（AuthService、BillingService）+ 反面後果（silent bug 延後表面化）。
+**This neutral rationale does not mention**: the reviewer, a Decision letter, the review-log, Round N.
+**It does mention**: the technical reason (fail-fast) + the codebase convention reference (AuthService, BillingService) + the negative consequence (the silent bug surfaces later).
 
-完整 Decision 紀錄（Options 比較、user 拍板理由、Round 來源）放在 `review-log.md §2`，與 design.md **物理隔離**。
+The full Decision record (Options comparison, the user's rationale for resolving it, the Round source) goes in `review-log.md §2`, **physically isolated** from design.md.
 
-### Process narration（壞範例）
+### Process narration (bad example)
 
 ```markdown
-## Mode 選擇：Quick Fix Mode  ← 30 行判斷表 + 為什麼不走 Spec Mode
-## 完整工作流程概覽  ← 80 行 ASCII 流程圖
-## Agent 調用序列  ← 50 行 table 列每個 agent invocation
-## Review Loop 機制  ← 70 行 reciting review-protocol.md
-## Architecture Decision 處理  ← 30 行 reciting review-protocol.md again
-## 紀律重點  ← 20 行 reciting why review matters
-## Definition of Done  ← 完成清單，skill 自動執行的事
+## Mode selection: Quick Fix Mode  ← 30-line judgment table + why not Spec Mode
+## Full workflow overview  ← 80-line ASCII flow chart
+## Agent invocation sequence  ← 50-line table listing every agent invocation
+## Review Loop mechanism  ← 70 lines reciting review-protocol.md
+## Architecture Decision handling  ← 30 lines reciting review-protocol.md again
+## Discipline highlights  ← 20 lines reciting why review matters
+## Definition of Done  ← a completion checklist, things the skill executes automatically
 ```
 
-第一份是 50 行有用 substance，第二份是 300+ 行 noise（每段都重複 skill / reference 已說過的話）。
+The first is 50 lines of useful substance; the second is 300+ lines of noise (each section repeats what the skill / reference already said).
 
-## 長度指引
+## Length guidance
 
-| 文件類型 | 預期長度 |
+| Document type | Expected length |
 |---|---|
-| Quick fix plan（單 bug / 小 refactor）| 30-80 行 |
-| Quick fix plan（中型 refactor）| 80-150 行 |
-| Spec mode design.md（小到中型 feature）| 200-400 行 |
-| Spec mode design.md（複雜系統）| 400-800 行 |
+| Quick fix plan (single bug / small refactor) | 30-80 lines |
+| Quick fix plan (medium refactor) | 80-150 lines |
+| Spec mode design.md (small to medium feature) | 200-400 lines |
+| Spec mode design.md (complex system) | 400-800 lines |
 
-**超過上限時自查**：是否在 narrate process？重述 skill 紀律？做不必要 mode 對比？預估 review 輪次？— 任一 yes 就直接刪。
+**When over the limit, self-check**: am I narrating process? Restating skill discipline? Doing an unnecessary mode comparison? Estimating review rounds? — any yes, just delete it.
 
-## 例外
+## Exceptions
 
-只有兩個合理情況可寫 process detail：
+There are only two reasonable cases where process detail may be written:
 
-1. **流程偏離 skill 預設**：例「這 spec mode 任務因已有部分 code 會 skip Stage 1 直接走 Stage 2」 — 這是 meaningful deviation
-2. **複雜 dependency 序列**：spec mode tasks.md 列實作依賴順序 — 規劃**該功能特有**的順序，不是 narrate skill process
+1. **The flow deviates from the skill default**: e.g. "this spec mode task will skip Stage 1 and go straight to Stage 2 because some code already exists" — this is a meaningful deviation
+2. **A complex dependency sequence**: spec mode tasks.md listing the implementation dependency order — planning the order **specific to this feature**, not narrating skill process
 
-普通情況 **default 不寫 process**。
+In ordinary cases, **default to not writing process**.

@@ -1,96 +1,96 @@
-# Steering 文件撰寫指南
+# Steering Document Writing Guide
 
-Steering 文件是專案級的指引，定義產品願景、技術選型和程式碼組織方式。
+Steering documents are project-level guidance that define the product vision, technology choices, and how code is organized.
 
-## 精煉原則
+## Refinement principle
 
-Steering 文件是專案的「護欄」，應該精煉且只記錄真正重要的內容：
+Steering documents are the project's "guardrails"; they should be refined and record only what truly matters:
 
-- **抽象概念**：產品願景、設計哲學、核心原則
-- **技術規範**：技術堆疊、架構模式、關鍵技術決策及其原因
-- **Convention**：命名規範、模組邊界、程式碼組織慣例
+- **Abstract concepts**: product vision, design philosophy, core principles
+- **Technical conventions**: technology stack, architecture patterns, key technical decisions and their reasons
+- **Conventions**: naming conventions, module boundaries, code organization conventions
 
-避免在 steering 中寫入：
-- 具體的功能需求或實作細節（這屬於功能 spec）
-- 過度細節的規格（例如完整的 API schema）
-- 一次性的決策紀錄（除非是影響全專案的架構決策）
+Avoid writing into steering:
+- Specific feature requirements or implementation details (these belong in a feature spec)
+- Over-detailed specifications (e.g. a full API schema)
+- One-off decision records (unless it is an architecture decision affecting the whole project)
 
-Steering 文件應該是「活的文件」，隨專案演進持續更新。
+Steering documents should be "living documents", continuously updated as the project evolves.
 
-## 三個文件
+## The three documents
 
-| 順序 | 文件 | 用途 | 模板 |
+| Order | Document | Purpose | Template |
 |------|------|------|------|
-| 1 | `product.md` | 做什麼、為什麼 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` |
-| 2 | `tech.md` | 用什麼技術 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` |
-| 3 | `structure.md` | 怎麼組織程式碼 | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` |
+| 1 | `product.md` | What to build, and why | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` |
+| 2 | `tech.md` | What technology to use | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` |
+| 3 | `structure.md` | How to organize the code | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` |
 
-## 撰寫工作流程
+## Writing workflow
 
-### 1. product.md - 產品指引
+### 1. product.md - Product guidance
 
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` 完整內容。
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`.
 
-定義內容：
-- Product Purpose - 產品目的、解決的問題
-- Target Users - 目標用戶、需求痛點
-- Key Features - 核心功能列表
-- Business Objectives - 商業目標
-- Success Metrics - 可量化的成功指標
-- Product Principles - 產品設計原則
+Content to define:
+- Product Purpose - the product's purpose, the problem it solves
+- Target Users - target users, their pain points
+- Key Features - list of core features
+- Business Objectives - business goals
+- Success Metrics - quantifiable success metrics
+- Product Principles - product design principles
 
-**撰寫要點**：
-- 具體明確，避免模糊描述
-- 以用戶為中心描述價值
-- Success Metrics 必須可量化
-- 不涉及技術實作細節
-
----
-
-### 2. tech.md - 技術指引
-
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` 完整內容。
-
-定義內容：
-- Project Type - 專案類型
-- Core Technologies - 語言、框架、依賴
-- Application Architecture - 架構模式
-- Data Storage - 資料庫、快取
-- External Integrations - 外部 API
-- Development Environment - 開發工具
-- Deployment - 部署方式
-
-**撰寫要點**：
-- 所有技術標註版本
-- 用圖示說明架構
-- 記錄技術決策原因
-- 列出已知限制
+**Writing points**:
+- Be specific and clear, avoid vague descriptions
+- Describe value in a user-centered way
+- Success Metrics must be quantifiable
+- Do not touch on technical implementation details
 
 ---
 
-### 3. structure.md - 結構指引
+### 2. tech.md - Technology guidance
 
-**MANDATORY**: 用 Read tool 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` 完整內容。
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`.
 
-定義內容：
-- Directory Organization - 目錄結構
-- Naming Conventions - 命名規則（檔案、類別、函式）
-- Import Patterns - Import 順序
-- Code Structure Patterns - 程式碼組織模式
-- Module Boundaries - 模組邊界、依賴方向
-- Code Size Guidelines - 大小限制建議
+Content to define:
+- Project Type - the project type
+- Core Technologies - language, frameworks, dependencies
+- Application Architecture - architecture patterns
+- Data Storage - database, cache
+- External Integrations - external APIs
+- Development Environment - development tools
+- Deployment - deployment method
 
-**撰寫要點**：
-- 用 ASCII 繪製目錄樹
-- 命名規則用表格呈現
-- 每個規則附帶範例
-- 明確定義模組邊界
+**Writing points**:
+- Annotate every technology with its version
+- Use diagrams to explain the architecture
+- Record the reasons for technical decisions
+- List known limitations
 
 ---
 
-## 輸出位置
+### 3. structure.md - Structure guidance
 
-完成的文件放置於：
+**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`.
+
+Content to define:
+- Directory Organization - directory structure
+- Naming Conventions - naming rules (files, classes, functions)
+- Import Patterns - import order
+- Code Structure Patterns - code organization patterns
+- Module Boundaries - module boundaries, dependency direction
+- Code Size Guidelines - size limit suggestions
+
+**Writing points**:
+- Draw the directory tree in ASCII
+- Present naming rules in a table
+- Attach an example to each rule
+- Define module boundaries explicitly
+
+---
+
+## Output location
+
+The completed documents are placed at:
 
 ```
 .spec/steering/
@@ -99,13 +99,13 @@ Steering 文件應該是「活的文件」，隨專案演進持續更新。
 └── structure.md
 ```
 
-## 維護指引
+## Maintenance guidance
 
-Steering 文件必須隨專案演進持續維護：
+Steering documents must be continuously maintained as the project evolves:
 
-- **每次 /create-spec 時**：檢視新功能是否與 steering 一致，若引入新技術或新模式，應先更新 steering
-- **每次 /update-spec 時**：若設計變更涉及技術方向調整，應同步更新 steering
-- **開發過程中（Steering 演進機制）**：review loop 的 Steering Candidates、Architecture Decision 拍板後的昇華判斷、實作中的發現 — 經 user 確認後即時輕量寫入（不必走完整 /update-steering），詳見 SKILL.md「Steering 演進機制」
-- **定期檢視**：當 steering 描述與實際專案狀態出現落差時，主動建議更新
+- **On every /create-spec**: check whether the new feature is consistent with steering; if it introduces a new technology or new pattern, steering should be updated first
+- **On every /update-spec**: if a design change involves an adjustment in technical direction, update steering in sync
+- **During development (Steering Evolution Mechanism)**: the review loop's Steering Candidates, the promotion judgment after an Architecture Decision is resolved, and discoveries during implementation — once confirmed by the user, are written in immediately and lightly (no need to go through the full /update-steering), see SKILL.md "Steering Evolution Mechanism" for details
+- **Periodic review**: when the steering description diverges from the actual state of the project, proactively suggest an update
 
-注意：steering 本身只寫原則（決定後的世界），不寫「這條是哪次 review 加的」— 來源紀錄在對應 feature 的 review-log §5 Steering Updates。
+Note: steering itself records only principles (the world after the decision), not "which review this line was added in" — the source record lives in the corresponding feature's review-log §5 Steering Updates.

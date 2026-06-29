@@ -1,8 +1,8 @@
 ---
-description: "驗證 spec 完整性 + tasks vs design 對齊"
+description: "Verify spec completeness + tasks vs design alignment"
 argument-hint: "<feature>"
 ---
 
-載入 `spec-driven-development` SKILL，然後執行 `/verify-spec` 流程。
+Load the `spec-driven-development` SKILL, then run the `/verify-spec` flow.
 
-功能名稱: $ARGUMENTS
+Feature name: $ARGUMENTS

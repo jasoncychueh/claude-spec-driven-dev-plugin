@@ -10,556 +10,556 @@ A development workflow with **two routing modes**, both backed by multi-round ar
 - **Quick Fix Mode**: bug fix / refactor / small extension — Plan Mode + review loops
 - **Spec Mode**: new feature / large refactor / cross-component — full steering + spec docs + implementation
 
-**Mode 選擇詳細指引**：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/mode-selection.md`
+**Detailed mode-selection guidance**: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/mode-selection.md`
 
-**核心紀律**：無論哪個 mode，都強制走 `design-reviewer` + `implementation-reviewer` multi-round loops 直到 0 issues。review 紀律是品質防線，**不因為任務大小而妥協**。
+**Core discipline**: regardless of mode, the `design-reviewer` + `implementation-reviewer` multi-round loops are mandatory and run until 0 issues. Review discipline is the quality line of defense — **it does not bend for task size**.
 
 ## Quick Reference
 
-### 路徑分流（**最先做**）
+### Route first (**do this before anything else**)
 
-主 agent 收到任何寫 / 改 code 的請求時，第一步是判斷該走哪個 mode（詳見 `mode-selection.md`）：
+When the main agent receives any request to write / modify code, the first step is to decide which mode to take (see `mode-selection.md`):
 
-| 訊號 | Mode |
+| Signal | Mode |
 |---|---|
-| bug fix / 重構 / 小擴展 / typo / config 改動 | **Quick Fix Mode** |
-| 新功能 / 大型 refactor / 跨多元件 / 引入新概念 | **Spec Mode** |
-| 不確定 | 主 agent 先判斷並告知 user，user 可調整 |
+| bug fix / refactor / small extension / typo / config change | **Quick Fix Mode** |
+| new feature / large refactor / cross-component / introduces a new concept | **Spec Mode** |
+| unsure | main agent decides first and tells the user; the user can adjust |
 
-判斷後**明確告訴 user 走哪條路徑**，例如：「這個工作我打算走 quick fix mode，scope 是單元件 bug fix。如果需要 spec 級流程，告訴我。」
+After deciding, **tell the user explicitly which route you're taking**, e.g.: "I'm planning to run this as a quick fix — scope is a single-component bug fix. Tell me if you'd rather go through the spec-level flow."
 
-### Spec Mode 命令
+### Spec Mode commands
 
-| 命令 | 說明 |
+| Command | Description |
 |------|------|
-| `/load-spec <feature>` | 載入 spec，驗證後顯示進度 |
-| `/create-steering` | 建立 steering 三文件 |
-| `/create-spec <feature>` | 建立功能 spec 三文件 |
-| `/update-steering <type>` | 修改 steering（product/tech/structure） |
-| `/update-spec <feature>` | 修改功能 spec |
-| `/verify-spec <feature>` | 驗證 spec 完整性 + tasks vs design 對齊 |
-| `/implement <feature>` | 開始實作 |
+| `/load-spec <feature>` | Load spec, verify, then show progress |
+| `/create-steering` | Create the three steering documents |
+| `/create-spec <feature>` | Create the three spec documents for a feature |
+| `/update-steering <type>` | Update steering (product/tech/structure) |
+| `/update-spec <feature>` | Update a feature spec |
+| `/verify-spec <feature>` | Verify spec completeness + tasks vs design alignment |
+| `/implement <feature>` | Start implementation |
 
-### Quick Fix Mode 沒有 slash 命令
+### Quick Fix Mode has no slash command
 
-主 agent 直接進 Plan Mode 走完整流程，不需要 slash 命令。流程細節見下方「Quick Fix Mode」操作說明章節。
+The main agent enters Plan Mode and runs the full flow directly — no slash command needed. Flow details are in the "Quick Fix Mode" operating-instructions section below.
 
 ---
 
-## 檔案結構
+## File Structure
 
-### Steering 文件（專案級）
+### Steering Documents (project level)
 
 ```
 .spec/steering/
-├── product.md     # 產品願景、目標用戶、成功指標
-├── tech.md        # 技術堆疊、架構模式、部署方式
-└── structure.md   # 目錄結構、命名規範、模組邊界
+├── product.md     # Product vision, target users, success metrics
+├── tech.md        # Tech stack, architecture patterns, deployment
+└── structure.md   # Directory layout, naming conventions, module boundaries
 ```
 
-### Spec 文件（功能級）
+### Spec Documents (feature level)
 
 ```
 .spec/specs/{feature}/
 ├── requirements.md  # User Story + Acceptance Criteria
-├── design.md        # 架構、元件、資料模型（實作的唯一真理來源）
-├── tasks.md         # 可執行任務清單
-└── review-log.md    # Review/resolve 過程紀錄（audit trail / decision / waiver / FP / steering updates）
+├── design.md        # Architecture, components, data models (single source of truth for implementation)
+├── tasks.md         # Executable task list
+└── review-log.md    # Record of the review/resolve process (audit trail / decision / waiver / FP / steering updates)
 ```
 
-> **review-log.md 的角色**：正式文件（r/d/t/code）描述「決定後的世界」；review-log.md 描述「為什麼是這個世界、過程中拒絕了什麼、哪些原則被刻意豁免」。詳見下方「Review Log 機制」章節與 `references/review-log-guide.md`。
+> **The role of review-log.md**: the formal docs (r/d/t/code) describe "the world after decisions"; review-log.md describes "why it's this world, what was rejected along the way, which principles were deliberately waived." See the "Review Log Mechanism" section below and `references/review-log-guide.md`.
 
 ---
 
 ### Agents
 
-本 skill 使用 plugin 中定義的 agents 執行各階段任務。
+This skill uses the agents defined in the plugin to carry out each phase.
 
-| Agent | 用途 | 觸發時機 | 動作 |
+| Agent | Purpose | Trigger | Action |
 |-------|------|---------|------|
-| `spec-researcher` | 搜尋現有方案、library、最佳實踐 | /create-spec 規劃階段 | review only |
-| `spec-verifier` | 驗證 spec 文件**完整性與格式**（cookie-cutter check） | /verify-spec Stage 1, /create-spec | review only |
-| `tasks-design-verifier` | 驗證 tasks.md 與 design.md **對齊** | /verify-spec Stage 2, /create-spec, /update-spec | review only |
-| `design-reviewer` | 資深軟體工程師視角審 **design 品質**（多輪到 0 issues） | /create-spec design 階段；/update-spec design 有變更時；Quick Fix Mode 審 plan file | review only（產 issue list） |
-| `spec-implementer` | 寫 / 修 code + 自驗 + 建置（兩種 mode） | /implement Stage 1 (Mode 1) + 接 reviewer issue list (Mode 2) | **write / fix code** |
-| `implementation-reviewer` | 資深軟體工程師視角審 **implementation 品質**（多輪到 0 issues） | /implement Stage 2；Quick Fix Mode 實作後 | review only（產 issue list） |
+| `spec-researcher` | Search existing solutions, libraries, best practices | /create-spec planning phase | review only |
+| `spec-verifier` | Verify spec file **completeness and format** (cookie-cutter check) | /verify-spec Stage 1, /create-spec | review only |
+| `tasks-design-verifier` | Verify **alignment** between tasks.md and design.md | /verify-spec Stage 2, /create-spec, /update-spec | review only |
+| `design-reviewer` | Review **design quality** from a senior engineer's perspective (multi-round to 0 issues) | /create-spec design phase; /update-spec when design changes; Quick Fix Mode reviewing the plan file | review only (produces issue list) |
+| `spec-implementer` | Write / fix code + self-verify + build (two modes) | /implement Stage 1 (Mode 1) + taking a reviewer issue list (Mode 2) | **write / fix code** |
+| `implementation-reviewer` | Review **implementation quality** from a senior engineer's perspective (multi-round to 0 issues) | /implement Stage 2; after Quick Fix Mode implementation | review only (produces issue list) |
 
 ---
 
 ## Workflow Decision Tree
 
 ```
-用戶請求寫 / 改 code
+User requests writing / modifying code
         ↓
-判斷 mode（依 mode-selection.md）
+Decide mode (per mode-selection.md)
         ↓
    ┌────┴─────┐
    ▼          ▼
 Quick Fix    Spec Mode
 Mode           ↓
-   │      Steering 存在？
-   │       否 → /create-steering
-   │       是 → /create-spec  (or /load-spec) → /implement
+   │      Steering exists?
+   │       no  → /create-steering
+   │       yes → /create-spec  (or /load-spec) → /implement
    ▼
 Plan Mode + design-reviewer loop → ExitPlanMode →
-主 agent 動手 → implementation-reviewer loop
+main agent implements → implementation-reviewer loop
 ```
 
 ---
 
-## 操作說明
+## Operating Instructions
 
-### Quick Fix Mode（無 slash 命令，主 agent 自動 routing）
+### Quick Fix Mode (no slash command; main agent auto-routes)
 
-當任務符合 Quick Fix Mode 標準（詳見 `mode-selection.md`）— bug fix / refactor / 小擴展 / typo / config 改動 — 走以下流程，**不需要建 steering / requirements / design / tasks 文件**：
+When a task meets the Quick Fix Mode bar (see `mode-selection.md`) — bug fix / refactor / small extension / typo / config change — run the flow below, with **no need to create steering / requirements / design / tasks documents**:
 
-**前置宣告**：主 agent 收到任務後，先告訴 user：「我打算走 quick fix mode，原因是 {判斷依據}。如需 spec 級流程請告知。」
+**Upfront declaration**: after receiving the task, the main agent first tells the user: "I'm planning to run this as a quick fix, because {basis for the call}. Let me know if you need the spec-level flow."
 
-**執行步驟**：
+**Steps**:
 
-1. **EnterPlanMode** — 確認本次 plan file 的實際路徑（Claude Code 通常自動建立；若環境未提供 plan file，自建 `.spec/quickfix/<slug>.md` 代替）。若專案已有 `.spec/steering/`，一併載入 — reviewer 會做 steering alignment，且發現的新慣例走「Steering 演進機制」
-2. **撰寫 plan draft** — 主 agent 用 Edit tool 把 plan 寫進 plan file。**內容請依 `plan-content-guide.md` 規範**（聚焦 substance，不寫 process narration）。在 plan file 結尾加 `## Review Log` 區段（依 `review-log-template.md` 五大區塊 skeleton）— Quick Fix Mode 的 review log 寫在 plan file 內，不另開檔案
-3. **design-reviewer multi-round loop（強制）** — 告訴 reviewer plan file path，依 `review-protocol.md` 跑到 0 issues（Medium/Low 採 defer-and-batch；第 5 輪仍有新 Critical/High 觸發收斂保險絲）。Architecture Decisions 用 AskUserQuestion 遞給 user 拍板；Bugs/Smells 主 agent 用 Edit 修 plan file；Steering Candidates 累積待批次處理。**每輪結束後依 `review-log-guide.md` 更新 plan file 的 `## Review Log` 區段**（§1 Audit Trail 加新列、Decisions/Waivers 補對應子節）
-4. **Plan Briefing（強制，回合最終訊息交付）** — review 收斂後、ExitPlanMode **之前**：依 `briefing-guide.md` 用文字輸出規劃 summary — **以實際 use case / bug 觸發情境走一遍**「現在會發生什麼 → 修完會變怎樣 → 剩什麼風險」，帶出關鍵決定（不是純概念條列），結尾問「有沒有跟你預期不符的地方？」— **briefing 必須是該回合最終訊息，輸出後直接結束回合**（同回合不接 AskUserQuestion / ExitPlanMode / 任何工具 — 夾在 tool call 前的回合中段文字顯示不可靠，會整段隱形）。User 回覆無異議後下一回合才 ExitPlanMode；有問題 → 口頭澄清或 Edit plan file（涉及設計實質則補一輪 review）
-5. **ExitPlanMode** — 提交收斂後 plan 給 user approve
-6. **動手實作** — 退出 Plan Mode 後，**主 agent 直接動手寫 code**（Quick Fix Mode 特例 — 不派工 spec-implementer）
-7. **implementation-reviewer multi-round loop（強制）** — 依 `review-protocol.md` 跑到 0 issues。Bugs/Smells 主 agent 直接修 code（Quick Fix Mode 特例）。**每輪結束後同樣更新 plan file 的 `## Review Log` 區段**
-8. **Summary** — 報告前先把累積的 Steering Candidates 依「Steering 演進機制」批次處理完。報告改動檔案、review 歷史（指向 plan file `## Review Log`）、user 拍板的 Decisions、steering 更新、建置狀態
+1. **EnterPlanMode** — confirm the actual path of this run's plan file (Claude Code usually creates it automatically; if the environment provides no plan file, create `.spec/quickfix/<slug>.md` instead). If the project already has `.spec/steering/`, load it too — the reviewer will do a steering alignment check, and any new conventions discovered go through the "Steering Evolution Mechanism."
+2. **Write the plan draft** — the main agent writes the plan into the plan file with the Edit tool. **Follow the `plan-content-guide.md` conventions** (focus on substance, no process narration). Append a `## Review Log` section at the end of the plan file (using the five-block skeleton from `review-log-template.md`) — in Quick Fix Mode the review log lives inside the plan file, not in a separate file.
+3. **design-reviewer multi-round loop (mandatory)** — give the reviewer the plan file path and run to 0 issues per `review-protocol.md` (Medium/Low use defer-and-batch; new Critical/High still present at Round 5 trips the convergence fuse). Architecture Decisions go to the user via AskUserQuestion; the main agent fixes Bugs/Smells with the Edit tool on the plan file; Steering Candidates accumulate for batch handling. **After each round, update the plan file's `## Review Log` section per `review-log-guide.md`** (add a new row to §1 Audit Trail, fill in the corresponding Decisions/Waivers subsections).
+4. **Plan Briefing (mandatory, delivered as the turn-final message)** — after review converges and **before** ExitPlanMode: per `briefing-guide.md`, output the plan summary as text — **walk through it with the actual use case / bug-trigger scenario**: "what happens now → what it becomes after the fix → what risk remains," surfacing the key decisions (not a bare concept list), and end with "anything here that doesn't match what you expected?" — **the briefing must be the turn-final message; after sending it, end the turn immediately** (no AskUserQuestion / ExitPlanMode / any tool in the same turn — mid-turn text wedged before a tool call renders unreliably and the whole block can go invisible). Only after the user replies with no objection do you ExitPlanMode in the next turn; if there are issues → clarify verbally or Edit the plan file (and add a review round if the design substance changes).
+5. **ExitPlanMode** — submit the converged plan for the user to approve.
+6. **Implement** — after exiting Plan Mode, **the main agent writes the code directly** (a Quick Fix Mode special case — no dispatch to spec-implementer).
+7. **implementation-reviewer multi-round loop (mandatory)** — run to 0 issues per `review-protocol.md`. The main agent fixes Bugs/Smells in the code directly (Quick Fix Mode special case). **After each round, update the plan file's `## Review Log` section the same way.**
+8. **Summary** — before reporting, batch-process the accumulated Steering Candidates per the "Steering Evolution Mechanism." Report changed files, review history (pointing at the plan file's `## Review Log`), user-decided Decisions, steering updates, and build status.
 
-**重要約束**：Quick Fix Mode 允許主 agent 直接動手寫 code；Spec Mode 仍然嚴格禁止。
+**Key constraint**: Quick Fix Mode allows the main agent to write code directly; Spec Mode still strictly forbids it.
 
-**中途升級**：若發現 scope 超出 Quick Fix Mode（例如要動 5+ 檔案、需正式 design 文件），停下來建議 user 升級成 Spec Mode。已寫的 plan 可作為 design.md 的 starting point。
+**Mid-flow escalation**: if you find the scope exceeds Quick Fix Mode (e.g., touching 5+ files, needing a formal design doc), stop and recommend the user upgrade to Spec Mode. The plan already written can serve as a starting point for design.md.
 
 ---
 
 ### /load-spec \<feature\>
 
-載入功能 spec 並顯示進度。
+Load a feature spec and show progress.
 
-**執行步驟**：
+**Steps**:
 
-1. 載入 steering（product.md, tech.md, structure.md）
-2. 載入 requirements.md、design.md、tasks.md、review-log.md（若 review-log.md 不存在則標記為缺失但不中斷）
-3. 解析 tasks.md 統計任務狀態
-4. 解析 review-log.md 統計：§2 Decisions、§3 Waivers、§4 False Positives、§5 Steering Updates 數量
-5. 顯示狀態摘要與建議下一步
+1. Load steering (product.md, tech.md, structure.md)
+2. Load requirements.md, design.md, tasks.md, review-log.md (if review-log.md is missing, mark it as missing but do not abort)
+3. Parse tasks.md to tally task status
+4. Parse review-log.md to tally: counts of §2 Decisions, §3 Waivers, §4 False Positives, §5 Steering Updates
+5. Show a status summary and a recommended next step
 
-> **注意**：載入時不執行驗證。驗證只在 `/create-spec` 或 `/update-spec` 完成時執行。
-> 如需獨立驗證，請使用 `/verify-spec`。
+> **Note**: loading does not run verification. Verification runs only when `/create-spec` or `/update-spec` completes.
+> For standalone verification, use `/verify-spec`.
 
-**輸出格式**：
+**Output format**:
 
 ```
-📋 Spec Context 已載入: {feature}
+📋 Spec Context loaded: {feature}
 
 ✅ Steering Documents: product.md ✓ | tech.md ✓ | structure.md ✓
 ✅ Spec Files: requirements.md ✓ | design.md ✓ | tasks.md ✓ | review-log.md ✓
 
-📊 進度: ✅ {n} 已完成 | 🔄 {current} 進行中 | ⏳ {m} 待處理
-📒 Review Log: {n} Decisions 已拍板 | {m} Waivers | {k} False Positives | {s} Steering Updates
+📊 Progress: ✅ {n} completed | 🔄 {current} in progress | ⏳ {m} pending
+📒 Review Log: {n} Decisions resolved | {m} Waivers | {k} False Positives | {s} Steering Updates
 
-🎯 建議: 繼續執行任務 #{next}: {description}
+🎯 Suggestion: continue with task #{next}: {description}
 ```
 
-> 若 review-log.md 缺失（舊 spec 尚未升級），輸出改為 `⚠️ review-log.md 不存在 — 建議手動建立（參考 templates/review-log-template.md）`。
+> If review-log.md is missing (an old spec not yet upgraded), the output becomes `⚠️ review-log.md does not exist — recommend creating it manually (see templates/review-log-template.md)`.
 
 ---
 
 ### /create-steering
 
-建立專案 steering 文件。
+Create the project steering documents.
 
-**前置條件**：無
+**Preconditions**: none
 
-**流程**：
-1. 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md`
-2. **進入 Plan Mode**（使用 EnterPlanMode tool）
-3. 規劃 steering 內容，與用戶確認後退出 Plan Mode
-4. 建立 `.spec/steering/` 目錄
-5. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
-   - `product.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`
-   - `tech.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`
-   - `structure.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`
-6. 執行 Steering 完整性檢查
+**Flow**:
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md`
+2. **Enter Plan Mode** (use the EnterPlanMode tool)
+3. Plan the steering content, confirm with the user, then exit Plan Mode
+4. Create the `.spec/steering/` directory
+5. Write in order (first Read the template, then write to the template's format):
+   - `product.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`
+   - `tech.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`
+   - `structure.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`
+6. Run the Steering completeness check
 
 ---
 
 ### /create-spec \<feature\>
 
-建立功能 spec 文件。
+Create the spec documents for a feature.
 
-**前置條件**：Steering 文件必須存在且完整
+**Preconditions**: steering documents must exist and be complete
 
-**執行步驟**：
+**Steps**:
 
-1. 載入 steering documents
-2. 讀取 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md`
-3. **Steering 同步檢查**：檢視新功能是否與 steering 一致
-   - 新功能的技術選型是否符合 tech.md
-   - 是否引入未記錄的新技術/框架
-   - 程式碼組織是否符合 structure.md
-   - 若有不一致，**先更新 steering 再繼續**
-4. **進入 Plan Mode**（使用 EnterPlanMode tool）
-5. **啟動 `spec-researcher` agent**（背景執行）：搜尋現有方案、library、最佳實踐
-6. 規劃 spec 內容（requirements, design, tasks），將 researcher 的研究結果納入設計考量
-7. **(Optional) `design-reviewer` Mode A — Plan Mode 對話夥伴**：
-   - 在草擬 design 思路時，**主動詢問使用者**：「要不要邀 design-reviewer 進來 challenge 一下這個設計？」
-   - 若使用者同意，invoke `design-reviewer` agent 並把當前 design 草稿（不一定要寫完）丟給他
-   - Agent 會回 **challenge list + Architecture Decisions**
-   - 對 Architecture Decision，**用 AskUserQuestion 把選擇遞給使用者拍板**，不要主 agent 自己決定
-   - 修改 design 思路後可以再 invoke 一次（這是 optional 的非強制循環）
-8. **Plan Briefing（強制，回合最終訊息交付）** — ExitPlanMode **之前**：依 `briefing-guide.md` 以實際 use case / 場景輸出「我打算建這個 feature 的什麼、核心設計方向、目前浮現的關鍵取捨」，結尾問「方向有沒有跟你預期不符？」→ **結束回合等 user 回覆 → 才 ExitPlanMode**（同回合不接任何工具）。這是「方向確認」briefing（design 尚未寫，故偏輕量）；完整的在 step 15 結尾
-9. 建立 `.spec/specs/{feature}/` 目錄
-10. 依序撰寫（先用 Read tool 讀取模板，再按模板格式撰寫）：
-    - `requirements.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
-    - `design.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
-    - `review-log.md` — 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/review-log-template.md`（建立最小 skeleton，後續 review loop 填入內容）
-11. **`design-reviewer` Mode B — 多輪強制 review（直到 0 issues）**：
-    - **這一步是強制的**，不可跳過
-    - Loop 開始（從 Round D1）：
-      - Invoke `design-reviewer` agent 對 design.md 做設計品質審查
-      - Agent 回 issue list（Bugs / Smells / Decisions + non-blocking Steering Candidates，按 Critical/High/Medium/Low 分級，Round 命名 `D{N}`）
-      - **整批 append issue list 進 `review-log.md` §1 Audit Trail，Status 先標 `pending`**（依 `review-log-guide.md`）
-      - **若有 Architecture Decisions**：用 AskUserQuestion 把每個 Decision 遞給使用者拍板（呈現格式依下方「Architecture Decision 呈現紀律」節 / decision-escalation-guide.md）。拍板後**寫入 `review-log.md` §2** + 更新 §1 對應列 + 做昇華判斷（「Steering 演進機制」掛載點 2）
-      - **若有 Bugs/Smells（Critical/High）**：主 agent 修正 design.md（也可以再 invoke researcher 做補充研究），完成後更新 §1 該列 Status 為 `fixed`
-      - Medium/Low：**defer-and-batch** — 不逐輪詢問，累積到 Critical/High 清零的那一輪一次 AskUserQuestion（依 review-protocol.md「Loop 收斂判斷規則」）；user 決定保留即 waiver → **寫入 `review-log.md` §3** + 更新 §1
-      - 若 issue 經討論判定為誤判 → **寫入 `review-log.md` §4** + 更新 §1
-      - **若有 Steering Candidates**：累積（不計收斂），依「Steering 演進機制」批次處理
-      - 進入 Round D{N+1}，重新 invoke `design-reviewer`
-    - **直到當輪 0 issues（且無累積待決 Medium/Low）才結束 loop**；第 5 輪仍有新 Critical/High → 觸發 review-protocol.md 收斂保險絲，停下來向 user 報告
-    - **正式文件 100% 隔離** — design.md 完全不寫 Decisions / Waivers / Round 過程 / reviewer 引用 / footnote pointer。設計理由用**中性 prose**（技術限制 / codebase 慣例 / 反面後果）整合進 Component 描述。完整規範與 bad/good 對照：`review-log-guide.md` + `review-log-bad-examples.md`
-12. **撰寫 `tasks.md`**（在 design.md 已收斂之後才開始）— 模板：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
-13. 使用 `spec-verifier` agent **執行 Spec 完整性檢查**（含「跨文件 Review-Residue 檢查」確保正式文件無 inline waiver / decision 區塊）
-14. 使用 `tasks-design-verifier` agent **執行 Tasks vs Design 對齊檢查**
-15. **Spec Briefing（強制，回合最終訊息交付）** — 兩個 verifier 通過後：依 `references/briefing-guide.md` 用文字摘要整個 spec — **以 1-2 條實際 use case 走流程**帶出架構重點、新概念、拍板 Decisions 的場景化後果、Waivers 及代價、實作展望（不是純概念條列），結尾問「有沒有跟你預期不符的地方？」— **briefing 必須是該回合最終訊息，輸出後直接結束回合**（不接任何工具）。User 回覆無異議後 /create-spec 才算完成；有問題 → 口頭澄清，或回頭修 spec（觸發對應 verifier 重跑）
+1. Load the steering documents
+2. Read `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/spec-workflow.md`
+3. **Steering sync check**: confirm the new feature is consistent with steering
+   - Does the feature's tech choice conform to tech.md?
+   - Does it introduce an undocumented new technology/framework?
+   - Does the code organization conform to structure.md?
+   - If there's any inconsistency, **update steering first, then continue**
+4. **Enter Plan Mode** (use the EnterPlanMode tool)
+5. **Launch the `spec-researcher` agent** (runs in the background): search existing solutions, libraries, best practices
+6. Plan the spec content (requirements, design, tasks), folding the researcher's findings into design considerations
+7. **(Optional) `design-reviewer` Mode A — Plan Mode sparring partner**:
+   - While drafting the design direction, **proactively ask the user**: "Want to invite design-reviewer in to challenge this design?"
+   - If the user agrees, invoke the `design-reviewer` agent and hand it the current design draft (it need not be finished)
+   - The agent returns a **challenge list + Architecture Decisions**
+   - For each Architecture Decision, **use AskUserQuestion to hand the choice to the user**, don't let the main agent decide
+   - After revising the design direction you can invoke it again (this is an optional, non-mandatory loop)
+8. **Plan Briefing (mandatory, delivered as the turn-final message)** — **before** ExitPlanMode: per `briefing-guide.md`, with an actual use case / scenario, output "what I plan to build for this feature, the core design direction, the key trade-offs surfacing so far," ending with "does the direction match what you expected?" → **end the turn and wait for the user's reply → only then ExitPlanMode** (no tool in the same turn). This is a "direction confirmation" briefing (design isn't written yet, so it's lightweight); the full one is at the end of step 15.
+9. Create the `.spec/specs/{feature}/` directory
+10. Write in order (first Read the template, then write to the template's format):
+    - `requirements.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
+    - `design.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
+    - `review-log.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/review-log-template.md` (create the minimal skeleton; the later review loop fills in content)
+11. **`design-reviewer` Mode B — mandatory multi-round review (until 0 issues)**:
+    - **This step is mandatory** and cannot be skipped
+    - Loop start (from Round D1):
+      - Invoke the `design-reviewer` agent to review design.md for design quality
+      - The agent returns an issue list (Bugs / Smells / Decisions + non-blocking Steering Candidates, graded Critical/High/Medium/Low, rounds named `D{N}`)
+      - **Append the whole issue list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
+      - **If there are Architecture Decisions**: use AskUserQuestion to hand each Decision to the user (presentation format per the "Architecture Decision Presentation Discipline" section below / decision-escalation-guide.md). After it's decided, **write it to `review-log.md` §2** + update the corresponding §1 row + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
+      - **If there are Bugs/Smells (Critical/High)**: the main agent fixes design.md (it may also invoke the researcher for supplementary research); once done, update that §1 row's Status to `fixed`
+      - Medium/Low: **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion (per `review-protocol.md`'s "Loop convergence rules"); if the user decides to keep it, that's a waiver → **write it to `review-log.md` §3** + update §1
+      - If an issue is judged a false positive after discussion → **write it to `review-log.md` §4** + update §1
+      - **If there are Steering Candidates**: accumulate them (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
+      - Enter Round D{N+1} and re-invoke `design-reviewer`
+    - **End the loop only when a round has 0 issues (and no accumulated pending Medium/Low)**; new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop and report to the user
+    - **100% isolation of formal docs** — design.md carries no Decisions / Waivers / round process / reviewer citations / footnote pointers at all. Express design rationale as **neutral prose** (technical constraints / codebase conventions / adverse consequences) woven into the Component descriptions. Full conventions and bad/good comparisons: `review-log-guide.md` + `review-log-bad-examples.md`
+12. **Write `tasks.md`** (only after design.md has converged) — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
+13. Use the `spec-verifier` agent to **run the Spec completeness check** (including the "cross-file Review-Residue check" that ensures formal docs contain no inline waiver / decision blocks)
+14. Use the `tasks-design-verifier` agent to **run the Tasks vs Design alignment check**
+15. **Spec Briefing (mandatory, delivered as the turn-final message)** — after both verifiers pass: per `references/briefing-guide.md`, summarize the whole spec as text — **walk through it with 1–2 actual use cases** to surface the architecture highlights, new concepts, the scenario-grounded consequences of the resolved Decisions, the Waivers and their cost, and the implementation outlook (not a bare concept list), ending with "anything here that doesn't match what you expected?" — **the briefing must be the turn-final message; after sending it, end the turn immediately** (no tool follows). Only after the user replies with no objection is /create-spec complete; if there are issues → clarify verbally, or go back and fix the spec (which re-triggers the corresponding verifier)
 
 ---
 
 ### /update-steering \<type\>
 
-修改 steering 文件。
+Update a steering document.
 
-**參數**：`type` = product | tech | structure
+**Argument**: `type` = product | tech | structure
 
-**流程**：
-1. 載入指定的 steering 文件
-2. **進入 Plan Mode**（使用 EnterPlanMode tool）
-3. 規劃修改內容，與用戶確認後退出 Plan Mode
-4. 執行修改
-5. 重新執行 Steering 完整性檢查
-6. 檢查與其他 steering 文件的一致性
+**Flow**:
+1. Load the specified steering document
+2. **Enter Plan Mode** (use the EnterPlanMode tool)
+3. Plan the changes, confirm with the user, then exit Plan Mode
+4. Apply the changes
+5. Re-run the Steering completeness check
+6. Check consistency with the other steering documents
 
 ---
 
 ### /update-spec \<feature\>
 
-修改功能 spec 文件。
+Update a feature's spec documents.
 
-**核心原則**：改一個已完成的 spec，風險不亞於、甚至高於新建（可能打破原設計建立的 invariant、影響已實作的 code）。所以 **design.md 有實質變更時，/update-spec 跑與 /create-spec 同等的強制 design-review loop**，且同樣有 plan 階段與結尾兩個 briefing。
+**Core principle**: changing a completed spec is no less risky — often more — than building one fresh (it can break invariants established by the original design and affect already-implemented code). So **when design.md changes substantively, /update-spec runs the same mandatory design-review loop as /create-spec**, with the same plan-phase and end-of-flow briefings.
 
-**執行步驟**：
+**Steps**:
 
-1. 載入 steering documents
-2. 載入功能 spec 文件（含 review-log.md）
-3. **進入 Plan Mode**（使用 EnterPlanMode tool）
-4. 規劃修改內容（要動 r/d/t 的哪些部分、為什麼）；**(Optional)** 可邀 `design-reviewer` Mode A challenge 改動方向
-5. **Plan Briefing（強制，回合最終訊息交付）** — ExitPlanMode **之前**：依 `briefing-guide.md` 以實際 use case / 場景輸出「這次要改什麼 → 改完會變怎樣 → 會影響既有設計 / 已實作 code 的哪裡」，結尾問「有沒有跟你預期不符？」→ **結束回合等 user 回覆 → 才 ExitPlanMode**（同回合不接任何工具）
-6. 執行修改（套用到 requirements / design / tasks）
-7. **Steering 同步檢查**：若設計變更涉及技術方向調整，同步更新 steering
-8. **design.md 有實質變更 → 強制 `design-reviewer` Mode B 多輪 review loop（直到 0 issues）** — 與 /create-spec step 11 **同一套協定**：issue list append 進 review-log §1、Architecture Decisions 兩拍 AskUserQuestion 拍板後寫 §2 + 昇華判斷、Critical/High 必修、Medium/Low defer-and-batch、Steering Candidates 批次、誤判寫 §4、第 5 輪仍有新 Critical/High 觸發保險絲、正式文件 100% 隔離。**純 requirements 文字釐清（design 未動）或純 tasks 狀態 bookkeeping 可略過此 loop**
-9. **設計變更影響評估**（已有實作 code 時）：識別影響範圍 → 更新 tasks.md 標記（受影響改 `[~]`、刪除改 `[-]`、新增 task）。詳細流程見 `references/checklists.md` 的「設計變更影響評估」章節
-10. 重新執行對應 verifier：
-    - 改 requirements.md → `spec-verifier`（**Spec 完整性檢查**，含 review-residue 檢查）
-    - 改 design.md 或 tasks.md → `tasks-design-verifier`（**Tasks vs Design 對齊檢查**）
-11. **Spec Briefing（強制，回合最終訊息交付）** — 依 `briefing-guide.md` 摘要「**這次改了什麼、為什麼、review 拍板的新 Decisions/Waivers、對既有 tasks / 已實作 code 的影響**」（use-case-driven），**結束回合等 user 回覆**。User 確認後 /update-spec 才算完成；有問題 → 口頭澄清或再修（觸發對應 verifier / 必要時補一輪 design-review）
+1. Load the steering documents
+2. Load the feature's spec documents (including review-log.md)
+3. **Enter Plan Mode** (use the EnterPlanMode tool)
+4. Plan the changes (which parts of r/d/t to touch, and why); **(optional)** invite `design-reviewer` Mode A to challenge the direction
+5. **Plan Briefing (mandatory, delivered as the turn-final message)** — **before** ExitPlanMode: per `briefing-guide.md`, with an actual use case / scenario, output "what's changing → what it becomes → where it affects the existing design / already-implemented code," ending with "anything that doesn't match what you expected?" → **end the turn and wait for the user's reply → only then ExitPlanMode** (no tool in the same turn)
+6. Apply the changes (to requirements / design / tasks)
+7. **Steering sync check**: if the design change involves a shift in technical direction, update steering in sync
+8. **design.md changed substantively → mandatory `design-reviewer` Mode B multi-round review loop (until 0 issues)** — the **same protocol** as /create-spec step 11: append the issue list to review-log §1, two-beat AskUserQuestion for Architecture Decisions then write §2 + promotion judgment, Critical/High must be fixed, Medium/Low defer-and-batch, Steering Candidates batched, false positives to §4, new Critical/High still present at Round 5 trips the fuse, 100% isolation of formal docs. **Pure requirements wording clarification (design untouched) or pure tasks status bookkeeping may skip this loop.**
+9. **Design-change impact assessment** (when implementation code already exists): identify the affected scope → update tasks.md markers (affected → `[~]`, deleted → `[-]`, add new tasks). Detailed flow in the "Design-change impact assessment" section of `references/checklists.md`
+10. Re-run the corresponding verifier:
+    - changed requirements.md → `spec-verifier` (**Spec completeness check**, including review-residue check)
+    - changed design.md or tasks.md → `tasks-design-verifier` (**Tasks vs Design alignment check**)
+11. **Spec Briefing (mandatory, delivered as the turn-final message)** — per `briefing-guide.md`, summarize "**what changed this time, why, the new Decisions/Waivers the review resolved, and the impact on existing tasks / already-implemented code**" (use-case-driven), then **end the turn and wait for the user's reply**. Only after the user confirms is /update-spec complete; if there are issues → clarify verbally or fix again (re-triggering the corresponding verifier / an extra design-review round if needed)
 
-> **注意**：`/update-spec` 只更新文件和任務狀態，不執行實作。實際程式碼修改在 `/implement` 時進行。
+> **Note**: `/update-spec` only updates documents and task status; it does not implement. The actual code changes happen during `/implement`.
 
-**任務狀態標記**：`[ ]` 待執行 | `[x]` 已完成 | `[~]` 需重做（設計變更影響）| `[-]` 已移除
+**Task status markers**: `[ ]` pending | `[x]` done | `[~]` needs rework (design-change impact) | `[-]` removed
 
 ---
 
 ### /verify-spec \<feature\>
 
-獨立執行 Spec 完整性驗證和 Tasks vs Design 對齊驗證。
+Run Spec completeness verification and Tasks vs Design alignment verification standalone.
 
-**重要**：
-- **Stage 1 Spec 完整性驗證**必須使用 `spec-verifier` agent 執行
-- **Stage 2 Tasks vs Design 對齊檢查**必須使用 `tasks-design-verifier` agent 執行
-- **Stage 1 失敗則不執行 Stage 2**
+**Important**:
+- **Stage 1 Spec completeness verification** must run via the `spec-verifier` agent
+- **Stage 2 Tasks vs Design alignment check** must run via the `tasks-design-verifier` agent
+- **If Stage 1 fails, do not run Stage 2**
 
-**執行步驟**：
+**Steps**:
 
-1. 確認 `.spec/specs/{feature}/` 目錄存在且包含 requirements.md、design.md、tasks.md 與 review-log.md（review-log.md 缺失視為 warning 但不阻斷驗證）
-2. **Stage 1: Spec 完整性驗證**
-   - 使用 `spec-verifier` agent 執行完整性檢查
-   - 驗證 requirements.md（內容完整性 + 職責邊界檢查 + review-residue 檢查）
-   - 驗證 design.md（內容完整性 + 實作細節完整性 + 職責邊界檢查 + review-residue 檢查）
-   - 驗證 tasks.md（編號格式 + 內容完整性 + review-residue 檢查）
-   - **如果任一項不通過，直接停止並輸出報告**
-3. **Stage 2: Tasks vs Design 對齊檢查**（僅 Stage 1 通過後執行）
-   - 使用 `tasks-design-verifier` agent 執行對齊檢查
-4. 顯示完整驗證報告
+1. Confirm the `.spec/specs/{feature}/` directory exists and contains requirements.md, design.md, tasks.md, and review-log.md (a missing review-log.md is a warning but does not block verification)
+2. **Stage 1: Spec completeness verification**
+   - Run the completeness check via the `spec-verifier` agent
+   - Verify requirements.md (content completeness + responsibility-boundary check + review-residue check)
+   - Verify design.md (content completeness + implementation-detail completeness + responsibility-boundary check + review-residue check)
+   - Verify tasks.md (numbering format + content completeness + review-residue check)
+   - **If any item fails, stop immediately and output the report**
+3. **Stage 2: Tasks vs Design alignment check** (only after Stage 1 passes)
+   - Run the alignment check via the `tasks-design-verifier` agent
+4. Show the full verification report
 
-**輸出格式**：詳細格式由 `spec-verifier` / `tasks-design-verifier` agent 各自決定（每項通過率 + 不通過項目 table + 結論）。
+**Output format**: detailed format is decided by the `spec-verifier` / `tasks-design-verifier` agents (pass rate per item + a table of failing items + conclusion).
 
 ---
 
 ### /implement \<feature\>
 
-開始實作功能。
+Start implementing the feature.
 
-**前置條件**：
-- Spec 已存在（`.spec/specs/{feature}/` 目錄包含 requirements.md、design.md、tasks.md）
+**Preconditions**:
+- The spec already exists (the `.spec/specs/{feature}/` directory contains requirements.md, design.md, tasks.md)
 
-**重要**：實作階段**必須**使用 agents 執行，**禁止**主 Agent 直接實作程式碼。
+**Important**: the implementation phase **must** run via agents; the main agent is **forbidden** from implementing code directly.
 
-**前置（briefing 檢查）**：若本 session 尚未對此 feature 做過 spec briefing（典型情境：隔 session 執行 /implement），先依 `briefing-guide.md` 輸出 **condensed briefing**（10-20 行：定位 / 一條 use case 主線走讀 / 已拍板 Decisions / 本次 task 範圍）重建 user context — **以回合最終訊息交付並結束回合**，user 回覆確認後才進 Stage 1。
+**Pre-step (briefing check)**: if this session hasn't yet given a spec briefing for this feature (a typical case: running /implement in a later session), first output a **condensed briefing** per `briefing-guide.md` (10–20 lines: positioning / one use-case main-line walk-through / resolved Decisions / this run's task scope) to rebuild the user's context — **deliver it as the turn-final message and end the turn**; only after the user confirms do you enter Stage 1.
 
 ---
 
 #### Stage 1: Initial Implementation
 
-1. 從 tasks.md 取得待執行任務（`[ ]` / `[~]` 狀態）
-2. 分析依賴關係，將任務分組（無依賴的組可並行，最多 4 組）
-3. 啟動 `spec-implementer` agents (Mode 1) — 多組獨立組在同一 message 內並行 spawn；每個 agent 接收 feature 名、任務清單、`Mode 1` 標記，透過 `Design ref` 欄位讀 design.md
-4. Agent 回報完成 → 即時更新 tasks.md 為 `[x]`
-5. 全部組完成後進 Stage 2
+1. Get the pending tasks from tasks.md (`[ ]` / `[~]` status)
+2. Analyze dependencies and group the tasks (independent groups can run in parallel, at most 4 groups)
+3. Launch `spec-implementer` agents (Mode 1) — spawn multiple independent groups in parallel within the same message; each agent receives the feature name, its task list, the `Mode 1` marker, and reads design.md via the `Design ref` field
+4. Agent reports completion → immediately update tasks.md to `[x]`
+5. After all groups finish, enter Stage 2
 
 ---
 
-#### Stage 2: Review Loop (review only，多輪到 0 issues)
+#### Stage 2: Review Loop (review only, multi-round to 0 issues)
 
-`spec-implementer` 自我驗證抓不到「production 才會炸的問題」（async race、weak-ref GC、idempotency、leak、test gap）— 這是 Stage 2 職責。
+`spec-implementer`'s self-verification can't catch the "things that only blow up in production" (async race, weak-ref GC, idempotency, leak, test gap) — that's Stage 2's job.
 
-1. 每輪 invoke `implementation-reviewer` 對所有實作做資深軟體工程師視角審查，產 issue list（依 review-protocol.md Quick Summary 解讀，Round 命名 `I{N}`）
-2. **整批 append issue list 進 `review-log.md` §1 Audit Trail，Status 先標 `pending`**（依 `review-log-guide.md`）
-3. 處理 issue list（每個 issue 處理完立即更新 §1 該列 Status + Resolution）：
-   - **Architecture Decisions** → AskUserQuestion 遞給 user 拍板（呈現格式依「Architecture Decision 呈現紀律」節 / decision-escalation-guide.md；可能觸發 /update-spec）→ 拍板後**寫入 `review-log.md` §2** + 更新 §1 + 做昇華判斷（「Steering 演進機制」掛載點 2）
-   - **Critical/High Bugs/Smells** → 派工 `spec-implementer (Mode 2)` 修（主 agent 不直接動手）→ 修完 §1 該列改 `fixed`
-   - **Medium/Low** → **defer-and-batch** — 不逐輪詢問，累積到 Critical/High 清零的那一輪一次 AskUserQuestion；若 user 決定保留 → **寫入 `review-log.md` §3 Waivers** + 更新 §1
-   - **誤判** → 經討論確認為 false positive → **寫入 `review-log.md` §4** + 更新 §1
-   - **Steering Candidates** → 累積（不計收斂），依「Steering 演進機制」批次處理
-4. 修完進 Round I{N+1}，直到當輪 0 issues（且無累積待決 Medium/Low）才退出；第 5 輪仍有新 Critical/High → 觸發 review-protocol.md 收斂保險絲，停下來向 user 報告
+1. Each round, invoke `implementation-reviewer` to review all the implementation from a senior engineer's perspective, producing an issue list (interpret it per `review-protocol.md`'s Quick Summary, rounds named `I{N}`)
+2. **Append the whole issue list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
+3. Process the issue list (update that §1 row's Status + Resolution as soon as each issue is handled):
+   - **Architecture Decisions** → AskUserQuestion to the user (presentation format per the "Architecture Decision Presentation Discipline" section / decision-escalation-guide.md; may trigger /update-spec) → after it's decided, **write it to `review-log.md` §2** + update §1 + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
+   - **Critical/High Bugs/Smells** → dispatch `spec-implementer (Mode 2)` to fix (the main agent does not touch code directly) → once fixed, change that §1 row to `fixed`
+   - **Medium/Low** → **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion; if the user decides to keep it → **write it to `review-log.md` §3 Waivers** + update §1
+   - **False positive** → confirmed a false positive after discussion → **write it to `review-log.md` §4** + update §1
+   - **Steering Candidates** → accumulate (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
+4. After fixes, enter Round I{N+1}, until a round has 0 issues (and no accumulated pending Medium/Low); new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop and report to the user
 
-**動手寫 / 修 code 的只有 `spec-implementer`** — reviewer 不動 code，主 agent 不動 code（Spec Mode 規則）。
+**Only `spec-implementer` writes / fixes code** — the reviewer doesn't touch code, the main agent doesn't touch code (the Spec Mode rule).
 
-**Production code 紀律**：`spec-implementer (Mode 2)` 修 code 時不准留 `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log` 類 review-residue 註解（footnote pointer 也已全面廢止）。豁免理由完整存於 `review-log.md` §3；code 內若需解釋設計選擇，用**中性 semantic comment**（系統 invariant / precondition / 依賴指向），不揭露 reviewer 來源。範例見 `references/review-log-bad-examples.md` Pattern E。`implementation-reviewer` 下一輪會把違反此規則的 code 開為新 Smell issue。
+**Production code discipline**: when `spec-implementer (Mode 2)` fixes code it may not leave `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log`-style review-residue comments (footnote pointers are also fully abolished). The full waiver rationale lives in `review-log.md` §3; if the code needs to explain a design choice, use a **neutral semantic comment** (system invariant / precondition / dependency pointer) that does not reveal the reviewer source. See `references/review-log-bad-examples.md` Pattern E for examples. The next round of `implementation-reviewer` will open code that violates this rule as a new Smell issue.
 
 ---
 
 #### Stage 3: Summary
 
-報告前先把累積的 Steering Candidates / 實作中的發現依「Steering 演進機制」批次處理完。報告：完成的任務、implementation-reviewer 多輪歷史、Mode 2 修正項目、user 拍板的 Decisions、steering 更新、建置狀態。讓 user 決定下一步（diff / commit / 下個 phase / 其他）。
+Before reporting, batch-process the accumulated Steering Candidates / findings from implementation per the "Steering Evolution Mechanism." Report: completed tasks, the implementation-reviewer multi-round history, Mode 2 fixes, user-decided Decisions, steering updates, and build status. Let the user decide the next step (diff / commit / next phase / something else).
 
 ---
 
-## 為人類認知負擔校準（全域溝通準則）
+## Calibrate for Cognitive Load (global communication principle)
 
-主 agent 對 user 的**任何輸出** — mode 宣告、進度回報、問題說明、review 結論、summary、Decision 升級、briefing — 都要先**消化、抽象**再呈現，不把未經整理的大量資訊原樣傾倒給 user。這不是某個檢查點的規則，是貫穿整個流程的溝通基線。
+**Any output** the main agent produces for the user — mode declaration, progress report, problem explanation, review conclusion, summary, Decision escalation, briefing — must be **digested and abstracted** before it's presented; don't dump a raw flood of information at the user. This isn't the rule of one checkpoint; it's the communication baseline that runs through the entire flow.
 
-**為什麼**：agent 能即時撐起的心智圖遠大於人類能當場消化的量。未抽象的大量資訊丟給 user → 認知過載 → 重點被淹沒 → 誤解到實作後才浮現，修正成本高一個數量級。降低認知負擔不是客套，是把「觸發討論」移到最便宜的時點。
+**Why**: the mental map an agent can hold up instantly is far larger than what a human can absorb in the moment. Dumping un-abstracted bulk on the user → cognitive overload → the important point gets buried → misunderstandings only surface after implementation, where fixing them costs an order of magnitude more. Lowering cognitive load isn't a courtesy; it moves "trigger the discussion" to the cheapest possible moment.
 
-**核心做法 — 一個透鏡同時服務分析與溝通**：「**使用情境 + 執行流程 + 資料結構**」是同一個透鏡的兩種用途：
+**Core practice — one lens serving both analysis and communication**: "**use cases + execution flow + data structures**" is one lens used two ways:
 
-- **分析（review）** 用它找出「真實情境驅動的核心設計概念」，排除無情境的理論性邊緣 case（見 `references/review-protocol.md`「Review 方法」）
-- **溝通（briefing / 任何說明）** 把那些核心概念用同一透鏡呈現：以實際 use case 走流程，元件、資料結構、執行流程在場景中出場時才介紹
+- **Analysis (review)** uses it to find "the core design concepts driven by real scenarios," ruling out theoretical edge cases with no scenario (see `references/review-protocol.md`, "Review method")
+- **Communication (briefing / any explanation)** presents those core concepts through the same lens: walk through it with an actual use case, introducing components, data structures, and execution flow only as they appear on stage in the scenario
 
-橋樑是「**核心設計概念**」 — review 判斷什麼重要（情境驅動的才重要），溝通就重點講那些重要的、略過理論性噪音。**review 與 briefing 職責不同，底層透鏡同一個。**
+The bridge is the "**core design concept**" — review decides what's important (scenario-driven is what's important), and communication spends its words on what's important, skipping the theoretical noise. **Review and briefing have different jobs but share the same underlying lens.**
 
-**三條具體紀律**：
+**Three concrete disciplines**:
 
-1. **以實際 use case 搭執行流程敘事** — 純概念條列（元件名 + pattern 名堆疊）建立不了畫面；場景敘事（「使用者做 X 時，因為某決定，會經歷 Y」）一聽就懂。
-2. **不假設 user 記得前文** — 人類跨對話輪次會忘、程式久了會忘記專案完整架構。說明時不輕易省略前幾輪提過的資料結構、執行流程、抽象概念；必要時主動重述，幫 user 重建心智模型。
-3. **資訊量剛剛好** — 不夠則 user 無法判斷，過量則無法消化；需要細節時指向文件位置（design.md §X / plan file 段落），而非全文重貼。
+1. **Narrate with an actual use case riding the execution flow** — a bare concept list (stacking component names + pattern names) builds no mental picture; scenario narration ("when the user does X, because of some decision, they go through Y") lands instantly.
+2. **Don't assume the user remembers earlier context** — humans forget across conversation turns, and forget a project's full architecture over time. When explaining, don't casually omit data structures, execution flows, or abstractions raised a few turns back; restate them proactively when needed, to help the user rebuild the mental model.
+3. **Just the right amount of information** — too little and the user can't judge; too much and they can't absorb it; when detail is needed, point at the location in the docs (design.md §X / the plan file's section) rather than re-pasting the whole thing.
 
-**三個下游應用**（本準則的具體化，各有詳細指引）：
+**Three downstream applications** (concretizations of this principle, each with its own detailed guide):
 
-| 應用場景 | 指引 |
+| Application | Guide |
 |---|---|
-| 實作前的 Spec / Plan Briefing | `references/briefing-guide.md` |
-| Architecture Decision / waiver / steering candidate 升級給 user | `references/decision-escalation-guide.md` |
-| Review 分析（用同一透鏡找核心設計概念） | `references/review-protocol.md`「Review 方法」 |
+| Spec / Plan Briefing before implementation | `references/briefing-guide.md` |
+| Escalating an Architecture Decision / waiver / steering candidate to the user | `references/decision-escalation-guide.md` |
+| Review analysis (using the same lens to find core design concepts) | `references/review-protocol.md`, "Review method" |
 
 ---
 
-## Plan / Design 文件內容指引
+## Plan / Design Document Content Guide
 
-寫 plan file（Quick Fix Mode）或 design.md（Spec Mode）時，**聚焦 substance，不寫 process narration**：
+When writing a plan file (Quick Fix Mode) or design.md (Spec Mode), **focus on substance, no process narration**:
 
-| ✅ 寫 | ❌ 不寫 |
+| ✅ Write | ❌ Don't write |
 |---|---|
-| Context（為什麼要改）| Process narration（「我會 invoke X 然後 X 會 ...」）|
-| 改動清單（具體 file + 改動）| 對 skill 紀律的重述（「依 review-protocol.md...」）|
-| 風險評估 | Mode 對比表（「為什麼不走另一個 mode」）|
-| Architecture Decisions（Options + Trade-offs）| 預估幾輪 review（reviewer 決定，不由 plan 預估）|
-| 驗證方式 | Definition of Done（skill 自動執行的退出條件）|
+| Context (why the change) | Process narration ("I'll invoke X and then X will...") |
+| Change list (specific file + change) | Restating skill discipline ("per review-protocol.md...") |
+| Risk assessment | Mode comparison table ("why not the other mode") |
+| Architecture Decisions (Options + Trade-offs) | Estimating how many review rounds (the reviewer decides, not the plan) |
+| Verification approach | Definition of Done (the exit condition the skill runs automatically) |
 
-**為什麼**：reviewer / spec-implementer 都已知道 skill flow，不需要 plan 重述。冗長 process narration = noise，模糊 user 真正需要看的 substance。
+**Why**: the reviewer / spec-implementer already know the skill flow; the plan needn't restate it. Verbose process narration = noise that blurs the substance the user actually needs to see.
 
-詳細指引 + 長度建議 + 範例對比：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/plan-content-guide.md`
+Detailed guide + length recommendations + example comparisons: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/plan-content-guide.md`
 
 ---
 
-## Architecture Decision 呈現紀律
+## Architecture Decision Presentation Discipline
 
-主 agent 用 `AskUserQuestion` 把 reviewer 升級的 Decision 遞給 user 時，必須做「reviewer 機械可解析 → user 人類可消化」的翻譯。Reviewer 的四點原料（Option 1 / Option 2 / 為什麼沒共識 / 建議 user 考量）**不能直接照搬**。
+When the main agent uses `AskUserQuestion` to hand a reviewer-escalated Decision to the user, it must do the "reviewer-machine-parsable → user-human-digestible" translation. The reviewer's four raw inputs (Option 1 / Option 2 / why there's no consensus / what the user should consider) **must not be copied over verbatim**.
 
-**兩拍制 = 兩個回合（適用本 skill 所有 AskUserQuestion — Decision / waiver 批次 / steering candidates）**：(1) briefing 回合 — 用對話文字輸出問題 briefing（review 脈絡 + **以實際 use case 講問題** + code 對照，依 briefing-guide.md），**作為回合最終訊息交付後結束回合**；(2) 提問回合 — user 回覆後才發 **stem 很短**的 AskUserQuestion（user 若已在回覆中表態則跳過）。為什麼分兩回合：context 塞 question stem 在對話框裡難讀；夾在 tool call 前的回合中段文字顯示不可靠（CLI 與 remote-control 都會隱形）— 回合最終訊息才保證可見。
+**Two-beat = two turns (applies to every AskUserQuestion in this skill — Decision / waiver batch / steering candidates)**: (1) briefing turn — output the question briefing as conversational text (review context + **state the problem with an actual use case** + code comparison, per briefing-guide.md), **delivered as the turn-final message, then end the turn**; (2) question turn — only after the user replies, send an AskUserQuestion with a **very short stem** (skip if the user already took a position in their reply). Why split into two turns: stuffing context into the question stem makes it hard to read in the dialog box; mid-turn text wedged before a tool call renders unreliably (both the CLI and remote-control will make it invisible) — only the turn-final message is guaranteed visible.
 
-| ✅ 做 | ❌ 不做 |
+| ✅ Do | ❌ Don't |
 |---|---|
-| Briefing 回合結束等 user 回覆，下一回合短 stem 提問 | Briefing + 同回合接 AskUserQuestion（中段文字隱形）；context 塞 stem；不交代由來直接丟選項 |
-| Briefing 用實際 use case 講問題、術語第一次出現就解釋 | 純概念命題 + 未解釋的專案術語 |
-| Function / SQL / config 直接貼 code 片段 + 同 codebase 對照組（放第一拍）| Prose 描述 code（「在 line 142 回傳 bool」）|
-| Option `description` 至少覆蓋核心 3 維度（架構 / 一致性 / 功能風險），其他維度按 Decision 性質挑 | 只寫「會 break X」單維度後果；硬湊「N/A」填空 |
-| 用 `preview` 欄位放 before/after diff 或完整 function | Code 細節用文字描述但不顯示 |
-| 獨立 Decision 拆多次 call；平行相關用同 call 多 questions；條件耦合用複合選項或序列 | 條件耦合（B 依賴 A）硬塞同 call 多 questions（工具不支援這種依賴）|
+| End the briefing turn and wait for the user's reply, then ask with a short stem next turn | Briefing + AskUserQuestion in the same turn (mid-turn text invisible); stuffing the stem with context; dropping options without explaining their origin |
+| Brief the problem with an actual use case; explain a term the first time it appears | Bare conceptual proposition + unexplained project jargon |
+| Paste the code snippet directly for a function / SQL / config + a same-codebase comparison (in the first beat) | Prose-describing the code ("returns a bool at line 142") |
+| Each Option `description` covers at least the 3 core dimensions (architecture / consistency / functional risk), plus others by the nature of the Decision | Only writing single-dimension consequences ("will break X"); forcing "N/A" into the blanks |
+| Use the `preview` field for a before/after diff or the full function | Describing code details in prose without showing them |
+| Split independent Decisions into multiple calls; parallel-related ones in one call with multiple questions; conditionally-coupled ones via a composite option or a sequence | Cramming conditionally-coupled (B depends on A) ones into one call's multiple questions (the tool doesn't support that dependency) |
 
-**為什麼**：人類無法即時撐起 reviewer 那種龐大心智圖。每次互動的 context 量要剛剛好 — 不夠則 user 無法判斷，過量則無法消化。Reviewer 的原料是 raw material，需要主 agent 翻譯成人類友善的對話。
+**Why**: a human can't hold up the reviewer's kind of vast mental map on the spot. The context per interaction must be just right — too little and the user can't judge, too much and they can't absorb it. The reviewer's inputs are raw material that the main agent must translate into human-friendly conversation.
 
-詳細指引 + 完整 has_related 範例：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/decision-escalation-guide.md`
+Detailed guide + full has_related example: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/decision-escalation-guide.md`
 
 ---
 
-## 多輪 Review 機制
+## Multi-Round Review Mechanism
 
-`design-reviewer` 和 `implementation-reviewer` 共用一套 multi-round review loop。**詳細協定**（嚴重度分級、字母編號規則 + D/I prefix、Architecture Decision 紀律、輸出格式、收斂判斷、reviewer 共用紀律、Review Log handshake）記載於 `references/review-protocol.md`。
+`design-reviewer` and `implementation-reviewer` share one multi-round review loop. The **detailed protocol** (severity grading, letter-numbering rules + D/I prefix, Architecture Decision discipline, output format, convergence determination, shared reviewer discipline, Review Log handshake) is recorded in `references/review-protocol.md`.
 
-**Lazy loading 設計**：reviewer agent 啟動時會自己讀 review-protocol.md。主 agent 不必預讀 — 只需理解下面 Quick Summary 即可驅動 loop。
+**Lazy-loading design**: the reviewer agent reads review-protocol.md itself on startup. The main agent needn't pre-read it — understanding the Quick Summary below is enough to drive the loop.
 
 ### Quick Summary
 
-- **嚴重度**：Critical / High / Medium / Low — Critical+High 必修，Medium+Low 由 user 決定
-- **編號**：同 reviewer 種類內跨 round 累加不重設；**design (D) 與 implementation (I) 各自獨立累加**（引用時必帶 Round prefix：`D2 Smell C` / `I1 Bug A`）
-- **收斂**：reviewer 輸出 `0 issues` 且無累積待決 Medium/Low 才退 loop；含 Critical/High 不可提前退；**保險絲** — 第 5 輪仍有新 Critical/High 就停 loop 向 user 報告結構性問題（不算收斂）
-- **Medium/Low defer-and-batch**：不逐輪問 user — 累積到 Critical/High 清零的那一輪一次批次詢問
-- **Architecture Decision**：reviewer 沒共識的設計選擇 → 主 agent 用 AskUserQuestion 遞給 user，**不自己拍板**
-- **Steering Candidates**：reviewer 發現 steering 未記錄的專案級原則 → non-blocking `SC` 區段（不計收斂），主 agent 依「Steering 演進機制」批次處理
-- **Review/Fix 分工**：reviewer 不動 code、不寫 review log；design 階段主 agent 改 design.md / plan file，implementation 階段 Spec Mode 派工 `spec-implementer (Mode 2)`、Quick Fix Mode 主 agent 直接修
-- **Review Log 維護**：每輪 review 後主 agent 把 issue list 整合進 review log（詳見下方「Review Log 機制」+ `references/review-log-guide.md`）
+- **Severity**: Critical / High / Medium / Low — Critical+High must be fixed, Medium+Low are the user's call
+- **Numbering**: accumulates across rounds within a reviewer type and never resets; **design (D) and implementation (I) accumulate independently** (always cite with the Round prefix: `D2 Smell C` / `I1 Bug A`)
+- **Convergence**: the loop exits only when the reviewer outputs `0 issues` and there's no accumulated pending Medium/Low; it can't exit early with Critical/High present; **the fuse** — new Critical/High still present at Round 5 stops the loop and reports a structural problem to the user (not counted as convergence)
+- **Medium/Low defer-and-batch**: don't ask the user every round — accumulate to the round where Critical/High hits zero and ask once in a batch
+- **Architecture Decision**: a design choice the reviewer has no consensus on → the main agent hands it to the user via AskUserQuestion, **doesn't decide it itself**
+- **Steering Candidates**: the reviewer finds a project-level principle not recorded in steering → a non-blocking `SC` section (doesn't count against convergence); the main agent batch-processes it per the "Steering Evolution Mechanism"
+- **Review/Fix split**: the reviewer doesn't touch code, doesn't write the review log; in the design phase the main agent edits design.md / the plan file, in the implementation phase Spec Mode dispatches `spec-implementer (Mode 2)` while Quick Fix Mode has the main agent fix directly
+- **Review Log maintenance**: after each review round the main agent folds the issue list into the review log (see the "Review Log Mechanism" below + `references/review-log-guide.md`)
 
 ---
 
-## Review Log 機制
+## Review Log Mechanism
 
-每個 spec / Quick Fix 任務都有一份 review log，記錄 review/resolve 過程的五類 artifact：跨輪 issue audit trail / Architecture Decisions / Waivers / False Positives / Steering Updates。
+Every spec / Quick Fix task has a review log recording the five kinds of artifact from the review/resolve process: the cross-round issue audit trail / Architecture Decisions / Waivers / False Positives / Steering Updates.
 
-**核心理念**：正式文件（requirements / design / tasks / production code）描述「**決定後的世界長什麼樣**」；review log 描述「**為什麼是這個世界、過程中拒絕了什麼、哪些原則被刻意豁免**」。兩者徹底分離但可雙向引用。
+**Core idea**: the formal docs (requirements / design / tasks / production code) describe "**what the world looks like after decisions**"; the review log describes "**why it's this world, what was rejected along the way, which principles were deliberately waived**." The two are fully separate but may cite each other both ways.
 
-### 為什麼需要
+### Why it's needed
 
-過去的 review/resolve 流程中，agent 會在正式文件內留下 review 過程的 audit trail，例如 tasks.md task 描述中夾帶 8 行「SRP 例外（已知並接受）：...」區塊。這類內容本身合理，但**放錯位置**：tasks.md 應回答「這個 task 要做什麼」，不該夾雜「我們接受違反某原則」。Review log 把這類 artifact 集中保留，正式文件回歸 single source of truth 可讀性。
+In the old review/resolve process, the agent would leave the review-process audit trail inside the formal docs — for instance an 8-line "SRP exception (known and accepted): ..." block tucked into a tasks.md task description. The content itself is reasonable, but it's **in the wrong place**: tasks.md should answer "what does this task do," not carry "we accept violating some principle." The review log keeps these artifacts together, returning the formal docs to single-source-of-truth readability.
 
-### 檔案位置
+### File location
 
-| Mode | 位置 | 是否 commit |
+| Mode | Location | Committed? |
 |---|---|---|
-| Spec Mode | `.spec/specs/{feature}/review-log.md` | 是 |
-| Quick Fix Mode | plan file 結尾 `## Review Log` section | 否（plan file ephemeral） |
+| Spec Mode | `.spec/specs/{feature}/review-log.md` | yes |
+| Quick Fix Mode | the `## Review Log` section at the end of the plan file | no (the plan file is ephemeral) |
 
-### 四大紀律規則（100% 隔離）
+### The four discipline rules (100% isolation)
 
-1. **正式文件完全不出現 review-log 內容或 reference** — 禁：ADR / Decisions 段落、reviewer letter tag（`per Decision X`）、Round 過程敘述、review-log 引用、footnote pointer、豁免區塊。`spec-verifier`「跨文件 Review-Residue 檢查」自動偵測完整 pattern 清單
-2. **Production code 禁止 review-residue 註解** — 禁：`// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log`。違反由 `implementation-reviewer` 開新 Medium Smell。例外：純粹 code semantic comment（系統 invariant / precondition / 依賴指向）允許
-3. **Formal doc 解釋設計理由用中性 prose** — 用技術限制 / codebase 慣例 / 反面後果整合進對應段落，不揭露 reviewer / Decision letter / Round / user 拍板過程（❌「Synchronous per Decision AL accepted in Round 3」→ ✅「Synchronous for atomicity — async would leave intermediate states violating schema invariants」）
-4. **Reviewer 不寫 log，主 agent 整合** — reviewer 只產 issue list；主 agent 每輪 append §1、處理完更新 Status、補對應子節；Decision 拍板後寫 §2 **並**把結果內容以中性 prose 整合進 design.md
+1. **Formal docs contain no review-log content or reference at all** — forbidden: ADR / Decisions sections, reviewer letter tags (`per Decision X`), round-process narration, review-log citations, footnote pointers, waiver blocks. `spec-verifier`'s "cross-file Review-Residue check" auto-detects the full pattern list
+2. **No review-residue comments in production code** — forbidden: `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log`. Violations are opened by `implementation-reviewer` as a new Medium Smell. Exception: pure code semantic comments (system invariant / precondition / dependency pointer) are allowed
+3. **Formal docs explain design rationale with neutral prose** — weave technical constraints / codebase conventions / adverse consequences into the relevant section, without revealing the reviewer / Decision letter / Round / user-decision process (❌ "Synchronous per Decision AL accepted in Round 3" → ✅ "Synchronous for atomicity — async would leave intermediate states violating schema invariants")
+4. **The reviewer doesn't write the log; the main agent integrates it** — the reviewer only produces the issue list; each round the main agent appends §1, updates Status once handled, and fills the corresponding subsection; after a Decision is resolved it writes §2 **and** weaves the resulting content into design.md as neutral prose
 
-**為什麼連 footnote pointer 都禁**：實測允許任何「formal doc 提一下 review-log」的後門後，agent 會逐步退化成寫整段 ADR、letter tag、Round 敘述（業界 ADR pattern 訓練深植）。100% 零引用 + 中性 design rationale 是唯一可靠的紀律邊界。
+**Why even footnote pointers are forbidden**: in practice, once you allow any back door for "the formal doc just mentioning the review-log," the agent gradually degrades into writing whole ADR blocks, letter tags, round narration (the industry ADR pattern is deeply trained in). 100% zero-citation + neutral design rationale is the only reliable discipline boundary.
 
-### 詳細規範
+### Detailed conventions
 
-- 寫入規範 / ID 規則 / Status 取值 / 範例：`references/review-log-guide.md`
-- Bad / Good 對照（5 種 pattern + 通用改寫公式）：`references/review-log-bad-examples.md`
-- Reviewer/主 agent handshake 協定：`references/review-protocol.md` 的「Review Log 整合」章節
+- Writing conventions / ID rules / Status values / examples: `references/review-log-guide.md`
+- Bad / Good comparisons (5 patterns + a general rewrite formula): `references/review-log-bad-examples.md`
+- The reviewer/main-agent handshake protocol: the "Review Log integration" section of `references/review-protocol.md`
 
 ---
 
-## Steering 演進機制
+## Steering Evolution Mechanism
 
-Steering 是活文件 — 真正**貫穿全專案的核心原則 / 慣例**會在開發過程中持續浮現，**昇華的最佳時機是原則浮現的當下**（context 還在、user 剛拍板），不是某次大檢視。
+Steering is a living document — the principles / conventions that truly **run through the whole project** keep surfacing during development, and **the best moment to promote one is the moment it surfaces** (context is still fresh, the user just decided), not some big later review.
 
-**但門檻很高、預設不昇華**：絕大多數 review / 實作中冒出的東西是 spec-specific、實作細節、或專案記憶級的事實，**都不該進 steering**；只昇華「不記進去幾乎肯定會造成未來不一致或困難」的少數核心原則（完整門檻與排除清單見 `references/review-protocol.md`「Steering Candidates」）。寧缺勿濫——灌水會稀釋護欄、也洗版 user 的注意力。
+**But the bar is high, and the default is not to promote**: the vast majority of things that come up during review / implementation are spec-specific, implementation details, or project-memory-level facts — **none of which belong in steering**; only promote the few core principles where "not recording it would almost certainly cause future inconsistency or difficulty" (the full bar and exclusion list are in `references/review-protocol.md`, "Steering Candidates"). When in doubt, leave it out — padding dilutes the guardrails and floods the user's attention.
 
-三個掛載點：
+Three hook points:
 
-| 掛載點 | 時機 | 形式 |
+| Hook point | When | Form |
 |---|---|---|
-| 1. Reviewer | design / implementation review 時 | issue list 後的 `📌 Steering Candidates` 區段（non-blocking，不計收斂）|
-| 2. Decision 拍板後 | user 答完 AskUserQuestion 當下 | 主 agent 即判斷：「僅此 feature 的選擇」還是「專案級原則」？後者立即提議昇華（user 還在 context 內，追問成本最低）|
-| 3. 實作過程 | spec-implementer 完成報告 / Quick Fix 主 agent 動手時 | 報告內列出發現，主 agent 收集 |
+| 1. Reviewer | during design / implementation review | the `📌 Steering Candidates` section after the issue list (non-blocking, doesn't count against convergence) |
+| 2. After a Decision is resolved | the moment the user finishes the AskUserQuestion | the main agent judges immediately: "a choice for this feature only" or "a project-level principle"? The latter is proposed for promotion right away (the user is still in context, lowest follow-up cost) |
+| 3. During implementation | spec-implementer's completion report / when the Quick Fix main agent is working | findings are listed in the report and the main agent collects them |
 
-**輕量更新路徑**（不走 `/update-steering` 的完整 Plan Mode）：
+**Lightweight update path** (not the full Plan Mode of `/update-steering`):
 
-1. 累積的候選去重後，用 AskUserQuestion 批次遞 user（掛載點 2 在拍板當下就處理；其餘最遲 Summary 前處理完）
-2. User 確認 → 主 agent 直接 Edit 對應 steering 文件（通常 tech.md / structure.md）— steering 內只寫原則本身（決定後的世界），不寫來源
-3. 跑 `checklists.md`「Steering 完整性檢查」的一致性檢查（三文件無矛盾）
-4. 記入 review log §5 Steering Updates（原則 / 寫入位置 / 來源）
+1. Dedupe the accumulated candidates, then hand them to the user in a batch via AskUserQuestion (hook point 2 is handled at decision time; the rest are handled before Summary at the latest)
+2. User confirms → the main agent Edits the corresponding steering document directly (usually tech.md / structure.md) — steering records only the principle itself (the world after decisions), not its source
+3. Run the `checklists.md` "Steering completeness check" consistency check (the three docs have no contradictions)
+4. Record it in review log §5 Steering Updates (principle / where written / source)
 
-**界線**：本機制處理「新增原則 / 慣例條目」級別的增量；方向性大改（換架構模式、改技術堆疊）仍走 `/update-steering`。Quick Fix Mode 若專案已有 steering，同樣適用。
+**Boundary**: this mechanism handles "add a principle / convention entry"-level increments; directional overhauls (swapping architecture patterns, changing the tech stack) still go through `/update-steering`. Quick Fix Mode applies the same way if the project already has steering.
 
-**為什麼即時、但克制**：steering 過時是漸進式的 — 真有跨 feature 的核心慣例沒被記錄，半年後 steering 與 codebase 脫節、alignment 檢查就形同虛設，所以該昇華的要當下昇華。但反過來，**過度昇華（把 spec-specific / 細節 / 一次性決定灌進 steering）在實務上是更常見的失敗** — 它稀釋護欄、讓真正重要的條文被淹沒、每輪浪費 user 的注意力。兩個方向都要避免，而**預設偏向克制**：昇華少數真正貫穿全專案的核心，不是每輪都加。
+**Why immediate, but restrained**: steering goes stale gradually — if a genuinely cross-feature core convention goes unrecorded, six months later steering and the codebase have drifted apart and the alignment check is toothless, so what should be promoted should be promoted on the spot. But conversely, **over-promotion (cramming spec-specific / detail / one-off decisions into steering) is the more common failure in practice** — it dilutes the guardrails, buries the truly important clauses, and wastes the user's attention every round. Both directions must be avoided, and **the default leans restrained**: promote the few that truly run through the whole project, not something every round.
 
 ---
 
-## 錯誤處理
+## Error Handling
 
-| 情境 | 處理 |
+| Situation | Handling |
 |------|------|
-| Steering 不存在 | 阻止 /create-spec，引導 /create-steering |
-| Spec 不存在 | 阻止 /load-spec，引導 /create-spec |
-| Tasks vs Design 驗證失敗 | 顯示不一致項目，詢問修正方式 |
-| 實作時發現設計缺陷 | 暫停，建議更新 design.md |
-| 新功能與 Steering 不一致 | 提示先更新 steering 再繼續 |
-| 設計變更影響已完成任務 | 執行實作同步流程，標記受影響任務為 `[~]` |
-| 設計變更刪除功能 | 標記任務為 `[-]`，reviewer 負責移除程式碼 |
-| Review 發現設計 / 實作與 steering 衝突 | reviewer 開 Architecture Decision，user 決定：修設計或更新 steering（steering 可能過時）|
-| Review 連續 5 輪仍有新 Critical/High | 觸發收斂保險絲：停止 loop，整理跨輪 pattern 向 user 報告結構性問題 |
-| Agent 通訊失敗 | 重試一次，若仍失敗則升級報告 |
-| Circular dependency 偵測 | 停止執行並報告問題 |
-| design.md 缺失或不完整 | 請求澄清後再繼續 |
+| Steering doesn't exist | Block /create-spec, guide to /create-steering |
+| Spec doesn't exist | Block /load-spec, guide to /create-spec |
+| Tasks vs Design verification fails | Show the inconsistencies, ask how to fix |
+| Design flaw found during implementation | Pause, recommend updating design.md |
+| New feature inconsistent with Steering | Prompt to update steering first, then continue |
+| Design change affects completed tasks | Run the implementation-sync flow, mark affected tasks `[~]` |
+| Design change deletes a feature | Mark tasks `[-]`; the reviewer is responsible for removing the code |
+| Review finds design / implementation conflicts with steering | The reviewer opens an Architecture Decision; the user decides: fix the design or update steering (steering may be stale) |
+| Review still has new Critical/High after 5 straight rounds | Trip the convergence fuse: stop the loop, gather the cross-round pattern, report the structural problem to the user |
+| Agent communication failure | Retry once; if it still fails, escalate the report |
+| Circular dependency detected | Stop execution and report the problem |
+| design.md missing or incomplete | Ask for clarification, then continue |
 
 ---
 
-## 核心原則
+## Core Principles
 
-**共用**：
-1. **Plan Before Code** — 先有計畫（Quick Fix: plan file / Spec: design.md），不直接動手
-2. **Research Before Design** — 設計前先研究現有方案
-3. **Self-Verify + Verify Before Deliver** — 動手者自驗，交付前必過 reviewer 審查 + 建置
-4. **Review Until Convergence** — multi-round 到 0 issues，不接受「夠好就停」；但 reviewer 雙向誠實（不假收斂、也不發明 issue），連續 5 輪有新 Critical/High 走保險絲升級 user
-5. **No Architectural Overreach** — reviewer 遇到沒共識的設計選擇不拍板，遞給 user
-6. **Separate "What Is" from "Why"** — 正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。豁免 / Decision / 跨輪 audit trail 一律寫進 review log，不污染正式文件
-7. **Steering is Living (but restrained)** — 開發中浮現、真正貫穿全專案的核心原則經 user 確認後即時昇華（見「Steering 演進機制」），不等大檢視；但**門檻很高、預設不昇華** — spec-specific / 實作細節 / 一次性決定 / 專案記憶都不進 steering，寧缺勿濫
-8. **Brief Before Build** — 實作開始前用對話輸出 spec / plan 的重點摘要（`briefing-guide.md`），讓 user 低成本進入狀況、在最便宜的時點觸發討論
-9. **Calibrate for Cognitive Load（為人類認知負擔校準）** — 主 agent 對 user 的**任何輸出**都先消化、抽象再呈現，以實際 use case 搭執行流程敘事、不假設 user 記得前幾輪講過的資料結構 / 流程 / 概念。這是 #8 Brief Before Build 與「Architecture Decision 呈現紀律」共同的根（見「為人類認知負擔校準」節）
+**Shared**:
+1. **Plan Before Code** — have a plan first (Quick Fix: plan file / Spec: design.md), don't go straight to writing
+2. **Research Before Design** — research existing solutions before designing
+3. **Self-Verify + Verify Before Deliver** — the implementer self-verifies; before delivery it must pass the reviewer + the build
+4. **Review Until Convergence** — multi-round to 0 issues, no accepting "good enough, stop"; but the reviewer is honest both ways (no fake convergence, no inventing issues), and 5 straight rounds with new Critical/High trips the fuse to escalate to the user
+5. **No Architectural Overreach** — the reviewer doesn't decide a design choice it has no consensus on; it hands it to the user
+6. **Separate "What Is" from "Why"** — the formal docs describe "the world after decisions"; the review log describes "why it's this world." Waivers / Decisions / cross-round audit trail all go in the review log, never polluting the formal docs
+7. **Steering is Living (but restrained)** — a core principle that surfaces during development and truly runs through the whole project is promoted right away once the user confirms (see "Steering Evolution Mechanism"), without waiting for a big review; but **the bar is high and the default is not to promote** — spec-specific / implementation detail / one-off decisions / project memory all stay out of steering; when in doubt, leave it out
+8. **Brief Before Build** — before implementation starts, output a conversational summary of the spec / plan's key points (`briefing-guide.md`), so the user gets up to speed cheaply and the discussion is triggered at the cheapest moment
+9. **Calibrate for Cognitive Load** — the main agent digests and abstracts **any output** to the user before presenting it, narrating with an actual use case riding the execution flow, not assuming the user remembers the data structures / flows / concepts raised a few turns back. This is the shared root of #8 Brief Before Build and the "Architecture Decision Presentation Discipline" (see the "Calibrate for Cognitive Load" section)
 
-**Spec Mode 特有**：
-10. **No Steering, No Spec Mode** — 進 Spec Mode 前必須有 steering，並隨專案演進持續更新
-11. **Design is Truth** — design.md 是唯一真理來源
-12. **Implementation by Agent Only** — 主 agent 禁止直接動手，必派工 `spec-implementer`
+**Spec Mode specific**:
+10. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
+11. **Design is Truth** — design.md is the single source of truth
+12. **Implementation by Agent Only** — the main agent is forbidden from working directly; it must dispatch `spec-implementer`
 
-**Quick Fix Mode 特有**：
-13. **Plan File is Truth** — plan file 是真理來源（含內嵌的 `## Review Log` 區段；路徑於 EnterPlanMode 時確認）
-14. **Main Agent May Implement** — 允許主 agent 直接動手（特例，但 review loop 仍強制）
-15. **Escalate When Scope Grows** — 發現 scope 超範圍時停下來建議升級 Spec Mode
+**Quick Fix Mode specific**:
+13. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode)
+14. **Main Agent May Implement** — the main agent is allowed to work directly (a special case, but the review loop is still mandatory)
+15. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode
 
 ---
 
-## 參考文件
+## Reference Documents
 
-| 文件 | 內容 |
+| Document | Content |
 |------|------|
-| `references/mode-selection.md` | Quick Fix Mode vs Spec Mode 判斷標準與升降級規則 |
-| `references/plan-content-guide.md` | Plan / Design 文件內容指引（substance vs process narration）|
-| `references/steering-guide.md` | Steering 文件撰寫指南（Spec Mode）|
-| `references/spec-workflow.md` | Spec 文件撰寫工作流程（Spec Mode）|
-| `references/checklists.md` | 所有檢查清單（含 Design Review / Implementation Review）|
-| `references/review-protocol.md` | Reviewer agent 共用協定（reviewer 自讀，主 agent 不必預讀）|
-| `references/review-log-guide.md` | Review Log 撰寫規範（format / ID / 中性化原則 / 範例）|
-| `references/review-log-bad-examples.md` | 5 種 review-residue pattern 的 bad / good 對照 + 通用改寫公式 |
-| `references/decision-escalation-guide.md` | Architecture Decision 呈現紀律（含拍板後寫入 review log §2 + design.md 中性化反映）|
-| `references/briefing-guide.md` | Spec / Plan Briefing 指引（實作前對話摘要 — 觸發時點 / 內容結構 / 認知校準）|
-| `templates/review-log-template.md` | review-log.md 最小 skeleton（/create-spec 與 Quick Fix Mode 用） |
+| `references/mode-selection.md` | Quick Fix Mode vs Spec Mode criteria and up/downgrade rules |
+| `references/plan-content-guide.md` | Plan / Design document content guide (substance vs process narration) |
+| `references/steering-guide.md` | Steering document writing guide (Spec Mode) |
+| `references/spec-workflow.md` | Spec document writing workflow (Spec Mode) |
+| `references/checklists.md` | All checklists (including Design Review / Implementation Review) |
+| `references/review-protocol.md` | The reviewer agents' shared protocol (read by the reviewer; the main agent needn't pre-read) |
+| `references/review-log-guide.md` | Review Log writing conventions (format / ID / neutralization principle / examples) |
+| `references/review-log-bad-examples.md` | Bad / Good comparisons of the 5 review-residue patterns + a general rewrite formula |
+| `references/decision-escalation-guide.md` | Architecture Decision Presentation Discipline (including writing to review log §2 after a decision + neutralized reflection in design.md) |
+| `references/briefing-guide.md` | Spec / Plan Briefing guide (conversational summary before implementation — trigger timing / content structure / cognitive calibration) |
+| `templates/review-log-template.md` | The minimal review-log.md skeleton (used by /create-spec and Quick Fix Mode) |
 
-所有路徑前綴：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`
+All paths are prefixed with: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`

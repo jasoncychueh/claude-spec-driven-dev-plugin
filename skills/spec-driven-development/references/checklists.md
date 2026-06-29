@@ -1,418 +1,418 @@
-# 檢查清單
+# Checklists
 
-本文件包含所有 spec-driven development 流程中使用的檢查清單。
+This document contains all the checklists used throughout the spec-driven development workflow.
 
-## 目錄
+## Table of Contents
 
-1. [Steering 完整性檢查](#steering-完整性檢查)
-2. [Spec 完整性檢查](#spec-完整性檢查)
-3. [Tasks vs Design 對齊檢查](#tasks-vs-design-對齊檢查)
-4. [Steering 同步檢查](#steering-同步檢查)
-5. [設計變更影響評估](#設計變更影響評估)
-6. [Design Review 審查清單](#design-review-審查清單)
-7. [Implementation Review 審查清單](#implementation-review-審查清單)
+1. [Steering completeness check](#steering-completeness-check)
+2. [Spec completeness check](#spec-completeness-check)
+3. [Tasks vs Design alignment check](#tasks-vs-design-alignment-check)
+4. [Steering sync check](#steering-sync-check)
+5. [Design-change impact assessment](#design-change-impact-assessment)
+6. [Design Review checklist](#design-review-checklist)
+7. [Implementation Review checklist](#implementation-review-checklist)
 
 ---
 
-## Steering 完整性檢查
+## Steering completeness check
 
-在開始撰寫功能 spec 前，確認 steering 文件完整。
+Before you start writing a feature spec, confirm the steering documents are complete.
 
 ### product.md
 
-- [ ] 有明確的 Product Purpose（產品目的、解決的問題）
-- [ ] 定義了 Target Users（目標用戶、痛點）
-- [ ] 列出了 Key Features（核心功能，1-3 項主要功能）
-- [ ] 有 Business Objectives（商業目標）
-- [ ] 有**可量化的** Success Metrics（成功指標）
-- [ ] 定義了 Product Principles（產品設計原則）
+- [ ] Has a clear Product Purpose (the product's goal, the problem it solves)
+- [ ] Defines Target Users (target users, pain points)
+- [ ] Lists Key Features (core features, 1-3 primary features)
+- [ ] Has Business Objectives
+- [ ] Has **quantifiable** Success Metrics
+- [ ] Defines Product Principles (product design principles)
 
 ### tech.md
 
-- [ ] 定義了 Project Type（專案類型）
-- [ ] 所有 Core Technologies 都**標註版本**
-- [ ] 有 Application Architecture 說明（含架構圖）
-- [ ] 定義了 Data Storage 方案
-- [ ] 列出 External Integrations
-- [ ] 說明 Development Environment
-- [ ] 定義 Deployment 方式
-- [ ] 記錄了**技術決策原因**（Technical Decisions & Rationale）
+- [ ] Defines Project Type
+- [ ] All Core Technologies **note their versions**
+- [ ] Has an Application Architecture description (with architecture diagram)
+- [ ] Defines a Data Storage approach
+- [ ] Lists External Integrations
+- [ ] Describes the Development Environment
+- [ ] Defines the Deployment method
+- [ ] Records **the rationale for technical decisions** (Technical Decisions & Rationale)
 
 ### structure.md
 
-- [ ] 有完整的 Directory Organization（ASCII 目錄樹）
-- [ ] Naming Conventions 用**表格呈現**
-- [ ] 每個命名規則都有**範例**
-- [ ] 定義了 Import Patterns
-- [ ] 明確定義了 Module Boundaries（模組邊界、依賴方向）
-- [ ] 有 Code Size Guidelines
+- [ ] Has a complete Directory Organization (ASCII directory tree)
+- [ ] Naming Conventions **presented in a table**
+- [ ] Every naming rule has an **example**
+- [ ] Defines Import Patterns
+- [ ] Clearly defines Module Boundaries (module boundaries, dependency direction)
+- [ ] Has Code Size Guidelines
 
-### 一致性檢查
+### Consistency check
 
-- [ ] 三個文件內容**沒有矛盾**
-- [ ] tech.md 的技術選型支援 product.md 的功能需求
-- [ ] structure.md 的組織方式符合 tech.md 的架構模式
+- [ ] The three documents **have no contradictions**
+- [ ] tech.md's technology choices support product.md's functional requirements
+- [ ] structure.md's organization matches tech.md's architectural patterns
 
 ---
 
-## Spec 完整性檢查
+## Spec completeness check
 
-在開始實作前，確認功能 spec 文件完整。
+Before you start implementing, confirm the feature spec documents are complete.
 
 ### requirements.md
 
-**內容完整性**：
-- [ ] 有 Introduction（功能概述、解決的問題）
-- [ ] 說明 Alignment with Product Vision
-- [ ] 所有需求都有 **User Story**（角色、功能、價值）
-- [ ] 每個需求都有**可驗證的 Acceptance Criteria**
-- [ ] 列出 Non-Functional Requirements（效能、安全性、可靠性）
+**Content completeness**:
+- [ ] Has an Introduction (feature overview, the problem it solves)
+- [ ] Describes Alignment with Product Vision
+- [ ] Every requirement has a **User Story** (role, feature, value)
+- [ ] Every requirement has **verifiable Acceptance Criteria**
+- [ ] Lists Non-Functional Requirements (performance, security, reliability)
 
-**職責邊界檢查**（確保不越界到 design.md）：
-- [ ] **不包含**技術架構選擇（如「使用 React」「採用 MVC」）
-- [ ] **不包含**具體元件/類別設計
-- [ ] **不包含**資料庫 schema 或資料模型定義
-- [ ] **不包含**演算法實作細節
-- [ ] **不包含**程式碼結構或檔案路徑
-- [ ] 所有內容都是從**用戶視角**描述
+**Responsibility boundary check** (ensure it does not cross into design.md):
+- [ ] **Does not include** technical architecture choices (e.g. "use React", "adopt MVC")
+- [ ] **Does not include** specific component/class design
+- [ ] **Does not include** database schema or data model definitions
+- [ ] **Does not include** algorithm implementation details
+- [ ] **Does not include** code structure or file paths
+- [ ] All content is described **from the user's perspective**
 
 ### design.md
 
-**內容完整性**：
-- [ ] 有 Overview（高階設計概述）
-- [ ] 說明 Steering Document Alignment
-- [ ] 有 Code Reuse Analysis（可復用的現有元件）
-- [ ] 有 Architecture 架構圖（Mermaid）
-- [ ] 每個 Component 都有：
+**Content completeness**:
+- [ ] Has an Overview (high-level design overview)
+- [ ] Describes Steering Document Alignment
+- [ ] Has a Code Reuse Analysis (reusable existing components)
+- [ ] Has an Architecture diagram (Mermaid)
+- [ ] Every Component has:
   - [ ] Purpose
-  - [ ] Interfaces（公開 API）
+  - [ ] Interfaces (public API)
   - [ ] Dependencies
-- [ ] 定義了 Data Models（資料結構）
-- [ ] 定義了 Error Handling 策略
-- [ ] 有 Testing Strategy
+- [ ] Defines Data Models (data structures)
+- [ ] Defines an Error Handling strategy
+- [ ] Has a Testing Strategy
 
-**實作細節完整性**（確保包含足夠的技術資訊）：
-- [ ] 包含 **API 規格**（端點、請求/回應格式）
-- [ ] 包含**主要函數簽名**（參數、回傳值）
-- [ ] 包含**演算法或處理流程**說明
-- [ ] 包含**檔案結構**規劃
+**Implementation-detail completeness** (ensure it contains enough technical information):
+- [ ] Includes **API specifications** (endpoints, request/response formats)
+- [ ] Includes **the main function signatures** (parameters, return values)
+- [ ] Includes a description of **the algorithm or processing flow**
+- [ ] Includes a plan for **the file structure**
 
-**職責邊界檢查**（確保不越界到 requirements.md）：
-- [ ] **不重複**描述 User Story（只引用需求編號）
-- [ ] **不重複**定義業務規則（只引用 requirements.md）
-- [ ] **不包含**商業目標或價值說明
-- [ ] 所有內容都是從**技術視角**描述
+**Responsibility boundary check** (ensure it does not cross into requirements.md):
+- [ ] **Does not repeat** the User Story description (only references the requirement number)
+- [ ] **Does not redefine** business rules (only references requirements.md)
+- [ ] **Does not include** business objectives or value statements
+- [ ] All content is described **from the technical perspective**
 
 ### tasks.md
 
-**編號格式**：
-- [ ] 任務以 **Phase 章節**分組（如 `## Phase 1: Data Layer`）
-- [ ] 每個 Phase 內任務從 **1 開始**簡單遞增編號(1 2 3 4 5)，而且**不能**有任何的前綴，例如: T1, P.1
-- [ ] Phase 之間用 `---` 分隔
+**Numbering format**:
+- [ ] Tasks are grouped into **Phase sections** (e.g. `## Phase 1: Data Layer`)
+- [ ] Within each Phase, tasks are numbered with a simple increment **starting from 1** (1 2 3 4 5), and **must not** carry any prefix, e.g. T1, P.1
+- [ ] Phases are separated by `---`
 
-**內容完整性**：
+**Content completeness**:
 
-- [ ] design.md 中的**所有元件**都有對應任務
-- [ ] 任務順序考慮**依賴關係**（被依賴的排前面）
-- [ ] 每個任務都有 **Design ref** 欄位（指向 design.md 對應章節）
-- [ ] 包含**測試任務**
-- [ ] 每個任務只做一件事（Single Responsibility）
+- [ ] **Every component** in design.md has a corresponding task
+- [ ] Task order accounts for **dependency relationships** (depended-upon items come first)
+- [ ] Every task has a **Design ref** field (pointing to the corresponding section in design.md)
+- [ ] Includes **test tasks**
+- [ ] Each task does only one thing (Single Responsibility)
 
-### Design vs Requirements 對齊檢查
+### Design vs Requirements alignment check
 
-**需求覆蓋**：
-- [ ] requirements.md 中的**每個 User Story** 都有對應的 design 元件
-- [ ] requirements.md 中的**每個 Acceptance Criteria** 都能在 design 中找到實現方式
-- [ ] 沒有 design 元件是 requirements.md **未提及**的功能
+**Requirement coverage**:
+- [ ] **Every User Story** in requirements.md has a corresponding design component
+- [ ] **Every Acceptance Criteria** in requirements.md can find a way to be realized in the design
+- [ ] No design component is a feature **not mentioned** in requirements.md
 
-**非功能需求對應**：
-- [ ] requirements.md 中的**效能需求**在 design.md 中有考慮
-- [ ] requirements.md 中的**安全需求**在 design.md 中有對應措施
-- [ ] requirements.md 中的**可靠性需求**在 design.md 中有對應設計
-
----
-
-## Tasks vs Design 對齊檢查
-
-在 `/create-spec` / `/update-spec` 完成時、或 `/verify-spec` Stage 2（Stage 1 通過後）執行，驗證 tasks.md 與 design.md 的對齊性。
-
-### 1. 元件覆蓋檢查
-
-- [ ] design.md 中**每個 Component** 都有對應的 tasks
-- [ ] 沒有 tasks 提到 design.md **未定義**的元件
-- [ ] 所有 Data Models 都有對應的實作任務
-
-### 2. 介面一致性檢查
-
-- [ ] tasks 中的**檔案路徑**符合 design.md 的 Components 定義
-- [ ] tasks 中的 **Purpose** 與 design.md 的 Component Purpose 一致
-- [ ] tasks 中的 **Design ref** 正確指向 design.md 的對應章節
-- [ ] 沒有 tasks 修改 design.md 未提及的檔案
-
-### 3. 依賴順序檢查
-
-- [ ] tasks 的順序符合 design.md 中描述的**依賴關係**
-- [ ] 被依賴的元件任務**排在前面**
-- [ ] 沒有循環依賴
-
-### 4. 資料模型檢查
-
-- [ ] tasks 中涉及的資料結構與 design.md **Data Models** 一致
-- [ ] 欄位名稱、類型都符合設計
-- [ ] 沒有遺漏重要的資料模型實作
-
-### 5. 錯誤處理檢查
-
-- [ ] design.md 中的 **Error Scenarios** 都有對應的實作任務
-- [ ] 錯誤處理策略在相關任務中被提及
-
-### 6. 測試覆蓋檢查
-
-- [ ] 每個主要元件都有對應的**測試任務**
-- [ ] design.md 的 **Testing Strategy** 有被任務覆蓋
-- [ ] 包含單元測試、整合測試的任務
+**Non-functional requirement mapping**:
+- [ ] The **performance requirements** in requirements.md are considered in design.md
+- [ ] The **security requirements** in requirements.md have corresponding measures in design.md
+- [ ] The **reliability requirements** in requirements.md have corresponding design in design.md
 
 ---
 
-## Steering 同步檢查
+## Tasks vs Design alignment check
 
-在 /create-spec 和 /update-spec 時，檢查功能是否與 steering 一致。
+Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec` Stage 2 (after Stage 1 passes), to verify the alignment between tasks.md and design.md.
 
-### /create-spec 時
+### 1. Component coverage check
 
-- [ ] 新功能的技術選型是否符合 tech.md 的技術堆疊
-- [ ] 新功能是否引入 tech.md 未記錄的新技術/框架
-- [ ] 新功能的程式碼組織是否符合 structure.md 的模組邊界
-- [ ] 新功能是否支持 product.md 的產品願景和目標
-- [ ] 若有不一致，是否需要先更新 steering 文件
+- [ ] **Every Component** in design.md has corresponding tasks
+- [ ] No task references a component **not defined** in design.md
+- [ ] All Data Models have corresponding implementation tasks
 
-### /update-spec 時
+### 2. Interface consistency check
 
-- [ ] 設計變更是否影響 tech.md 的技術決策
-- [ ] 設計變更是否改變 structure.md 的模組邊界或命名規範
-- [ ] 若有影響，steering 文件是否已同步更新
+- [ ] The **file paths** in the tasks match the Components defined in design.md
+- [ ] The **Purpose** in the tasks is consistent with the Component Purpose in design.md
+- [ ] The **Design ref** in the tasks correctly points to the corresponding section in design.md
+- [ ] No task modifies a file not mentioned in design.md
 
----
+### 3. Dependency order check
 
-## 設計變更影響評估
+- [ ] The order of the tasks matches the **dependency relationships** described in design.md
+- [ ] Tasks for depended-upon components **come first**
+- [ ] No circular dependencies
 
-當 design.md 修改且已有實作程式碼時，分兩階段處理。
+### 4. Data model check
 
-### 階段一：/update-spec 時執行
+- [ ] The data structures involved in the tasks are consistent with the **Data Models** in design.md
+- [ ] Field names and types all match the design
+- [ ] No important data model implementation is missing
 
-#### 1. 變更範圍識別
+### 5. Error handling check
 
-- [ ] 列出 design.md 中**新增**的元件/介面/資料模型
-- [ ] 列出 design.md 中**修改**的元件/介面/資料模型
-- [ ] 列出 design.md 中**刪除**的元件/介面/資料模型
-- [ ] 識別變更的**依賴影響**（哪些其他元件會受影響）
+- [ ] The **Error Scenarios** in design.md all have corresponding implementation tasks
+- [ ] The error handling strategy is mentioned in the relevant tasks
 
-#### 2. 任務狀態更新
+### 6. Test coverage check
 
-- [ ] 將受「修改」影響的已完成任務標記為 `[~]`
-- [ ] 將「刪除」相關的任務標記為 `[-]`
-- [ ] 為「新增」的元件建立新任務
-- [ ] 為「修改」需重做的部分建立或更新任務
-- [ ] 確認任務順序仍符合依賴關係
-
-#### 3. 顯示變更摘要
-
-- [ ] 輸出受影響任務數量（`[~]` 和 `[-]` 數量）
-- [ ] 列出需修改/刪除的檔案清單（預覽）
-- [ ] 建議下一步：執行 `/implement` 進行實作同步
+- [ ] Every major component has a corresponding **test task**
+- [ ] The **Testing Strategy** in design.md is covered by tasks
+- [ ] Includes tasks for unit tests and integration tests
 
 ---
 
-### 階段二：/implement 時執行
+## Steering sync check
 
-> 當 tasks.md 中有 `[~]` 或 `[-]` 狀態的任務時，`/implement` 會處理這些任務。
+During /create-spec and /update-spec, check whether the feature is consistent with steering.
 
-#### 4. 實作同步執行
+### During /create-spec
 
-- [ ] 執行 `[-]` 任務：刪除不再需要的程式碼
-- [ ] 執行 `[~]` 任務：按新設計重新實作
-- [ ] 執行 `[ ]` 任務：實作新增的功能
+- [ ] Whether the new feature's technology choices match the tech stack in tech.md
+- [ ] Whether the new feature introduces new technology/frameworks not recorded in tech.md
+- [ ] Whether the new feature's code organization matches the module boundaries in structure.md
+- [ ] Whether the new feature supports the product vision and goals in product.md
+- [ ] If there is any inconsistency, whether the steering documents need to be updated first
 
-#### 5. 驗證與完成
+### During /update-spec
 
-- [ ] 由 `implementation-reviewer` agent 審查實作並直接修正不符合項目
-- [ ] 確認建置通過
-- [ ] 所有 `[~]` 任務完成後改為 `[x]`
-- [ ] 所有 `[-]` 任務的程式碼已清理，任務保留作為記錄
-- [ ] tasks.md 進度正確反映當前狀態
-
----
-
-## 使用方式
-
-### 執行 Steering 完整性檢查
-
-```
-觸發條件：/create-spec 執行前
-執行者：主 Agent
-結果：全部通過才能繼續建立 spec
-```
-
-### 執行 Spec 完整性檢查
-
-```
-觸發條件：/create-spec 完成時、/update-spec 修改 requirements.md 後、/verify-spec Stage 1
-執行者：spec-verifier agent
-結果：未通過項目需補完
-```
-
-### 執行 Tasks vs Design 對齊檢查
-
-```
-觸發條件：/create-spec、/update-spec 完成時，或 /verify-spec Stage 2（Stage 1 通過後）
-執行者：tasks-design-verifier agent
-結果：通過才可執行 /implement，否則顯示不一致項目
-```
-
-### 執行設計變更影響評估
-
-```
-階段一觸發條件：/update-spec 修改 design.md 且已有實作程式碼
-執行者：主 Agent
-結果：tasks.md 狀態已更新（[~] / [-] / 新任務）
-
-階段二觸發條件：/implement 且 tasks.md 中有 [~] 或 [-] 任務
-執行者：主 Agent + Subagents
-結果：程式碼已同步，所有任務狀態正確
-```
+- [ ] Whether the design change affects the technical decisions in tech.md
+- [ ] Whether the design change alters the module boundaries or naming conventions in structure.md
+- [ ] If there is an impact, whether the steering documents have been synced accordingly
 
 ---
 
-## Design Review 審查清單
+## Design-change impact assessment
 
-`design-reviewer` agent 審 design.md（Spec Mode）或 plan file（Quick Fix Mode）時使用。每輪 review 對應的 issue 須按下列分類覆蓋。**這個 checklist 不是格式檢查（那是 spec-verifier 的工作），是設計品質檢查**。
+When design.md is modified and implementation code already exists, handle it in two stages.
 
-> **套用前先建使用情境模型**（見 `review-protocol.md`「Review 方法」）：先盤點真實 use cases + 相關資料結構 + 執行流程，再用下列面向交叉比對。對每個想開的 issue 先問「**哪個真實 use case 會踩到？**」— 答不出來、純理論可達而無情境驅動的路徑，**不要求防禦處理，改採 fail-fast + error log**（這是「不過度設計」，非忽略 robustness；有真實情境的失敗路徑照常要 robust 處理）。
+### Stage one: run during /update-spec
 
-### 1. Hidden Assumptions（隱性假設）
+#### 1. Change-scope identification
 
-- [ ] 是否假設「使用者一定登入 / 網路一定通 / DB 一定可寫」？
-- [ ] 是否假設「event 一定按順序到達 / 一定只發一次」？
-- [ ] 是否假設「某欄位永遠 unique / 某 ID 永遠不變」？
-- [ ] 是否假設「parent 一定先存在 / 上下游 SLA 達標」？
-- [ ] 是否假設「retry 一定會成功」？
+- [ ] List the **added** components/interfaces/data models in design.md
+- [ ] List the **modified** components/interfaces/data models in design.md
+- [ ] List the **deleted** components/interfaces/data models in design.md
+- [ ] Identify the **dependency impact** of the changes (which other components will be affected)
 
-### 2. Failure Modes（失敗情境）
+#### 2. Task status update
 
-- [ ] Partial failure（一半寫入成功）有定義處理嗎？
-- [ ] Concurrent modification（兩個 actor 同時改）有處理嗎？
-- [ ] Idempotency 有保證嗎？retry 不會造成重複嗎？
-- [ ] Cascading failure 路徑有限縮嗎？
-- [ ] Resource exhaustion（連線池 / FD / memory）有上限嗎？
-- [ ] Timeout 有定義嗎？
-- [ ] Backpressure 有定義嗎？
+- [ ] Mark completed tasks affected by "modified" as `[~]`
+- [ ] Mark tasks related to "deleted" as `[-]`
+- [ ] Create new tasks for "added" components
+- [ ] Create or update tasks for the "modified" parts that need redoing
+- [ ] Confirm the task order still matches the dependency relationships
 
-### 3. Scalability & Observability（規模與可觀測性）
+#### 3. Display change summary
 
-- [ ] 設計在 10x / 100x 流量下還能 work 嗎？
-- [ ] 有 N+1 query / unbounded list / 全表掃描嗎？
-- [ ] Bottleneck 是否會變單點故障？
-- [ ] 出事時怎麼除錯？預留 log / metric / trace 了嗎？
+- [ ] Output the number of affected tasks (count of `[~]` and `[-]`)
+- [ ] List the files to be modified/deleted (preview)
+- [ ] Suggest the next step: run `/implement` to sync the implementation
 
-### 4. Component Boundaries & Data Models（元件邊界與資料模型）
+---
 
-- [ ] 元件職責清晰，沒有「半個邏輯放這、半個放那」嗎？
-- [ ] 資料模型表達 invariant（NOT NULL / FK / unique constraint）了嗎？
-- [ ] 是否有「該分開的欄位被合在一起」或「該合的被拆開」？
-- [ ] Interface contract 完整嗎？回傳 None vs empty list 定義清楚嗎？
+### Stage two: run during /implement
+
+> When tasks.md contains tasks in `[~]` or `[-]` status, `/implement` will handle these tasks.
+
+#### 4. Implementation sync execution
+
+- [ ] Execute `[-]` tasks: delete code that is no longer needed
+- [ ] Execute `[~]` tasks: reimplement per the new design
+- [ ] Execute `[ ]` tasks: implement the added features
+
+#### 5. Verification and completion
+
+- [ ] The `implementation-reviewer` agent reviews the implementation and directly fixes non-conforming items
+- [ ] Confirm the build passes
+- [ ] After all `[~]` tasks are complete, change them to `[x]`
+- [ ] All `[-]` task code has been cleaned up; the tasks are retained as a record
+- [ ] tasks.md progress correctly reflects the current state
+
+---
+
+## Usage
+
+### Running the Steering completeness check
+
+```
+Trigger: before /create-spec runs
+Executed by: main Agent
+Result: must pass entirely before continuing to create the spec
+```
+
+### Running the Spec completeness check
+
+```
+Trigger: when /create-spec completes, after /update-spec modifies requirements.md, /verify-spec Stage 1
+Executed by: spec-verifier agent
+Result: items that do not pass must be completed
+```
+
+### Running the Tasks vs Design alignment check
+
+```
+Trigger: when /create-spec or /update-spec completes, or /verify-spec Stage 2 (after Stage 1 passes)
+Executed by: tasks-design-verifier agent
+Result: must pass before /implement can run; otherwise it displays the inconsistent items
+```
+
+### Running the Design-change impact assessment
+
+```
+Stage one trigger: /update-spec modifies design.md and implementation code already exists
+Executed by: main Agent
+Result: tasks.md status updated ([~] / [-] / new tasks)
+
+Stage two trigger: /implement and tasks.md contains [~] or [-] tasks
+Executed by: main Agent + Subagents
+Result: code synced, all task statuses correct
+```
+
+---
+
+## Design Review checklist
+
+Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan file (Quick Fix Mode). Each round's review must cover issues per the categories below. **This checklist is not a format check (that is spec-verifier's job); it is a design-quality check.**
+
+> **Build a use-case model before applying it** (see `review-protocol.md`, "Review method"): first inventory the real use cases + the relevant data structures + the execution flows, then cross-check against the facets below. For every issue you want to open, first ask "**which real use case would hit this?**" — for a path that is theoretically reachable but has no scenario driving it and you cannot answer that, **do not require defensive handling; use fail-fast + error log instead** (this is "don't over-engineer", not ignoring robustness; failure paths with a real scenario still get robust handling as usual).
+
+### 1. Hidden Assumptions
+
+- [ ] Does it assume "the user is always logged in / the network is always up / the DB is always writable"?
+- [ ] Does it assume "events always arrive in order / are always delivered exactly once"?
+- [ ] Does it assume "some field is always unique / some ID never changes"?
+- [ ] Does it assume "the parent always exists first / upstream and downstream meet their SLA"?
+- [ ] Does it assume "a retry always succeeds"?
+
+### 2. Failure Modes
+
+- [ ] Is handling defined for partial failure (half the writes succeed)?
+- [ ] Is concurrent modification (two actors changing it at once) handled?
+- [ ] Is idempotency guaranteed? Will a retry not cause duplication?
+- [ ] Are cascading-failure paths contained?
+- [ ] Is there an upper bound on resource exhaustion (connection pool / FD / memory)?
+- [ ] Are timeouts defined?
+- [ ] Is backpressure defined?
+
+### 3. Scalability & Observability
+
+- [ ] Does the design still work under 10x / 100x traffic?
+- [ ] Is there an N+1 query / unbounded list / full-table scan?
+- [ ] Could a bottleneck become a single point of failure?
+- [ ] How do you debug when something goes wrong? Are log / metric / trace provisioned for?
+
+### 4. Component Boundaries & Data Models
+
+- [ ] Are component responsibilities clear, with no "half the logic here, half there"?
+- [ ] Do the data models express invariants (NOT NULL / FK / unique constraint)?
+- [ ] Are there "fields that should be separate merged together" or "fields that should be merged split apart"?
+- [ ] Is the interface contract complete? Is returning None vs an empty list clearly defined?
 
 ### 5. Over / Under-Engineering
 
-- [ ] **Over**：是否引入了想像中的未來需求對應的抽象層（factory / strategy / plugin system）？
-- [ ] **Over**：是否用了 framework / pattern 但團隊根本不需要？
-- [ ] **Under**：明顯會發生的擴展（多租戶 / 多語言）有考慮嗎？
-- [ ] **Under**：MVP 階段必要的 monitoring / auth / audit 有規劃嗎？
+- [ ] **Over**: did it introduce an abstraction layer (factory / strategy / plugin system) for an imagined future requirement?
+- [ ] **Over**: did it use a framework / pattern the team simply doesn't need?
+- [ ] **Under**: is an extension that will obviously happen (multi-tenant / multilingual) considered?
+- [ ] **Under**: is the monitoring / auth / audit necessary at the MVP stage planned?
 
-### 6. Steering Alignment（與 steering 文件對齊，若 steering 存在）
+### 6. Steering Alignment (alignment with the steering documents, if steering exists)
 
-- [ ] 設計是否違反 tech.md 記錄的技術選型、架構模式、設計哲學？
-- [ ] 是否違反 tech.md 記錄的慣例（錯誤處理風格 / 依賴注入 / logging 等）？
-- [ ] 是否違反 structure.md 的模組邊界、依賴方向、命名規範？
-- [ ] 是否引入 steering 未記錄的新技術 / 框架 / pattern？
-- [ ] 設計是否確立了一條**貫穿全專案、不記進 steering 幾乎肯定會造成未來不一致**的核心原則？（→ 列為 Steering Candidate，不是 issue；**預設不昇華**，spec-specific / 細節 / 一次性決定 / 專案記憶都不列，見 review-protocol.md「Steering Candidates」）
+- [ ] Does the design violate the technology choices, architectural patterns, or design philosophy recorded in tech.md?
+- [ ] Does it violate the conventions recorded in tech.md (error handling style / dependency injection / logging, etc.)?
+- [ ] Does it violate the module boundaries, dependency direction, or naming conventions in structure.md?
+- [ ] Does it introduce a new technology / framework / pattern not recorded in steering?
+- [ ] Does the design establish a core principle that **runs through the whole project and, if not recorded into steering, would almost certainly cause future inconsistency**? (→ list it as a Steering Candidate, not an issue; **default to not promoting** — spec-specific / detail / one-off decisions / project memory are all excluded; see review-protocol.md, "Steering Candidates")
 
-**判斷紀律**：違反 steering 既有條文 → issue（通常 High — 它是專案明文規範）；與 steering 衝突但可能是 steering 過時 → Architecture Decision（user 決定修設計還是更新 steering）；steering 沒寫而本設計確立了**通過高門檻**的核心原則 → Steering Candidate（預設不昇華，門檻與排除見 review-protocol.md）。
+**Judgment discipline**: violating an existing steering clause → issue (usually High — it is the project's explicit rule); conflicting with steering but the steering may be outdated → Architecture Decision (the user decides whether to change the design or update steering); not written in steering yet this design establishes a core principle that **clears the high bar** → Steering Candidate (default to not promoting; the bar and exclusions are in review-protocol.md).
 
-### 7. Architecture Decisions（必須 escalate 給使用者）
+### 7. Architecture Decisions (must escalate to the user)
 
-對每個「兩條路都對得各有 trade-off」的選擇：
+For every choice where "both paths are valid, each with its own trade-off":
 
-- [ ] 是否標記為 Architecture Decision，列出 Option 1 / Option 2 / ... + 各自 trade-off？
-- [ ] 是否說明「為什麼沒有業界共識」？
-- [ ] 主 agent 是否用 AskUserQuestion 把選擇遞給使用者拍板？
+- [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
+- [ ] Does it explain "why there is no industry consensus"?
+- [ ] Does the main agent use AskUserQuestion to hand the choice to the user to resolve?
 
 ---
 
-## Implementation Review 審查清單
+## Implementation Review checklist
 
-`implementation-reviewer` agent 在 `/implement` Stage 2（或 Quick Fix Mode 實作後）多輪 review loop 中使用。每輪 review 對應的 issue 須按下列分類覆蓋。
+Used by the `implementation-reviewer` agent during the multi-round review loop in `/implement` Stage 2 (or after implementation in Quick Fix Mode). Each round's review must cover issues per the categories below.
 
-> **套用前先建使用情境模型**（見 `review-protocol.md`「Review 方法」）：先盤點程式碼服務的真實 use cases + 資料結構 + 執行流程，再交叉比對。對每個想開的 issue 先問「**哪個真實 use case 會踩到？**」— 純理論可達而無情境驅動的路徑不要求防禦處理，改採 fail-fast + error log（§3「過度防禦」的上位依據；非忽略 robustness）。
+> **Build a use-case model before applying it** (see `review-protocol.md`, "Review method"): first inventory the real use cases the code serves + the data structures + the execution flows, then cross-check. For every issue you want to open, first ask "**which real use case would hit this?**" — a path that is theoretically reachable but has no scenario driving it does not require defensive handling; use fail-fast + error log instead (this is the basis above §3 "over-defensiveness"; it is not ignoring robustness).
 
-### 1. 跨 Agent 整合（Stage 1 並行實作的整合衝突）
+### 1. Cross-agent integration (integration conflicts from Stage 1 parallel implementation)
 
-- [ ] 並行 agents 定義的介面與使用方一致嗎？
-- [ ] 跨元件的資料結構 / 命名一致嗎？
-- [ ] Import / 依賴路徑正確嗎？
-- [ ] 兩個 agent 是否各寫了同一邏輯（shared utility 未抽出）？
+- [ ] Are the interfaces defined by the parallel agents consistent with their callers?
+- [ ] Are cross-component data structures / naming consistent?
+- [ ] Are the import / dependency paths correct?
+- [ ] Did the two agents each write the same logic (a shared utility was not extracted)?
 
-### 2. Bugs（執行邏輯錯誤）
+### 2. Bugs (execution-logic errors)
 
-- [ ] **Async race**：兩個 coroutine 同時改 shared state 嗎？
-- [ ] **Weak-ref GC**：`asyncio.create_task()` 沒存強引用，task 會被 GC 嗎？
-- [ ] **Event loop**：是否用了 deprecated 的 `get_event_loop()`，或 cross-loop 操作？
-- [ ] **Idempotency**：retry 會造成重複寫入嗎？duplicate event 有 dedup 嗎？
-- [ ] **資源洩漏**：connection / FD / subscription / listener 有 cleanup 嗎？
-- [ ] **Boundary**：first-sync 沒 limit、邊界條件忘考慮？
-- [ ] **Silent failure**：try/except 吞錯誤、fallback 蓋掉真實問題？
-- [ ] **Concurrent modification**：dict / list 在迭代時被改？
+- [ ] **Async race**: do two coroutines modify shared state at the same time?
+- [ ] **Weak-ref GC**: `asyncio.create_task()` did not store a strong reference — will the task be GC'd?
+- [ ] **Event loop**: was the deprecated `get_event_loop()` used, or a cross-loop operation?
+- [ ] **Idempotency**: will a retry cause a duplicate write? Is a duplicate event deduped?
+- [ ] **Resource leak**: are connection / FD / subscription / listener cleaned up?
+- [ ] **Boundary**: first-sync has no limit, a boundary condition forgotten?
+- [ ] **Silent failure**: does try/except swallow the error, does a fallback mask the real problem?
+- [ ] **Concurrent modification**: is a dict / list modified while being iterated?
 
-### 3. Smells（設計品味與技術債）
+### 3. Smells (design taste and technical debt)
 
-- [ ] 兩個結構幾乎一樣的 class / dict 該合併嗎？
-- [ ] Stale docstrings（refactor 漏改）？
-- [ ] Callback 沒 unregister，listener 累積？
-- [ ] Magic number / string 該命名為 constant？
-- [ ] 過度防禦（對「不會發生」的情況加防禦邏輯）？
-- [ ] Defensive fallback string（`x or "unknown"`）會不會 silent drop？
+- [ ] Should two classes / dicts with nearly identical structure be merged?
+- [ ] Stale docstrings (missed during a refactor)?
+- [ ] Callback not unregistered, listeners accumulating?
+- [ ] Should a magic number / string be named as a constant?
+- [ ] Over-defensiveness (adding defensive logic for cases that "won't happen")?
+- [ ] A defensive fallback string (`x or "unknown"`) — could it silently drop something?
 
-### 4. Design Fidelity（與 design.md 一致性 — 行為深度版）
+### 4. Design Fidelity (consistency with design.md — the behavior-depth version)
 
-- [ ] Aggregate invariant（I1, I2, ...）所有寫入路徑都守住嗎？
-- [ ] Interface contract 行為符合 design.md 描述嗎（不只簽章對）？
-- [ ] 職責邊界沒被偷打破嗎（A 服務該做的事沒被 B 偷做）？
-- [ ] 架構與 design.md 架構圖一致嗎？
+- [ ] Are the aggregate invariants (I1, I2, ...) upheld on all write paths?
+- [ ] Does the interface contract behavior match the description in design.md (not just the signature)?
+- [ ] Are responsibility boundaries not quietly broken (something service A should do is not quietly done by B)?
+- [ ] Is the architecture consistent with the architecture diagram in design.md?
 
-### 5. Test Completeness（測試完整性）
+### 5. Test Completeness
 
-- [ ] 新增的 callback / event / 路徑有測試嗎？
-- [ ] Edge case 有測：empty / duplicate / out-of-order / concurrent 嗎？
-- [ ] 失敗路徑有測，不只 happy path？
-- [ ] Mock 是否合理？沒有 mock 太多形同虛設？
-- [ ] 測試是否 deterministic（沒有 race / sleep-based flaky）？
+- [ ] Do the added callbacks / events / paths have tests?
+- [ ] Are edge cases tested: empty / duplicate / out-of-order / concurrent?
+- [ ] Are failure paths tested, not just the happy path?
+- [ ] Are the mocks reasonable? Not so much mocking that it is effectively meaningless?
+- [ ] Are the tests deterministic (no race / sleep-based flakiness)?
 
-### 6. Steering Alignment（與 steering 文件對齊，若 steering 存在）
+### 6. Steering Alignment (alignment with the steering documents, if steering exists)
 
-- [ ] 程式碼組織 / 命名 / import 是否符合 structure.md？
-- [ ] 實作是否遵循 tech.md 記錄的慣例（錯誤處理風格 / 非同步模式 / logging / test 寫法）？
-- [ ] 是否引入 tech.md 未記錄的新依賴 / 技術？
-- [ ] 實作是否確立了一條**貫穿全專案、不記進 steering 幾乎肯定會造成未來不一致**的核心慣例？（→ 列為 Steering Candidate，不是 issue；**預設不昇華**，只跟本實作有關的選擇 / 細節 / 專案記憶都不列，見 review-protocol.md「Steering Candidates」）
+- [ ] Does the code organization / naming / import conform to structure.md?
+- [ ] Does the implementation follow the conventions recorded in tech.md (error handling style / async patterns / logging / how tests are written)?
+- [ ] Does it introduce a new dependency / technology not recorded in tech.md?
+- [ ] Does the implementation establish a core convention that **runs through the whole project and, if not recorded into steering, would almost certainly cause future inconsistency**? (→ list it as a Steering Candidate, not an issue; **default to not promoting** — choices that relate only to this implementation / details / project memory are all excluded; see review-protocol.md, "Steering Candidates")
 
-**判斷紀律**：同 Design Review §6 — 違反既有條文 → issue（通常 High）；衝突但可能 steering 過時 → Architecture Decision；未記錄、且通過高門檻的核心原則 → Steering Candidate（預設不昇華）。
+**Judgment discipline**: same as Design Review §6 — violating an existing clause → issue (usually High); conflicting but steering may be outdated → Architecture Decision; not recorded, and a core principle that clears the high bar → Steering Candidate (default to not promoting).
 
-### 7. Architecture Decisions（必須 escalate 給使用者）
+### 7. Architecture Decisions (must escalate to the user)
 
-對每個「兩條路都對得各有 trade-off」的實作選擇：
+For every implementation choice where "both paths are valid, each with its own trade-off":
 
-- [ ] 是否標記為 Architecture Decision，列出 Option 1 / Option 2 / ... + 各自 trade-off？
-- [ ] 是否說明「為什麼沒有業界共識」？
-- [ ] 主 agent 是否用 AskUserQuestion 把選擇遞給使用者拍板？
+- [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
+- [ ] Does it explain "why there is no industry consensus"?
+- [ ] Does the main agent use AskUserQuestion to hand the choice to the user to resolve?
 
-### 嚴重度分級與收斂規則
+### Severity grading and convergence rules
 
-以 `review-protocol.md` 為**唯一來源**（嚴重度四級定義、Medium/Low defer-and-batch、收斂保險絲），此處不重複列表 — 兩份清單必然漂移。
+Treat `review-protocol.md` as the **single source** (the four-level severity definitions, Medium/Low defer-and-batch, the convergence fuse); this is not relisted here — two lists would inevitably drift.

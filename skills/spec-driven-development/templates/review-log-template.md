@@ -1,57 +1,57 @@
 # Review Log — {feature}
 
-> 本文件記錄此 feature 的 review/resolve 過程。
+> This document records the review/resolve process for this feature.
 >
-> **正式文件**（requirements.md / design.md / tasks.md / production code）描述「決定後的世界長什麼樣」。
-> **本 log** 描述「為什麼是這個世界、過程中拒絕了什麼、哪些原則被刻意豁免」。
+> **Formal docs** (requirements.md / design.md / tasks.md / production code) describe "what the world looks like after the decisions are made".
+> **This log** describes "why this world, what was rejected along the way, and which principles were deliberately waived".
 >
-> **隔離紀律**：本 log 與正式文件**物理隔離** — 正式文件完全不出現 review-log reference / pointer / letter tag。Decision 結果若需反映到 design.md，把 chosen option 的**內容**用**中性 design rationale**（技術 / codebase 慣例 / 反面後果）整合進 Component 描述，不揭露 reviewer / Decision 編號 / Round 來源。
+> **Isolation discipline**: this log is **physically isolated** from the formal docs — the formal docs contain no review-log reference / pointer / letter tag at all. If a Decision outcome needs to be reflected into design.md, take the **content** of the chosen option and integrate it into the Component description as **neutral design rationale** (technical / codebase conventions / adverse consequences), without revealing the reviewer / Decision number / Round source.
 >
-> 寫入規範見 spec-driven-development plugin 的 `references/review-log-guide.md`（bad/good 對照：`references/review-log-bad-examples.md`）。
+> For writing conventions see the spec-driven-development plugin's `references/review-log-guide.md` (bad/good comparison: `references/review-log-bad-examples.md`).
 
 ---
 
-## 1. Audit Trail（跨輪 issue 一覽）
+## 1. Audit Trail (cross-round issue overview)
 
-每輪 reviewer 找到的 issue + final status + resolution 一行描述。
+The issues each reviewer round found + final status + a one-line resolution.
 
 | Round | ID  | Severity | Status | Resolution |
 |-------|-----|----------|--------|------------|
-| _(無)_ |     |          |        |            |
+| _(none)_ |     |          |        |            |
 
-**Round 命名**：`D{N}` = design review round N；`I{N}` = implementation review round N
-**Status 值**：`pending` / `fixed` / `waived` / `decision-resolved` / `false-positive`
+**Round naming**: `D{N}` = design review round N; `I{N}` = implementation review round N
+**Status values**: `pending` / `fixed` / `waived` / `decision-resolved` / `false-positive`
 
 ---
 
 ## 2. Architecture Decisions
 
-每個被升級給 user 拍板的選擇。Reviewer 不替 user 拍板，user 透過 `AskUserQuestion` 回答後由主 agent 寫入此節。
+Each choice escalated to the user to resolve. The reviewer does not resolve on the user's behalf; after the user answers via `AskUserQuestion`, the main agent writes the outcome into this section.
 
-_(無)_
+_(none)_
 
 ---
 
-## 3. Waivers（刻意豁免）
+## 3. Waivers (deliberate waivers)
 
-結構化記錄「違反什麼原則、為什麼接受、trade-off」。當 issue 處理結果是「保留不修」時寫入此節。
+A structured record of "which principle is violated, why it is accepted, the trade-off". Written here when an issue's resolution is "keep it, do not fix".
 
-_(無)_
+_(none)_
 
 ---
 
 ## 4. False Positives
 
-Reviewer 提出但討論後判定誤判 — 紀錄於此避免未來 reviewer 重複提出。
+Issues raised by a reviewer but judged false positives after discussion — recorded here to keep future reviewers from raising them again.
 
-_(無)_
+_(none)_
 
 ---
 
-## 5. Steering Updates（昇華紀錄）
+## 5. Steering Updates (promotion record)
 
-開發過程發現、經 user 確認寫入 steering 的專案級原則。來源寫 SC 編號（`D2 SC-1`）、Decision 編號（`Decision D`）、或 `implementer report`。
+Project-level principles discovered during development and, after user confirmation, written into steering. The source is given as an SC number (`D2 SC-1`), a Decision number (`Decision D`), or `implementer report`.
 
-| #      | 日期 | 原則 | 寫入位置 | 來源 |
+| #      | Date | Principle | Written to | Source |
 |--------|------|------|----------|------|
-| _(無)_ |      |      |          |      |
+| _(none)_ |      |      |          |      |

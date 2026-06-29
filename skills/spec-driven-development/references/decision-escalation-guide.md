@@ -1,213 +1,213 @@
-# Architecture Decision 呈現紀律
+# Architecture Decision Presentation Discipline
 
-主 agent 收到 reviewer 升級的 Architecture Decision 後，用 `AskUserQuestion` 把選擇遞給 user 時必須做的「翻譯工作」。
+The "translation work" the main agent must do when, having received an Architecture Decision escalated by a reviewer, it hands the choice to the user via `AskUserQuestion`.
 
-> 本文件只在主 agent 需要遞 Decision 給 user 時才需要讀。reviewer agent **不必**讀本文件 — 它們仍按 `review-protocol.md` 輸出機械可解析的 issue list；本文件規範的是主 agent 如何把那份 list **翻譯**成人類能消化的對話。
-
----
-
-## 核心原則：為人類的認知極限校準
-
-> 本指引是 SKILL.md「為人類認知負擔校準」全域準則在 **Architecture Decision 升級**場景的具體化 — 同一個「先消化抽象、以實際 use case 敘事、不假設 user 記得前文」的透鏡，這裡用在把 reviewer 的 issue list 翻譯成 user 能拍板的對話。
-
-Reviewer 產的 issue list 是 raw material，**主 agent 不能直接照搬**。原因：
-
-- 人類無法像 LLM 即時撐起一個龐大的心智圖。Round 9 的 review 對 reviewer 是 cheap context；對 user 是新鮮 cold start
-- 每次互動的 context 量要**剛剛好** — 不夠則 user 無法判斷，過量則無法消化
-- 多個 Decision 一起問 = 每個都被壓縮成兩行 label = user 都看不懂
-
-**目標**：user 在「不翻外部文件、不問你回頭問」的情況下能直接做選擇。
+> This file only needs to be read when the main agent needs to hand a Decision to the user. Reviewer agents **need not** read this file — they still output a mechanically parseable issue list per `review-protocol.md`; what this file governs is how the main agent **translates** that list into a conversation a human can digest.
 
 ---
 
-## 兩拍制交付：briefing 回合 → 提問回合（兩個獨立回合）
+## Core principle: calibrate for the human cognitive limit
 
-Decision 的 context **不放進** AskUserQuestion 的 question stem，**也不能跟 AskUserQuestion 擠在同一回合**。兩個理由：
+> This guide is the concretization of SKILL.md's "Calibrate for Cognitive Load" global principle in the **Architecture Decision escalation** scenario — the same lens of "digest the abstraction first, narrate via real use cases, don't assume the user remembers prior context", applied here to translating the reviewer's issue list into a conversation the user can resolve.
 
-- stem 在 UI 是窄小的對話框，長 context 擠在裡面難讀，code preview 還會被折疊（「N lines hidden」）
-- 夾在 tool call 前的「回合中段文字」**顯示不可靠** — 實測 briefing + 同回合 AskUserQuestion 的結果是 user 只看到選項卡，briefing 整段隱形；CLI 與 remote-control 都會發生。回合**最終訊息**才在所有 client 保證顯示
+The issue list the reviewer produces is raw material; **the main agent can't copy it over verbatim**. Reasons:
 
-交付固定兩拍（= 兩個回合）：
+- A human can't instantly hold up a vast mental map the way an LLM can. A Round 9 review is cheap context for the reviewer; for the user it's a fresh cold start
+- The amount of context per interaction has to be **just right** — too little and the user can't judge, too much and they can't digest
+- Asking multiple Decisions together = each compressed into a two-line label = the user understands none of them
 
-1. **第一拍（briefing 回合）**：對話輸出 Decision briefing，**作為回合最終訊息交付後直接結束回合** — 後面不接任何 tool call。內容：
-   - 這個 Decision 從哪來（review 過程脈絡：前幾輪處理什麼、為什麼此刻浮現）
-   - **用實際 use case 講問題**（依 briefing-guide.md 原則）：什麼場景下這個選擇會產生差異、每條路在該場景的後果 — 不是純概念命題
-   - 專案特有術語第一次出現就解釋 — user 沒讀過 reviewer 的 issue list，「series / occurrence / re-arm」這類詞對 user 是空白
-   - Code 片段與同 codebase 對照組放這一拍（chat markdown 渲染完整、有 syntax highlight）
-   - 結尾固定：「看完回我一聲，我再送出選項；你也可以直接在回覆中表態」
-2. **第二拍（提問回合）**：user 回覆後，發 AskUserQuestion — question stem 短（1-3 行命題，可寫「背景見上一則說明」），options 維持 label + 多維度 description + `preview`。**若 user 已在回覆中直接表態，跳過提問**，按「Decision 拍板後寫入 Review Log」流程處理
-
-**這個規則適用本 skill 所有 AskUserQuestion 互動** — Architecture Decision 拍板、Medium/Low waiver 批次詢問、Steering Candidates 批次確認：**user 永遠先在對話裡看懂問題（briefing 回合），才在對話框裡做選擇（提問回合）**。
+**Goal**: the user can make the choice directly, "without flipping to an external doc, without asking you back".
 
 ---
 
-## ✅/❌ 對照表
+## Two-beat delivery: briefing turn → asking turn (two separate turns)
 
-| ✅ 做 | ❌ 不做 |
+A Decision's context is **not put into** the AskUserQuestion question stem, **nor can it be crammed into the same turn as the AskUserQuestion**. Two reasons:
+
+- the stem is a narrow dialog box in the UI; long context crammed in there is hard to read, and a code preview gets collapsed ("N lines hidden")
+- the "mid-turn text" placed before a tool call **displays unreliably** — in practice, the result of briefing + a same-turn AskUserQuestion is that the user only sees the option cards and the whole briefing is invisible; this happens on both CLI and remote-control. Only the turn's **final message** is guaranteed to display on all clients
+
+Delivery is a fixed two beats (= two turns):
+
+1. **First beat (briefing turn)**: output the Decision briefing in the conversation, **delivered as the turn-final message and then end the turn right there** — no tool call follows it. Content:
+   - where this Decision came from (review-process context: what the prior rounds handled, why it surfaces now)
+   - **state the problem via a real use case** (per briefing-guide.md principles): in what scenario this choice would make a difference, and the consequence of each path in that scenario — not a pure conceptual proposition
+   - explain project-specific terminology the first time it appears — the user hasn't read the reviewer's issue list, so words like "series / occurrence / re-arm" are blanks to the user
+   - put code snippets and a same-codebase comparison group in this beat (chat markdown renders fully, with syntax highlight)
+   - fixed ending: "Reply when you've read it and I'll send the options; you can also state your position directly in your reply"
+2. **Second beat (asking turn)**: after the user replies, send the AskUserQuestion — the question stem is short (a 1-3 line proposition, can say "background see the explanation above"), options keep label + multi-dimensional description + `preview`. **If the user already stated a position directly in their reply, skip the asking** and handle it via the "write into Review Log after resolving a Decision" flow.
+
+**This rule applies to all AskUserQuestion interactions in this skill** — Architecture Decision resolution, Medium/Low waiver batch asking, Steering Candidates batch confirmation: **the user always understands the problem in the conversation first (briefing turn), then makes the choice in the dialog box (asking turn)**.
+
+---
+
+## ✅/❌ comparison table
+
+| ✅ Do | ❌ Don't |
 |---|---|
-| Briefing 以回合最終訊息交付並結束回合；user 回覆後下一回合才發短 stem 的 AskUserQuestion | Briefing + 同回合接 AskUserQuestion（中段文字不顯示，briefing 隱形）；context 塞 question stem（對話框難讀）；不交代由來直接丟選項 |
-| Briefing 用實際 use case 講問題（什麼場景下兩條路結果不同）| 純概念命題 +未解釋的專案術語（「series 的 re-arm 時點」對 user 是空白）|
-| Function / SQL / config 直接貼 code 片段（放第一拍文字內）| Prose 描述 code（「在 line 142 回傳 bool」）|
-| 放對照組 — 同 codebase 類似 API 的 code | 只說「跟其他 API 不一致」但不示範哪些 API、怎麼一致 |
-| Option `description` 至少覆蓋通用核心 3 維度（架構 / 一致性 / 功能風險），其他維度視 Decision 性質加 | 只寫「會 break X」這種單維度後果；或硬湊 N/A 填空 |
-| 用 `preview` 欄位放 before/after diff 或完整 function | Code 細節用文字描述但不顯示 |
-| 完全獨立 Decision 拆多次 `AskUserQuestion` call | 多個無關 Decision 塞同一個 question |
-| 平行相關 Decision（共享脈絡、答案獨立）用同 call 多 questions 欄位 | 條件耦合（B 依賴 A）也硬塞多 questions — 工具不支援這種依賴 |
-| 條件耦合 Decision 用複合選項或序列發問 | 假設多 questions 能表達 "if A then B" 結構 |
-| 標 reviewer 的 issue 編號（例「Decision BT」）讓 user 對得到 raw issue list | 重新編號 / 不引用原 issue ID |
+| Deliver the briefing as the turn-final message and end the turn; only the next turn, after the user replies, send the short-stem AskUserQuestion | Briefing + a same-turn AskUserQuestion (mid-turn text doesn't show, briefing invisible); stuffing context into the question stem (hard to read in the dialog box); dumping options with no account of where they came from |
+| Briefing states the problem via a real use case (in what scenario the two paths differ) | Pure conceptual proposition + unexplained project terminology ("the re-arm timing of a series" is a blank to the user) |
+| Paste the code snippet directly for a function / SQL / config (in the first-beat text) | Prose describing the code ("returns bool at line 142") |
+| Include a comparison group — code of a similar API in the same codebase | Only saying "inconsistent with other APIs" without showing which APIs, or how to be consistent |
+| Option `description` covers at least the universal core 3 dimensions (architecture / consistency / functional risk), adding others depending on the Decision's nature | Writing only a single-dimension consequence like "will break X"; or padding with N/A to fill blanks |
+| Use the `preview` field for a before/after diff or the full function | Code details described in prose but not shown |
+| Split fully independent Decisions into multiple `AskUserQuestion` calls | Stuffing multiple unrelated Decisions into one question |
+| Parallel related Decisions (shared context, independent answers) use one call with multiple questions fields | Conditionally coupled (B depends on A) forced into multi-questions too — the tool doesn't support this dependency |
+| Conditionally coupled Decisions use a composite option or sequential asking | Assuming multi-questions can express an "if A then B" structure |
+| Mark the reviewer's issue number (e.g. "Decision BT") so the user can map back to the raw issue list | Renumber / not citing the original issue ID |
 
 ---
 
-## 三條判斷規則
+## Three judgment rules
 
 ### 1. Context-First
 
-第一拍的 Decision briefing 必須先建立背景，至少涵蓋三件事：
+The first beat's Decision briefing must establish background first, covering at least three things:
 
-**(a) Review 過程脈絡** — 這個 Decision 是怎麼浮現的？
-- 前面幾輪 review 處理了什麼相關問題（例如「Round 1-8 已對齊整個 read path，這是唯一漏網之魚」）
-- 為什麼到這輪才被列為 Decision（之前是否被認為是 bug，後來判斷成設計選擇）
-- design.md / requirements.md 對這個點有沒有明確規範 — 沒有的話為什麼這次必須拍板
+**(a) Review-process context** — how did this Decision surface?
+- what related problems the prior review rounds handled (e.g. "Rounds 1-8 already aligned the whole read path; this is the lone straggler")
+- why it was only listed as a Decision this round (was it earlier thought to be a bug, then judged to be a design choice)
+- whether design.md / requirements.md has an explicit rule on this point — if not, why a resolution is required this time
 
-**沒這層脈絡，user 看到的是孤立的選項；有了，user 看得到「為什麼此刻問這個」**。
+**Without this layer of context, the user sees an isolated set of options; with it, the user sees "why we're asking this now"**.
 
-**(b) Code 直接放，不用 prose 描述**
-
-```
-❌ 「has_related(conversation_id) 在 conversation_service.py:142 回傳 bool」
-✅ 直接貼 function body code block
-```
-
-Prose 描述 function 是退化的二手資訊。user 看 code 一眼就懂簽章、SQL、行為，看 prose 反而要在腦中重組。**function 簽章、SQL 片段、config schema 永遠用 code 顯示**；prose 只用來補 code 看不出的脈絡（為什麼這樣寫、與誰對照）。
-
-**(c) 對照組** — 同個 codebase 內類似 API 的 baseline
-
-放一段相關 function / 相鄰 module 的 code，讓 user 看得到「目前 codebase 的慣例是什麼」。這是 architectural / consistency 判斷的基礎。
-
-### 2. Decision 之間的關係模式
-
-`AskUserQuestion` 一次可包 1-4 個 questions — 但這個工具特性**不支援條件式依賴**（B 的選項取決於 A 的選擇）。所有 questions 是「同時呈現、同時作答」。所以三種模式各有對應呈現方式：
-
-**(a) 獨立 Decision**（兩個 Decision 之間無關，例如「GC 順序」+「另一支 API 命名」）
-→ **拆多次 `AskUserQuestion` call**，每次一個 Decision，每個都拿到滿格 context
-
-**(b) 平行相關 Decision**（共享 review 脈絡，但 user 可獨立作答；例如同一個 review round 浮出的「Logging format」+「Retry backoff」— 兩者都是這個 module 的 convention 選擇，但答案互不依賴）
-→ **同一個 `AskUserQuestion` 用多 questions 欄位**（1-4 questions），共用一個 review-context preamble，user 一次決完
-
-**(c) 條件耦合 Decision**（B 的選項取決於 A 的選擇；例如「要不要加 cache invalidation」+ (若 yes)「TTL vs invalidate-on-write」）
-→ 多 questions 欄位**不適用**。兩種替代：
-  - **複合選項**：合併成一個 question，options 直接列組合「不加 / 加+TTL / 加+invalidate-on-write」
-  - **序列**：先問 A，user 答完再發第二個 `AskUserQuestion` 問 B
-
-判斷流程：
+**(b) Put the code directly, no prose description**
 
 ```
-兩個 Decision 之間 user 的選擇互相影響嗎？
-├─ 完全無關 → (a) 拆多次 call
-├─ 共享脈絡、答案獨立 → (b) 同 call 多 questions
-└─ B 的選項取決於 A 的答案 → (c) 複合選項 or 序列
+❌ "has_related(conversation_id) returns bool at conversation_service.py:142"
+✅ Paste the function body code block directly
 ```
 
-**為什麼**：拆開讓 user 一次只專注一個決策；合併（(b)）省 user 切換成本但需確認真的獨立；條件耦合硬塞 (b) 會出現「user 選了 A 卻發現 B 的選項在這個 A 下不適用」的尷尬。
+Prose describing a function is degraded second-hand information. The user grasps the signature, SQL, and behavior at a glance from the code, whereas prose forces them to reassemble it in their head. **Function signatures, SQL snippets, config schemas are always shown as code**; prose is only for filling in the context the code can't reveal (why it's written this way, what it's being compared against).
 
-### 3. Trade-off 多維度
+**(c) Comparison group** — the baseline of a similar API within the same codebase
 
-每個 option 的 `description` 不能只寫單向後果。Architecture Decision 之所以難拍板，是因為**多維度權衡** — 選 A 在某維度好、在某維度差。逐維度列出來，user 才能依自己的優先順序選。
+Include a chunk of related function / adjacent-module code so the user can see "what the current codebase convention is". This is the basis for architectural / consistency judgment.
 
-**通用核心（建議都覆蓋）**：
+### 2. Relationship patterns between Decisions
 
-| 維度 | 看什麼 |
+`AskUserQuestion` can pack 1-4 questions at once — but this tool feature **doesn't support conditional dependency** (B's options depend on A's choice). All questions are "presented at once, answered at once". So the three patterns each have a corresponding presentation:
+
+**(a) Independent Decisions** (two Decisions unrelated, e.g. "GC order" + "another API's naming")
+→ **split into multiple `AskUserQuestion` calls**, one Decision each, each getting full context
+
+**(b) Parallel related Decisions** (shared review context, but the user can answer independently; e.g. "Logging format" + "Retry backoff" surfacing in the same review round — both are convention choices for this module, but the answers don't depend on each other)
+→ **one `AskUserQuestion` with multiple questions fields** (1-4 questions), sharing a single review-context preamble, the user decides all at once
+
+**(c) Conditionally coupled Decisions** (B's options depend on A's choice; e.g. "whether to add cache invalidation" + (if yes) "TTL vs invalidate-on-write")
+→ multi-questions fields **don't apply**. Two alternatives:
+  - **Composite option**: merge into one question, with options listing the combinations directly "don't add / add+TTL / add+invalidate-on-write"
+  - **Sequential**: ask A first; after the user answers, send a second `AskUserQuestion` for B
+
+Judgment flow:
+
+```
+Do the user's choices on the two Decisions affect each other?
+├─ Completely unrelated → (a) split into multiple calls
+├─ Shared context, independent answers → (b) one call, multiple questions
+└─ B's options depend on A's answer → (c) composite option or sequential
+```
+
+**Why**: splitting lets the user focus on one decision at a time; merging ((b)) saves the user switching cost but requires confirming they're truly independent; forcing conditional coupling into (b) produces the awkward "the user picked A only to find B's options don't apply under that A".
+
+### 3. Multi-dimensional trade-off
+
+Each option's `description` can't state only a one-way consequence. An Architecture Decision is hard to resolve precisely because of the **multi-dimensional trade-off** — choosing A is good on one dimension, bad on another. List them dimension by dimension so the user can choose by their own priorities.
+
+**Universal core (recommended to cover all)**:
+
+| Dimension | What to look at |
 |---|---|
-| **架構** | 是否強化 / 弱化 design.md 的 invariant；是否引入新的設計分支；是否與 architectural pattern（layered / hex / CQRS...）一致 |
-| **一致性** | 同 codebase 類似 API / module 怎麼做；這個選擇是「對齊主流」還是「成為例外」 |
-| **功能 / 風險** | API break、performance、leak surface、rollback 等可量化後果 |
+| **Architecture** | whether it strengthens / weakens design.md's invariants; whether it introduces a new design branch; whether it's consistent with the architectural pattern (layered / hex / CQRS...) |
+| **Consistency** | how similar APIs / modules in the same codebase do it; whether this choice "aligns with the mainstream" or "becomes an exception" |
+| **Functionality / risk** | quantifiable consequences like API break, performance, leak surface, rollback |
 
-**常見補充維度（涉及程式碼可讀性時加）**：
+**Common supplementary dimension (add when code readability is involved)**:
 
-| 維度 | 看什麼 |
+| Dimension | What to look at |
 |---|---|
-| **撰寫慣例 / 認知負擔** | 簽章、命名、錯誤處理、test 寫法、依賴注入風格是否符合 codebase convention；新進工程師閱讀時的認知成本 |
+| **Authoring convention / cognitive load** | whether the signature, naming, error handling, test style, dependency-injection style match the codebase convention; the cognitive cost for a new engineer reading it |
 
-**其他 Decision-specific 維度**：
+**Other Decision-specific dimensions**:
 
-不預先列舉完整池，主 agent 視當前 Decision 性質判斷加入。常見的有：
+Don't pre-enumerate the full pool; the main agent decides which to add based on the current Decision's nature. Common ones are:
 
-- **可逆性** — 選了之後 back out 多難（schema 改 / 資料遷移 / external API）
-- **Testability** — DI 風格、mock 策略、fixture 設計改變
-- **可觀測性** — production debug story / on-call 接手難易
-- **可擴展性** — 未來新增 case 多容易
-- **開發成本** — A 路 1 天 vs B 路 3 天
-- **領域特定**：performance、security surface、對外契約、migration path
+- **Reversibility** — how hard it is to back out after choosing (schema change / data migration / external API)
+- **Testability** — DI style, mock strategy, fixture design changes
+- **Observability** — production debug story / how easily on-call can take over
+- **Extensibility** — how easy it is to add a future case
+- **Development cost** — path A 1 day vs path B 3 days
+- **Domain-specific**: performance, security surface, external contract, migration path
 
-**不要為了湊維度而寫「N/A」**。不適用就不列那個維度，省下空間給真正在 trade-off 的維度。
+**Don't write "N/A" just to fill a dimension**. If it doesn't apply, don't list that dimension — save the space for the dimensions that are genuinely in trade-off.
 
-**為什麼這樣設計**：reviewer 通常只把「功能 / 風險」維度寫得詳細，但 user 拍板時關心的常常是「這條路是否會讓 codebase 走向長期一致」。固定 3 個核心保證底線；其他維度由主 agent 判斷加入，避免變成填空表格。
+**Why it's designed this way**: the reviewer usually only writes the "functionality / risk" dimension in detail, but what the user cares about when resolving is often "will this path drive the codebase toward long-term consistency". Fixing 3 core dimensions guarantees the floor; other dimensions are added at the main agent's judgment, avoiding it becoming a fill-in-the-blank form.
 
-### 4. 資訊量上限
+### 4. Information-volume ceiling
 
-單一互動的 context 加總，預估 user 1-2 分鐘能讀完。超過就拆 / 抽 reference。
+The sum of context in a single interaction, estimated for the user to read in 1-2 minutes. Over that, split / extract into a reference.
 
-| 元件 | 建議長度 |
+| Component | Suggested length |
 |---|---|
-| 第一拍 Decision briefing（含 code 片段，對話文字） | 15-40 行 |
-| Question stem | 1-3 行（命題 + 「背景見上方說明」）|
-| 每個 option description | 6-15 行（核心 3 + 視情況補充） |
-| Preview 欄位 code 片段 | ≤ 30 行 |
+| First-beat Decision briefing (incl. code snippet, conversation text) | 15-40 lines |
+| Question stem | 1-3 lines (proposition + "background see above") |
+| Each option description | 6-15 lines (the core 3 + supplements as warranted) |
+| Preview-field code snippet | ≤ 30 lines |
 
-**超標自查**：是否有太多背景重述（可以指向已存在的 design.md / plan file 而非全文重貼）？是否塞了第二個邊緣 Decision 進來？某個維度的描述能不能再凝練？
+**Over-limit self-check**: is there too much background restatement (you can point to an existing design.md / plan file instead of re-pasting it in full)? Did a second marginal Decision get stuffed in? Can some dimension's description be condensed further?
 
 ---
 
-## AskUserQuestion 欄位使用
+## AskUserQuestion field usage
 
-| 欄位 | 用途 | 何時用 |
+| Field | Purpose | When to use |
 |---|---|---|
-| `question` | Decision 命題（短 — 背景在第一拍的文字 briefing，stem 可寫「見上方說明」）| **必填** |
-| `header` | 簡短 tag（< 12 字）| **必填** |
-| `options.label` | 一句話方向（1-5 字）| **必填** |
-| `options.description` | Trade-off 與後果 | **每個 option 必寫**（不可空）|
-| `options.preview` | Code 片段 / diff / 檔案內容 | 涉及具體 code / config 時用 |
-| `multiSelect` | 允許多選 | 通常 false；只有「彼此不互斥」的功能 toggle 才 true |
+| `question` | The Decision proposition (short — background is in the first-beat text briefing, the stem can say "see above") | **required** |
+| `header` | Short tag (< 12 chars) | **required** |
+| `options.label` | One-phrase direction (1-5 words) | **required** |
+| `options.description` | Trade-off and consequences | **required for every option** (cannot be empty) |
+| `options.preview` | Code snippet / diff / file content | use when specific code / config is involved |
+| `multiSelect` | Allow multiple selection | usually false; only true for feature toggles that "aren't mutually exclusive" |
 
-**`preview` 欄位特別實用的場景**：function 簽章變更、SQL 片段、JSON schema diff、檔案結構對照 — 純文字描述會失真，code block 直接看得懂。
+**Scenarios where the `preview` field is especially useful**: function-signature changes, SQL snippets, JSON schema diffs, file-structure comparisons — a plain-text description distorts, a code block is directly understandable.
 
 ---
 
-## 範例對照
+## Example comparison
 
-### 壞範例（重現實際場景）
+### Bad example (reproducing an actual scenario)
 
 ```
-question: "Decision BT: has_related() ACL hint 是否該套 ownership filter？"
+question: "Decision BT: should has_related() ACL hint apply the ownership filter?"
 header: "has_related ACL"
 options:
-  - label: "留為 follow-up"
+  - label: "leave as follow-up"
     description: ""
-  - label: "本次一起修：has_related 套 _OWNERSHIP_SQL"
-    description: "加 conversation_id/type 參數"
+  - label: "fix in this pass: has_related applies _OWNERSHIP_SQL"
+    description: "add conversation_id/type parameters"
 ```
 
-**為什麼這個是壞範例**：
+**Why this is a bad example**:
 
-1. **沒 review 過程脈絡** — Decision 像憑空蹦出，user 不知道前幾輪在做什麼、為什麼這個現在才浮現
-2. **沒 code 對照** — `has_related()` 哪個 function、`_OWNERSHIP_SQL` 什麼結構，全靠 user 腦補
-3. **沒對照組** — 沒給「同 codebase 類似 API 怎麼做」的 baseline，user 無從判斷一致性問題
-4. **trade-off 只一個維度** — Option 2 只勾到「功能影響」（加參數、複雜度），通用核心的架構 / 一致性 完全缺席，user 看不出長期影響
-5. **Option 1 `description` 空白** — user 看不出「留為 follow-up」的代價是什麼
-6. **沒用 `preview` 欄位** — function 簽章直接貼 code 比文字描述清楚 100 倍
-7. **二選一框架太窄** — Architecture Decision 通常有 3-4 條路（例如 ContextVar 注入），只給 2 個選項等於 reviewer 已先剪了枝
+1. **No review-process context** — the Decision seems to pop out of nowhere; the user doesn't know what the prior rounds were doing or why this surfaces only now
+2. **No code comparison** — which function is `has_related()`, what structure is `_OWNERSHIP_SQL`, all left to the user's imagination
+3. **No comparison group** — no baseline of "how a similar API in the same codebase does it", so the user has no basis to judge the consistency problem
+4. **trade-off only one dimension** — Option 2 only touches "functional impact" (added parameters, complexity); the universal core's architecture / consistency are entirely absent, so the user can't see the long-term impact
+5. **Option 1's `description` is blank** — the user can't see what the cost of "leave as follow-up" is
+6. **The `preview` field isn't used** — pasting the function signature directly as code is 100x clearer than a prose description
+7. **The either-or framing is too narrow** — an Architecture Decision usually has 3-4 paths (e.g. ContextVar injection); offering only 2 options means the reviewer has already pruned branches
 
-### 好範例
+### Good example
 
-**第一拍 — 對話輸出 Decision briefing**（一般 markdown 文字，先於提問）：
+**First beat — output the Decision briefing in the conversation** (ordinary markdown text, before the asking):
 
-> **Decision BT — `has_related()` 要不要套 ownership filter？**
+> **Decision BT — should `has_related()` apply the ownership filter?**
 >
-> 先講場景：對話列表頁會對每筆對話呼叫 `has_related()` 問「這個對話有沒有關聯的記憶」，UI 據此顯示一個小圖示。它只回傳 true/false、不回傳記憶內容 — 這就是爭點所在：**A 使用者的對話若關聯到 B 使用者的記憶，目前實作會回 true**。A 會看到「有相關記憶」的暗示但點進去看不到內容。這個暗示算不算 leak，業界沒有標準答案。
+> First the scenario: the conversation list page calls `has_related()` on each conversation to ask "does this conversation have an associated memory", and the UI shows a small icon accordingly. It only returns true/false, not the memory content — and that's exactly the crux: **if user A's conversation is associated with user B's memory, the current implementation returns true**. A sees the hint "there is a related memory" but clicks in and can't see the content. Whether this hint counts as a leak has no industry-standard answer.
 >
-> Review 脈絡：Round 1-8 已把 read path 另外三支 API（`fetch_by_id` / `list_by_user` / `search_memory`）全部套上 ownership filter，`has_related()` 是唯一漏網之魚。前幾輪曾標為 Critical Bug，Round 5 你提出「hint 不傳內容或可不算 leak」後降級成 Decision。design.md:88 規範 read API 須過 ACL 但未涵蓋 hint-style API — 拍板結果會回填 design.md 補完這條 invariant。
+> Review context: Rounds 1-8 already applied the ownership filter to the other three read-path APIs (`fetch_by_id` / `list_by_user` / `search_memory`); `has_related()` is the lone straggler. It was flagged Critical Bug in prior rounds; after you raised "a hint that doesn't carry content may not count as a leak" in Round 5, it was demoted to a Decision. design.md:88 mandates that read APIs pass the ACL but doesn't cover hint-style APIs — the resolution will be backfilled into design.md to complete this invariant.
 >
-> 目前實作（conversation_service.py:142）：
+> Current implementation (conversation_service.py:142):
 > ```python
 > def has_related(conversation_id: str) -> bool:
 >     rows = db.query(
@@ -217,158 +217,171 @@ options:
 >     return bool(rows)
 > ```
 >
-> 同 module 對照組 — `fetch_by_id` 是目前 read API 的標準形：
+> Same-module comparison group — `fetch_by_id` is the standard form of the current read APIs:
 > ```python
 > def fetch_by_id(user_id: str, conversation_type: str, memory_id: str):
 >     sql = f"SELECT * FROM memory WHERE id = ? AND {_OWNERSHIP_SQL}"
 >     return db.query(sql, memory_id, user_id, conversation_type)
 > ```
 
-（第一拍交付後**結束回合**；user 回覆「ok」或表達意見後，下一回合才送出以下提問 — 若 user 已直接表態則跳過）
+(After the first beat is delivered, **end the turn**; after the user replies "ok" or voices an opinion, only the next turn sends the asking below — if the user already stated a position directly, skip it)
 
-**第二拍 — AskUserQuestion**（stem 短，context 已在上一回合）：
+**Second beat — AskUserQuestion** (short stem, context already in the previous turn):
 
 ```yaml
-question: "Decision BT — has_related() 是否該套 ownership filter？（場景與 code 對照見上方說明）"
+question: "Decision BT — should has_related() apply the ownership filter? (scenario and code comparison see the explanation above)"
 header: "has_related ACL"
 options:
-  - label: "留為 follow-up"
+  - label: "leave as follow-up"
     description: |
-      開 follow-up issue，本次 PR 不動 has_related()。
+      Open a follow-up issue, this PR doesn't touch has_related().
 
-      架構：保留「hint API 不走 ACL」這個未明說的設計分支；design.md
-      須補一條 "hint-style API 可不過 ACL" 的明確 invariant，否則未來新
-      hint API 沒參考依據。
-      
-      一致性：read path 4 個 API 中 1 個例外；本次 refactor 結束後留下
-      一個未對齊的尾巴，後續每次相關 review 都會被重新提起。
-      
-      功能 / 風險：cross-user state 殘留範圍小（bool 不傳 memory 內容）；
-      若未來引入 row-level security policy，這支 function 必跟著改。
-      
-      可逆性：很高 — 隨時可以回頭加 filter；但「之後再改」實際上常變
-      永遠不改，需要納入考量。
+      Architecture: retains the unstated design branch "hint API doesn't go
+      through ACL"; design.md must add an explicit "hint-style API may skip
+      ACL" invariant, otherwise a future new hint API has no reference basis.
 
-  - label: "本次一起修（套 _OWNERSHIP_SQL）"
+      Consistency: 1 of the 4 read-path APIs is an exception; after this
+      refactor a misaligned tail remains, to be re-raised in every related
+      review afterward.
+
+      Functionality / risk: cross-user state residue is small in scope (bool
+      doesn't carry memory content); if a row-level security policy is
+      introduced in the future, this function must change along with it.
+
+      Reversibility: very high — a filter can be added back at any time; but
+      "fix it later" in practice often becomes never-fix, which must be
+      factored in.
+
+  - label: "fix in this pass (apply _OWNERSHIP_SQL)"
     description: |
-      has_related() 加 user_id, conversation_type 兩個必傳參數，套 _OWNERSHIP_SQL。
+      has_related() gains two required parameters user_id, conversation_type, applies _OWNERSHIP_SQL.
 
-      架構：read path 完整對齊「ownership filter 全套」；design.md 可確立
-      「所有 read 含 hint 都須過 ACL」這條清晰、無例外的 invariant。
-      
-      一致性：4 個 read API 簽章與 SQL 結構統一，新進工程師 0 認知成本。
-      
-      撰寫慣例 / 認知負擔：簽章變胖（3 個必傳參數），偏離 predicate
-      function 通常的簡潔形式；但與 conversation_service.fetch_* / list_*
-      / search_* 系列對齊。trade「predicate 簡潔」vs「module 內部一致」。
-      
-      功能 / 風險：API break — 3 個 caller 須同步改 + 對應 test 改寫；
-      但 leak fix 與這次 refactor 主軸一致，一次 review 比拆兩次省事。
+      Architecture: the read path is fully aligned to "ownership filter
+      everywhere"; design.md can establish the clear, exception-free invariant
+      "all reads, including hints, must pass the ACL".
+
+      Consistency: the 4 read APIs' signatures and SQL structure are unified,
+      0 cognitive cost for a new engineer.
+
+      Authoring convention / cognitive load: the signature gets fatter (3
+      required parameters), deviating from the usual concise form of a
+      predicate function; but it aligns with the conversation_service.fetch_*
+      / list_* / search_* family. Trade "predicate conciseness" vs "intra-module
+      consistency".
+
+      Functionality / risk: API break — 3 callers must be changed in sync +
+      the corresponding tests rewritten; but the leak fix is consistent with
+      this refactor's main thrust, and one review is less work than two.
     preview: |
       def has_related(user_id: str, conversation_id: str, conversation_type: str) -> bool:
           sql = f"SELECT 1 FROM memory WHERE conv_id = ? AND {_OWNERSHIP_SQL}"
           rows = db.query(sql, conversation_id, user_id, conversation_type)
           return bool(rows)
 
-  - label: "改走 ContextVar 注入"
+  - label: "switch to ContextVar injection"
     description: |
-      簽章不變，從 request-local ContextVar 讀 user_id / conversation_type。
-      仍可套 _OWNERSHIP_SQL，但 caller 不必傳 ACL 參數。
+      Signature unchanged, read user_id / conversation_type from a request-local
+      ContextVar. Can still apply _OWNERSHIP_SQL, but the caller need not pass
+      ACL parameters.
 
-      架構：引入新的「implicit context」分支；conversation_service 目前所有
-      API 都明寫 user_id（explicit dependency injection）。會分裂兩種風格。
-      
-      一致性：偏離 codebase 主流（全 explicit pass），但對齊 web framework
-      慣例（flask.g / FastAPI Depends）。看 codebase 整體偏好。
-      
-      功能 / 風險：caller 無 API break；但若 ContextVar 在某條 code path
-      沒被 set（例如 background task），會 silent fail 或 raise — 必須加防呆。
-      
-      Testability：unit test 必須 mock context，原本 explicit pass 直接傳值。
-      連鎖影響：conversation_service 整個 test suite 寫法需要調整 — 本選項
-      真正的爭議點在這。
+      Architecture: introduces a new "implicit context" branch; all of
+      conversation_service's current APIs spell out user_id (explicit dependency
+      injection). It would split into two styles.
+
+      Consistency: deviates from the codebase mainstream (all explicit pass),
+      but aligns with web framework convention (flask.g / FastAPI Depends).
+      Depends on the codebase's overall preference.
+
+      Functionality / risk: no API break for callers; but if the ContextVar
+      isn't set on some code path (e.g. a background task), it would silent-fail
+      or raise — a guard must be added.
+
+      Testability: unit tests must mock the context, whereas the original
+      explicit pass just passes the value. Cascade impact: the whole
+      conversation_service test suite's style needs adjusting — this option's
+      real point of contention is here.
 ```
 
-**這個好範例做對的事**：
+**What this good example does right**:
 
-- **兩拍制**：context 全在第一拍對話文字（markdown 完整渲染、code 有 highlight、留在 scrollback），question stem 只剩一行命題 — 不跟 UI 對話框的空間對抗
-- **用場景開場**：第一段就是 use case（「列表頁圖示 → A 看到 B 的記憶暗示」），user 立刻知道在吵什麼 — 不是從「hint API ACL」這種概念詞開始
-- **Review 過程脈絡**：交代「前幾輪做什麼、為什麼到這輪才浮現、design.md 規範缺口」
-- **Code 直接放**：function body 與對照組 `fetch_by_id` 都用 code block 而非 prose
-- **對照組**：放了同 module 的 `fetch_by_id` 當 baseline，user 看得到「目前慣例」
-- **三個 option 都覆蓋通用核心 3（架構 / 一致性 / 功能風險）**，但補充維度各自不同：
-  - Option 1（follow-up）加「可逆性」— 因為這個選項本質是延後決策，可逆性是核心議題
-  - Option 2（一起修）加「撰寫慣例 / 認知負擔」— 因為簽章變胖是核心爭議
-  - Option 3（ContextVar）加「Testability」— 因為這條路真正的代價在 test 寫法的連鎖影響
-- **每個 option 都點出該選項的「真正爭議點」**，不是平均分配筆墨
-- **第三個選項揭示「兩條路之外還有路」**— Architecture Decision 通常不是二選一
-- 引用 reviewer 編號 `Decision BT` 讓 user 對得到原 issue list
-- 不假設 user 記得 `_OWNERSHIP_SQL` / `has_related` 是什麼 — 直接 code 看到
-
----
-
-## 補救流程
-
-如果發出 `AskUserQuestion` 之後 user 回問「這是什麼？」「我看不懂選項」：
-
-- **不要在原 question 補解釋** — 原 question 的選項已根植於不足的 context
-- **重新發一個 `AskUserQuestion`**，把 user 的問題納入新 question 的背景敘述
-
-這個流程也是訊號：下次處理類似 Decision 時，背景敘述要更早展開。
+- **Two-beat**: context is all in the first-beat conversation text (markdown rendered fully, code with highlight, staying in scrollback), the question stem is left with just a one-line proposition — not fighting the UI dialog box for space
+- **Opens with the scenario**: the first paragraph is the use case ("list-page icon → A sees the hint of B's memory"), the user instantly knows what's being argued — not starting from a concept term like "hint API ACL"
+- **Review-process context**: accounts for "what the prior rounds did, why it surfaces only this round, the design.md rule gap"
+- **Code put directly**: both the function body and the comparison group `fetch_by_id` use a code block rather than prose
+- **Comparison group**: includes the same module's `fetch_by_id` as a baseline, so the user sees "the current convention"
+- **All three options cover the universal core 3 (architecture / consistency / functional risk)**, but the supplementary dimensions differ:
+  - Option 1 (follow-up) adds "reversibility" — because this option is essentially deferring the decision, reversibility is the core issue
+  - Option 2 (fix together) adds "authoring convention / cognitive load" — because the fatter signature is the core contention
+  - Option 3 (ContextVar) adds "Testability" — because this path's real cost is in the cascade impact on test style
+- **Every option points out that option's "real point of contention"**, not distributing ink evenly
+- **The third option reveals "there's a path beyond the two"** — an Architecture Decision usually isn't either-or
+- Cites the reviewer number `Decision BT` so the user can map back to the original issue list
+- Doesn't assume the user remembers what `_OWNERSHIP_SQL` / `has_related` is — sees it directly in the code
 
 ---
 
-## Decision 拍板後寫入 Review Log
+## Remediation flow
 
-User 透過 `AskUserQuestion` 回答 Decision 後，主 agent 必須立即把結論寫進 `review-log.md` §2 Architecture Decisions 區塊。寫入規範詳見 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`，重點：
+If, after sending the `AskUserQuestion`, the user asks back "what is this?" "I can't understand the options":
 
-- Decision 標題用 reviewer 原 letter ID（例 `### Decision D（raised at D2）`），不重新編號
-- 必填欄位：`Problem` / `Options considered` / `Chosen` / `Rationale (user, YYYY-MM-DD)` / `Affects`
-- `Rationale` 欄寫 user 在 AskUserQuestion 補充的 free-text 理由（如有）+ 主 agent 整理 — **不要只寫「user 選了 Option 2」**，要寫「為什麼」
-- 同步更新 §1 Audit Trail 表格：該 Decision 列 Status 改 `decision-resolved`、Resolution 改 `→ §2 Decision <letter>`
+- **Don't add an explanation onto the original question** — the original question's options are already rooted in insufficient context
+- **Send a new `AskUserQuestion`**, folding the user's question into the new question's background narrative
 
-**為什麼立即寫入而非 batch**：user 答完 AskUserQuestion 後 rationale 還是原話，等到全部 Decision 都拍板再 batch 補寫，細節已失真且容易遺漏。
-
-### 拍板後的昇華判斷（Steering 演進掛載點）
-
-寫完 §2 後，立即多想一步：這個 Decision 確立的是「**僅此 feature 的選擇**」還是「**專案級原則**」（未來其他 feature 也該遵循）？判斷線索：rationale 是否訴諸 feature 無關的理由（workload 特性、團隊偏好、codebase 一致性）、未來同類選擇是否該直接沿用不再問。**預設是「僅此 feature」、不昇華** — 只有明確訴諸 feature 無關的理由、且不記進 steering 會造成未來不一致時，才當專案級原則處理；多數 Decision 屬前者。
-
-若是專案級原則，依 SKILL.md「Steering 演進機制」當下就提議寫入 steering — user 剛拍完板、context 還在，追問「這條要不要進 tech.md 變成通則？」的成本最低。確認後輕量寫入 + 記入 review-log §5。
-
-### Decision 結果如何反映到 design.md / tasks.md（中性化原則）
-
-**隔離紀律**：Decision content（Options 比較、Chosen、Rationale、Round 來源）**只能存在於 `review-log.md §2`**。design.md / tasks.md **不得**：
-
-- 寫 `## Architecture Decisions` / `## Decisions Record` / `## ADR` 段落
-- 寫 `(per Decision X)` reviewer letter tag
-- 寫 `→ review-log §2 Decision X` footnote pointer（已完全廢止）
-- 寫「user 在 Round N 拍板選 Option 2」等 review 過程敘述
-
-**Decision 結果若需要反映到 design.md（例如 user 選了 Option 1 而非 Option 2，這影響某 Component 的設計）**，做法：
-
-- 把 Option 1 的**內容**（不是 Option 1 這個 label）直接寫進對應 Component 段落
-- 設計理由用**中性 prose** — 寫「為什麼這樣設計」的技術理由，**不**寫「為什麼選 Option 1 拒絕 Option 2」
-- 不揭露 Decision 編號 / Round 來源 / user 拍板過程
-
-**範例**：
-
-User 對 Decision D 拍板「TTL invalidation, 60s」。
-
-- ❌ design.md 寫：`CacheService 採 60s TTL（per Decision D, user 在 Round 3 拍板選 Option 1）`
-- ✅ design.md 寫：`CacheService 採 60s TTL，理由是 read-heavy workload (read:write ≈ 100:1) 可容忍 1 分鐘 staleness；explicit invalidation 需要事件廣播機制，當前 workload 不值得這個複雜度`
-- ✅ review-log.md §2 寫：`### Decision D（raised at D2）\n**Problem**: Cache invalidation 策略 — TTL vs explicit\n**Options considered**: ...\n**Chosen**: Option 1\n**Rationale (user, 2026-05-12)**: ...`
-
-兩者**內容互補但不引用**：design.md 是技術描述、review-log.md 是決策審計，物理隔離。
-
-**為什麼 100% 隔離**：design.md / tasks.md 是反覆閱讀的 truth source；夾雜 Decision audit trail 會稀釋技術描述的密度。實測允許 footnote pointer 後 agent 會 drift 成 ADR 段落 + reviewer letter tag — 唯一可靠的紀律是完全禁止任何 review-log reference。完整 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+This flow is also a signal: next time you handle a similar Decision, the background narrative should unfold earlier.
 
 ---
 
-## 為什麼不寫 MUST / NEVER
+## Write into the Review Log after resolving a Decision
 
-skill-creator 哲學：解釋「為什麼這件事重要」比硬性規定更有效。本指引的「✅/❌」是經驗派的「在這個 plugin context 下做這樣比較好」，不是禁令。例如：
+After the user answers a Decision via `AskUserQuestion`, the main agent must immediately write the conclusion into `review-log.md` §2 Architecture Decisions section. For the write-in rules see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`; the key points:
 
-- 「不相關 Decision 拆多次 call」**通常**對；但若三個 Decision 都是 nit-pick 級 Low、user 已表明「批次給我」，合併也合理
-- 「每個 option description 必寫」**通常**對；但若兩個 option 真的只差一個字（例如「採用」vs「不採用」），label 就足夠時 description 可以省
+- The Decision title uses the reviewer's original letter ID (e.g. `### Decision D (raised at D2)`), not renumbered
+- Required fields: `Problem` / `Options considered` / `Chosen` / `Rationale (user, YYYY-MM-DD)` / `Affects`
+- The `Rationale` field writes the free-text reason the user added in AskUserQuestion (if any) + the main agent's summary — **don't just write "user picked Option 2"**, write "why"
+- Sync-update the §1 Audit Trail table: that Decision's row Status changes to `decision-resolved`, Resolution changes to `→ §2 Decision <letter>`
 
-判斷依據永遠是「**user 能不能在不問你的情況下做選擇**」。
+**Why write in immediately rather than batch**: right after the user answers the AskUserQuestion, the rationale is still in their own words; if you wait until all Decisions are resolved and then batch-backfill, the details are already distorted and easily lost.
+
+### The promotion judgment after resolving (Steering Evolution hook point)
+
+After finishing §2, immediately think one more step: does this Decision establish "**a choice for just this feature**" or "**a project-level principle**" (which other future features should also follow)? Clues for the judgment: does the rationale appeal to feature-agnostic reasons (workload characteristics, team preference, codebase consistency), should future similar choices simply reuse it without asking again. **The default is "just this feature", don't promote** — only when it clearly appeals to a feature-agnostic reason, and not recording it in steering would cause future inconsistency, treat it as a project-level principle; most Decisions are the former.
+
+If it's a project-level principle, per SKILL.md "Steering Evolution Mechanism" propose writing it into steering right then — the user has just resolved it, the context is still warm, and the cost of following up with "should this go into tech.md as a general rule?" is lowest. After confirmation, lightly write it in + record into review-log §5.
+
+### How a Decision's result reflects into design.md / tasks.md (neutralization principle)
+
+**Isolation discipline**: Decision content (Options comparison, Chosen, Rationale, Round source) **may only live in `review-log.md §2`**. design.md / tasks.md **must not**:
+
+- write a `## Architecture Decisions` / `## Decisions Record` / `## ADR` section
+- write a `(per Decision X)` reviewer letter tag
+- write a `→ review-log §2 Decision X` footnote pointer (fully abolished)
+- write review-process narrative like "the user resolved it in Round N by picking Option 2"
+
+**If a Decision's result needs to reflect into design.md (e.g. the user picked Option 1 rather than Option 2, which affects some Component's design)**, the approach:
+
+- write the **content** of Option 1 (not the label "Option 1") directly into the corresponding Component section
+- the design rationale uses **neutral prose** — write the technical reason for "why it's designed this way", **not** "why Option 1 was chosen over Option 2"
+- don't reveal the Decision number / Round source / the user's resolution process
+
+**Example**:
+
+The user resolves Decision D as "TTL invalidation, 60s".
+
+- ❌ design.md writes: `CacheService uses 60s TTL (per Decision D, user resolved it in Round 3 by picking Option 1)`
+- ✅ design.md writes: `CacheService uses 60s TTL, because the read-heavy workload (read:write ≈ 100:1) can tolerate 1 minute of staleness; explicit invalidation needs an event-broadcast mechanism, which the current workload doesn't justify the complexity of`
+- ✅ review-log.md §2 writes: `### Decision D (raised at D2)\n**Problem**: Cache invalidation strategy — TTL vs explicit\n**Options considered**: ...\n**Chosen**: Option 1\n**Rationale (user, 2026-05-12)**: ...`
+
+The two are **complementary in content but don't cite each other**: design.md is the technical description, review-log.md is the decision audit, physically isolated.
+
+**Why 100% isolation**: design.md / tasks.md are the repeatedly-read truth source; mixing in a Decision audit trail dilutes the density of the technical description. In practice, once a footnote pointer is allowed the agent drifts into an ADR section + reviewer letter tags — the only reliable discipline is to fully forbid any review-log reference. Full bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+
+---
+
+## Why not write MUST / NEVER
+
+skill-creator philosophy: explaining "why this matters" is more effective than a hard rule. This guide's "✅/❌" are the empiricist's "doing it this way is better in this plugin context", not prohibitions. For example:
+
+- "split unrelated Decisions into multiple calls" is **usually** right; but if all three Decisions are nit-pick-level Low and the user has stated "give them to me in a batch", merging is also reasonable
+- "every option description is required" is **usually** right; but if two options really differ by a single word (e.g. "adopt" vs "don't adopt"), description can be omitted when the label suffices
+
+The criterion is always "**can the user make the choice without asking you**".

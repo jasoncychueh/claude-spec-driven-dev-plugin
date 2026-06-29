@@ -1,13 +1,13 @@
 # Requirements Document
 
-> ## ⛔ 禁止段落（formal doc 100% 隔離原則）
+> ## ⛔ Forbidden sections (formal-doc 100% isolation principle)
 >
-> requirements.md **描述「最終確定的需求」**，不夾雜 review 過程的任何痕跡。以下絕對不可出現：
+> requirements.md **describes "the finalized requirements"** and carries no trace of the review process. The following must absolutely NOT appear:
 >
-> - 任何 **reviewer letter tag**（`(per Decision X)` / `(per Smell Y)`）/ **Round 過程敘述** / **review-log 引用** / **豁免宣告**
-> - 任何 `## Decisions` / `## ADR` / `## Review Notes` 段落
+> - Any **reviewer letter tag** (`(per Decision X)` / `(per Smell Y)`) / **Round-process narration** / **review-log reference** / **waiver declaration**
+> - Any `## Decisions` / `## ADR` / `## Review Notes` section
 >
-> Decision content 屬 `review-log.md §2`；requirements.md 只記**最終商定的 user story / acceptance criteria**。詳見 `references/review-log-bad-examples.md`。
+> Decision content belongs in `review-log.md §2`; requirements.md records only the **finally agreed-upon user stories / acceptance criteria**. See `references/review-log-bad-examples.md`.
 
 ## Introduction
 

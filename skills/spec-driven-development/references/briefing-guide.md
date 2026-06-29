@@ -1,111 +1,111 @@
-# Spec / Plan Briefing 指引
+# Spec / Plan Briefing Guide
 
-實作開始前，主 agent 用**對話輸出**向 user 摘要整個 spec / plan 的重點與重要概念。
+Before implementation starts, the main agent uses **conversational output** to summarize for the user the key points and important concepts of the whole spec / plan.
 
-## 觸發時點
+## Trigger points
 
-| 流程 | 時點 | 形式 |
+| Flow | Timing | Form |
 |---|---|---|
-| /create-spec | Plan Mode 結束、**ExitPlanMode 之前** | Plan Briefing（方向確認，輕量） |
-| /create-spec | 兩個 verifier 通過後（spec 定案） | 完整 Spec Briefing |
-| /update-spec | Plan Mode 結束、**ExitPlanMode 之前** | Plan Briefing（改動規劃） |
-| /update-spec | design-review + verifier 通過後（改動定案） | 完整 Spec Briefing |
-| /implement | 啟動時、本 session 尚未對此 feature briefing 過（典型：隔 session 實作） | Condensed briefing |
-| Quick Fix Mode | design-reviewer loop 收斂後、**ExitPlanMode 之前** | Plan Briefing |
-| 任意 plan 流程（resume） | restart 後 plan mode 已掉、手動重進續流程，**ExitPlanMode 之前** | Condensed briefing（重建 context） |
+| /create-spec | End of Plan Mode, **before ExitPlanMode** | Plan Briefing (direction confirmation, lightweight) |
+| /create-spec | After both verifiers pass (spec finalized) | Full Spec Briefing |
+| /update-spec | End of Plan Mode, **before ExitPlanMode** | Plan Briefing (change plan) |
+| /update-spec | After design-review + verifier pass (changes finalized) | Full Spec Briefing |
+| /implement | At startup, when this feature has not been briefed in this session yet (typical: implementing in a later session) | Condensed briefing |
+| Quick Fix Mode | After the design-reviewer loop converges, **before ExitPlanMode** | Plan Briefing |
+| Any plan flow (resume) | After a restart where plan mode was lost and the flow was manually re-entered, **before ExitPlanMode** | Condensed briefing (rebuild context) |
 
-**通則**：凡是 user 即將面對「一大坨 plan 或 spec 要消化」的時刻都要 briefing。所有 **ExitPlanMode 之前**的 Plan Briefing 由 hook 強制保護（見下方「三層提醒架構」第 3 層）；結尾的 Spec Briefing 靠 verifier 報告提醒（第 2 層）+ SKILL 步驟。
+**General rule**: any moment when the user is about to face "a big chunk of plan or spec to digest" calls for a briefing. Every Plan Briefing **before ExitPlanMode** is enforced and protected by a hook (see "Three-layer reminder architecture" layer 3 below); the closing Spec Briefing relies on the verifier report as a reminder (layer 2) + the SKILL steps.
 
-## 為什麼需要 briefing
+## Why a briefing is needed
 
-**核心：briefing 是為了降低「讀完整 plan/spec」的認知負擔,不只是審核 gate。** plan file / spec 文件是為「之後反覆查閱」優化的 — 結構化、完整、機械可驗證,但**不是**為「第一次進入狀況」優化的。實務上 user 不一定會逐字讀完;沒有 briefing,誤解會在實作後才浮現,修正成本高一個數量級。
+**Core: the briefing exists to lower the cognitive load of "reading the whole plan/spec", not just to be a review gate.** The plan file / spec docs are optimized for "repeated future reference" — structured, complete, mechanically verifiable, but **not** optimized for "getting up to speed the first time". In practice the user won't necessarily read every word; without a briefing, misunderstandings only surface after implementation, where the cost to correct them is an order of magnitude higher.
 
-因此**凡是 user 即將面對一大坨 plan/spec 的時刻（每個 plan-exit、每次 spec 定案）都該有 briefing**,讓 user 在 2-3 分鐘內建立正確心智模型、**在最便宜的時點觸發討論**。ExitPlanMode 呈現的是完整 plan file（文件層）；briefing 是它的**人類入口**（理解層）。
+So **any moment when the user is about to face a big chunk of plan/spec (every plan-exit, every spec finalization) should have a briefing**, letting the user build the right mental model within 2-3 minutes and **trigger discussion at the cheapest point**. ExitPlanMode presents the full plan file (the document layer); the briefing is its **human entry point** (the comprehension layer).
 
-## Briefing 是 blocking checkpoint（必須以「回合最終訊息」交付）
+## The briefing is a blocking checkpoint (must be delivered as the "turn-final message")
 
-兩個系統性事實決定交付形式：
+Two systemic facts dictate the delivery form:
 
-1. **沒有停點的純文字步驟不會停下 agent** — agent 會把 briefing 跟下一步擠在同一回合，甚至整步跳過
-2. **夾在 tool call 前面的「回合中段文字」顯示不可靠** — 實測：briefing 文字 + 同回合緊接 AskUserQuestion，user 只看到選項卡，briefing 整段隱形；這在 **CLI 與 remote-control 都會發生**（中段文字可能不渲染、或被後續工具的 UI 蓋掉）。只有回合的**最終訊息**在所有 client 保證顯示
+1. **A plain-text step with no stop point does not stop the agent** — the agent will cram the briefing and the next step into the same turn, or even skip the step entirely
+2. **"Mid-turn text" placed before a tool call displays unreliably** — measured in practice: briefing text + an AskUserQuestion immediately after in the same turn, and the user sees only the option card while the entire briefing goes invisible; this happens in **both CLI and remote-control** (mid-turn text may not render, or may be covered by a later tool's UI). Only the **final message** of a turn is guaranteed to display across all clients
 
-所以交付規則：**briefing 全文必須是該回合的最終訊息 — 輸出後直接結束回合，後面不接任何 tool call**（不接 AskUserQuestion、不接 ExitPlanMode、不接任何工具）。回合結束本身就是強制停點：agent 必須等 user 回覆才能繼續。
+So the delivery rule: **the full briefing text must be the final message of that turn — after outputting it, end the turn immediately and follow it with no tool call** (no AskUserQuestion, no ExitPlanMode, no tool of any kind). Ending the turn is itself a mandatory stop point: the agent must wait for the user to reply before it can continue.
 
-- Briefing 結尾固定一句確認問句：「以上有沒有跟你預期不符的地方？沒問題我就繼續」— **user 的回覆就是確認**，不需要再發 AskUserQuestion 選項卡
-- User 回覆無異議後，下一回合才進下一步（ExitPlanMode / 結束 /create-spec / Stage 1）；有疑慮則依下方「User 提出疑慮時的處理」
-- 注意 ExitPlanMode 本身雖然也會停（呈現 plan 全文＝文件層），但 briefing 是**理解層**的停點 — **不可用 ExitPlanMode 取代 briefing 回合**；briefing 要在 ExitPlanMode **之前**、以回合最終訊息交付（hook 會擋「沒先 briefing 就 ExitPlanMode」）
+- The briefing ends with a fixed confirmation question: "Anything here that doesn't match what you expected? If it's fine I'll continue" — **the user's reply is the confirmation**, no need to send another AskUserQuestion option card
+- After the user replies with no objection, the next turn proceeds to the next step (ExitPlanMode / ending /create-spec / Stage 1); if there are concerns, follow "Handling user concerns" below
+- Note that although ExitPlanMode itself also stops (presenting the full plan text = the document layer), the briefing is the **comprehension layer** stop point — **ExitPlanMode must not replace the briefing turn**; the briefing must be delivered **before** ExitPlanMode, as the turn-final message (the hook will block "ExitPlanMode without a prior briefing")
 
-### 三層提醒架構（為什麼不只靠 SKILL.md 的步驟清單）
+### Three-layer reminder architecture (why not rely solely on SKILL.md's step list)
 
-SKILL.md 在任務開頭載入；briefing 的決策點在幾十輪 tool call 之後，屆時步驟指示早已遠離注意焦點（甚至被 context compaction 摘要掉）。所以 briefing 由三層機制共同保障，每層都把提醒放在**轉場時刻的最新 context**：
+SKILL.md is loaded at the start of the task; the briefing's decision point comes dozens of tool-call rounds later, by which time the step instructions are long gone from the focus of attention (and may even have been summarized away by context compaction). So the briefing is jointly guaranteed by a three-layer mechanism, each layer placing the reminder in **the freshest context at the transition moment**:
 
-1. **Reviewer 收斂報告**（review-protocol.md 結論模板）— design-reviewer 報 0 issues 時附帶續步提醒
-2. **tasks-design-verifier 通過報告** — Spec Mode 驗證通過時附帶 Spec Briefing 續步提醒
-3. **PreToolUse command hook（ExitPlanMode）** — harness 強制執行的 deterministic Node 腳本（`hooks/briefing-checkpoint.js`），保護**每一個 ExitPlanMode**（Quick Fix / create-spec / update-spec / 一般 plan mode 皆然 —— briefing 對任何 plan 都降認知負擔,且 fail-open 不會弄壞 plan mode,所以不限縮)。讀 transcript,**略過 agent 的機械性工具回合**（載入 deferred ExitPlanMode 的 ToolSearch、批准後的 Edit 等帶 tool_use 的 assistant 回合）+ tool_result + 注入訊息後,看「第一個實質訊息是否為使用者回覆」:是 → 放行；agent 純文字（其後無 user 回覆,＝沒 briefing 或沒等回覆就退）→ 擋並回一句簡短提醒。**fail-open**（讀不到 transcript / 解析失敗 / 結構意外一律放行），**不會 deadlock**（briefing 完 + user 回覆後前一則就是 user 訊息 → 放行）。濾除 `isSidechain`（subagent 訊息）與 `isMeta`（注入的 local-command / reminder）。這取代了 1.6.2–1.6.5 的 prompt hook —— 那版由 LLM 判斷、看不到歷史,會自我推翻「永遠放行」而在 briefing 完的 retry 上誤擋。
+1. **Reviewer convergence report** (review-protocol.md conclusion template) — when design-reviewer reports 0 issues, it attaches a next-step reminder
+2. **tasks-design-verifier pass report** — when Spec Mode verification passes, it attaches a Spec Briefing next-step reminder
+3. **PreToolUse command hook (ExitPlanMode)** — a deterministic Node script enforced by the harness (`hooks/briefing-checkpoint.js`), protecting **every ExitPlanMode** (Quick Fix / create-spec / update-spec / general plan mode alike — a briefing lowers cognitive load for any plan, and being fail-open it won't break plan mode, so it isn't narrowed). It reads the transcript, **skips the agent's mechanical tool turns** (the ToolSearch that loads the deferred ExitPlanMode, the post-approval Edit, and other assistant turns carrying tool_use) + tool_result + injected messages, then checks "whether the first substantive message is a user reply": yes → allow; agent plain text (with no user reply after it, = no briefing or exited without waiting for a reply) → block and return a brief reminder. **Fail-open** (unreadable transcript / parse failure / unexpected structure all allow through), **cannot deadlock** (after a completed briefing + user reply, the preceding message is a user message → allow). It filters out `isSidechain` (subagent messages) and `isMeta` (injected local-command / reminder). This replaces the prompt hook of 1.6.2–1.6.5 — that version was judged by an LLM, couldn't see history, and would overturn its own "always allow" and wrongly block the retry after a completed briefing.
 
-### 補救
+### Remedy
 
-User 反映「沒看到 briefing」時，第一個檢查：是不是把 briefing 夾在了 tool call 前的回合中段（client 不顯示）？補救：把 briefing 以回合最終訊息**重新交付**，並結束回合。
+When the user reports "I didn't see the briefing", the first thing to check: was the briefing crammed mid-turn before a tool call (which the client doesn't display)? Remedy: **re-deliver** the briefing as the turn-final message, and end the turn.
 
-## 與 formal-doc 隔離紀律的關係
+## Relationship to the formal-doc isolation discipline
 
-Briefing 是**對話輸出，不寫入任何文件** — 它不是 formal doc，100% 隔離紀律**不適用**：
+The briefing is **conversational output, not written into any document** — it is not a formal doc, so the 100% isolation discipline **does not apply**:
 
-- Briefing 可以（且應該）揭露 review 過程的**結論** — 拍板的 Architecture Decisions、接受的 Waivers 及其代價。這正是 user 需要快速掌握的「為什麼是這個世界」，來源就是 review log
-- 但**不要**把 briefing 內容回寫進 design.md / tasks.md（那會變成 process narration，違反隔離紀律）
-- 引用 Decision / Waiver 時可帶編號（`Decision D` / `W1`），user 想深究時對得到 review-log
+- The briefing can (and should) reveal the **conclusions** of the review process — the resolved Architecture Decisions, the accepted Waivers and their costs. This is exactly the "why the world is this way" the user needs to grasp quickly, and its source is the review log
+- But **do not** write the briefing content back into design.md / tasks.md (that would become process narration, violating the isolation discipline)
+- When referencing a Decision / Waiver you may include the ID (`Decision D` / `W1`), so the user who wants to dig deeper can match it against the review-log
 
-## 敘事方式：從實際 use case 出發（核心要求）
+## Narrative method: start from a real use case (core requirement)
 
-Briefing 與 plan / design 的差別不是長度，是**敘事視角**：
+The difference between a briefing and the plan / design is not length, it is the **narrative perspective**:
 
-- plan / design 描述「**系統是什麼**」— 結構化、概念性、按元件組織（為反覆查閱優化）
-- briefing 描述「**使用者 / 系統會經歷什麼**」— 拿 1-2 條代表性 use case 把整個設計走一遍，元件與設計決定在場景中自然出現
+- the plan / design describes "**what the system is**" — structured, conceptual, organized by component (optimized for repeated reference)
+- the briefing describes "**what the user / system will experience**" — take 1-2 representative use cases and walk the whole design through them, with components and design decisions surfacing naturally within the scenario
 
-純概念條列（「新增 CacheService，採 TTL invalidation，與 EventDispatcher 解耦」）對沒讀過 spec 的人建立不了畫面；同樣內容用場景講 —「使用者更新個人資料後，下一次查詢會先命中 cache，最多 60 秒內可能看到舊值，之後自動更新；這是拍板過的 trade-off，換來查詢不打爆 DB」— 一聽就懂。
+A pure conceptual list ("add a CacheService, using TTL invalidation, decoupled from EventDispatcher") builds no picture for someone who hasn't read the spec; the same content told as a scenario — "after the user updates their profile, the next query hits the cache first and may see a stale value for up to 60 seconds, then it updates automatically; this is a resolved trade-off, bought in exchange for queries not hammering the DB" — is instantly understandable.
 
-**這跟 review 用的是同一個透鏡**（見 SKILL.md「為人類認知負擔校準」）：review 用「使用情境 + 執行流程 + 資料結構」找出真實情境驅動的**核心設計概念**，briefing 就拿那些核心概念、用同一個透鏡對 user 重點說明。所以 briefing 不是只給抽象結論 — 要把該場景**實際觸及的資料結構與執行流程**一起帶出來。因為人類跨多輪對話會忘、程式久了會忘記專案完整架構；把相關資料結構 / 流程一起重述，才幫得上 user 重建心智模型。
+**This uses the same lens as review** (see SKILL.md "Calibrate for Cognitive Load"): review uses "use case + execution flow + data structure" to find the real-scenario-driven **core design concepts**, and the briefing takes those core concepts and explains the key points to the user through the same lens. So the briefing is not just abstract conclusions — it should bring out the **data structures and execution flows that the scenario actually touches**. Because humans forget across many turns of conversation, and over time forget a project's full architecture; only by restating the relevant data structures / flows along with it can you help the user rebuild their mental model.
 
-做法：
+How to do it:
 
-- 挑 **1-2 條代表性 use case**：一條 happy path + 一條最重要的 failure / edge path
-- 沿著場景走流程：元件、新概念、**該情境觸及的資料結構與執行流程**在「它出場的那一刻」才介紹，並用該場景解釋 — 不要只給抽象結論，也不要假設 user 記得前幾輪對話講過的結構與流程
-- Decisions / Waivers 用**場景後果**講 — 不是「選了 Option 1」，而是「因為這個決定，使用者在 X 情境會經歷 Y」
-- Quick Fix Mode 的敘事形：「這個 bug 在什麼操作下會發生 → 修了之後同個操作會變成怎樣 → 剩下什麼風險」
+- Pick **1-2 representative use cases**: one happy path + one most-important failure / edge path
+- Walk the flow along the scenario: components, new concepts, and **the data structures and execution flows the scenario touches** are introduced only "at the moment they enter the stage", and explained through that scenario — don't just give abstract conclusions, and don't assume the user remembers the structures and flows mentioned in earlier turns
+- Tell Decisions / Waivers via their **scenario consequences** — not "we chose Option 1", but "because of this decision, the user will experience Y in situation X"
+- The narrative form for Quick Fix Mode: "under what operation does this bug occur → what the same operation becomes after the fix → what risk remains"
 
-## 內容結構（建議順序，依任務規模取捨）
+## Content structure (suggested order, trimmed to task scale)
 
-1. **一句話定位** — 這個 feature / fix 做什麼、為什麼現在做
-2. **Use case 走讀** — 上述 1-2 條場景敘事。**這是 briefing 的主體** — 架構重點、新概念、資料流都在場景中帶出，不另立概念清單
-3. **關鍵設計決定** — 場景走讀沒涵蓋到的 Decisions 結果，各一行場景化後果
-4. **刻意接受的限制** — Waivers + 各自付出的代價（user 該知道「我們放棄了什麼」）
-5. **實作展望** — Phase 結構、會動到哪些區域、大致範圍（Quick Fix：改動檔案清單 + 驗證方式）
-6. **明確邀請討論** — 結尾固定邀請：「如果哪裡跟你的預期不符，現在提出 — 比實作後改便宜得多」
+1. **One-sentence positioning** — what this feature / fix does, and why now
+2. **Use-case walkthrough** — the 1-2 scenario narratives above. **This is the body of the briefing** — architecture highlights, new concepts, and data flow are all brought out within the scenario, with no separate concept list
+3. **Key design decisions** — the resolved Decisions not covered by the walkthrough, each as a one-line scenario-grounded consequence
+4. **Deliberately accepted limitations** — Waivers + the cost each one pays (the user should know "what we gave up")
+5. **Implementation outlook** — Phase structure, which areas will be touched, rough scope (Quick Fix: list of changed files + verification method)
+6. **Explicit invitation to discuss** — a fixed closing invitation: "If anything doesn't match your expectations, raise it now — it's far cheaper than changing it after implementation"
 
-## 校準（為人類認知極限設計 — 同 decision-escalation-guide 哲學）
+## Calibration (designed for human cognitive limits — same philosophy as decision-escalation-guide)
 
-| ✅ 做 | ❌ 不做 |
+| ✅ Do | ❌ Don't |
 |---|---|
-| 從實際 use case 走流程，概念在場景中出場時才介紹 | 純概念條列 — 元件名 + pattern 名堆疊，user 建立不了畫面 |
-| 全文 user 2-3 分鐘讀完（Spec Mode 約 20-40 行；Quick Fix / condensed 約 10-20 行）| 把 design.md 段落整段重貼 — briefing 是**翻譯**不是節錄 |
-| 口語 prose 為主，完整句子 | bullet 碎片堆疊、縮寫鏈、機械式填表 |
-| 新概念 / 專案特有術語第一次出現給一句解釋 | 假設 user 記得 design.md 裡的所有命名 |
-| 需要細節時指向文件位置（design.md §X / plan file 段落）| 為了完整性把細節全塞進 briefing |
-| 講 review 的**結論**（拍板了什麼、豁免了什麼）| 講 review 的**過程**（「我跑了 5 輪、第 3 輪發現…」— 無資訊量的 process narration）|
-| 按「user 沒讀過 spec」的假設寫 | 寫成 spec 的目錄索引（「§3 講架構、§4 講資料模型」）|
+| Walk the flow from a real use case, introducing concepts only when they enter the scenario | Pure conceptual list — stacking component names + pattern names, building no picture for the user |
+| Whole text read in 2-3 minutes (Spec Mode about 20-40 lines; Quick Fix / condensed about 10-20 lines) | Repaste whole paragraphs of design.md — the briefing is a **translation**, not an excerpt |
+| Mostly spoken prose, complete sentences | Stacked bullet fragments, abbreviation chains, mechanical form-filling |
+| Give a one-line explanation the first time a new concept / project-specific term appears | Assume the user remembers all the naming inside design.md |
+| When detail is needed, point to the document location (design.md §X / plan file section) | Cram all the detail into the briefing for completeness |
+| Tell the **conclusions** of review (what was resolved, what was waived) | Tell the **process** of review ("I ran 5 rounds, in round 3 I found…" — process narration with no information content) |
+| Write on the assumption that the user hasn't read the spec | Write it as a table of contents for the spec ("§3 covers architecture, §4 covers the data model") |
 
-## User 提出疑慮時的處理
+## Handling user concerns
 
-Briefing 的價值在於觸發討論 — user 回應後依性質處理：
+The value of the briefing lies in triggering discussion — after the user responds, handle it by nature:
 
-- **誤解** → 口頭澄清即可，必要時檢討 briefing 哪裡造成誤導
-- **Spec / plan 真的有問題** →
-  - Spec Mode：回 `/update-spec` 修正（觸發對應 verifier 重跑）；若還在 `/create-spec` 流程內直接修 + 補一輪 design-reviewer
-  - Quick Fix Mode：直接 Edit plan file；改動若涉及設計實質，補一輪 design-reviewer 再 ExitPlanMode
-- **新的偏好 / 原則浮現** → 依「Steering 演進機制」評估是否昇華進 steering
+- **Misunderstanding** → a verbal clarification suffices; where necessary, review where the briefing caused the misdirection
+- **The spec / plan really has a problem** →
+  - Spec Mode: go back to `/update-spec` to fix it (triggers the corresponding verifier to rerun); if still within the `/create-spec` flow, fix it directly + add a round of design-reviewer
+  - Quick Fix Mode: Edit the plan file directly; if the change involves design substance, add a round of design-reviewer before ExitPlanMode
+- **A new preference / principle surfaces** → evaluate per the "Steering Evolution Mechanism" whether to promote it into steering
 
-## Condensed briefing（/implement 隔 session 啟動、或 restart 後重進 plan mode）
+## Condensed briefing (/implement starting in a later session, or re-entering plan mode after a restart)
 
-完整 briefing 的壓縮版（10-20 行）：一句話定位、一條最短的 use case 主線（happy path 走一遍）、已拍板 Decisions / Waivers 各一行、本次 /implement 會執行的 task 範圍。同樣**以回合最終訊息交付** — 輸出後結束回合，user 回覆確認才進 Stage 1。目的是重建 context，不是重新討論 — spec 在上個 session 已收斂，除非 user 主動提出異議。
+A compressed version of the full briefing (10-20 lines): one-sentence positioning, one shortest use-case main line (walk the happy path once), resolved Decisions / Waivers one line each, the scope of tasks this /implement will execute. Likewise **delivered as the turn-final message** — after outputting it, end the turn, and only proceed to Stage 1 once the user confirms. The goal is to rebuild context, not to re-discuss — the spec converged in the previous session, unless the user raises an objection on their own.
 
-**restart 後手動重進 plan mode 續流程**也是 condensed briefing 的時機：Claude Code 重開會掉 plan mode 狀態，user 為了續接會手動 shift+tab 重進。此時在 ExitPlanMode 之前先補一段 condensed briefing（這次 plan 的重點 + 接下來要做什麼），既幫 user（與你自己）重建中斷的 context，也滿足 briefing checkpoint hook 對「當前這次 plan session」的要求（hook 把手動重進當成新一次 plan session，要求自重進後要有 briefing + user 回覆）。
+**Manually re-entering plan mode to resume the flow after a restart** is also a moment for a condensed briefing: reopening Claude Code loses plan mode state, and to resume the user will manually shift+tab back in. At this point, before ExitPlanMode, add a condensed briefing (the key points of this plan + what's next), which both helps the user (and yourself) rebuild the interrupted context and satisfies the briefing checkpoint hook's requirement for "this current plan session" (the hook treats a manual re-entry as a new plan session, requiring a briefing + user reply after the re-entry).

@@ -1,148 +1,156 @@
 # Changelog
 
-版本歷史與決策脈絡集中於此。skill / reference / agent 文件只描述**當前規則 + 技術理由**，不narrate 版本演進 — 與本 plugin 自己的「正式文件描述決定後的世界」原則一致。
+Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
+
+## 1.7.4 (2026-06-29)
+
+Translate all plugin prose from Chinese to English — SKILL.md, every `references/*.md`, the agents, commands, templates, the hooks' output strings, and this changelog. The translation was deferred at 1.6.7 until the workflow stabilized.
+
+- **Scope**: 31 files. README.md and the product/tech/structure templates were already English. A canonical glossary (e.g. 強制→mandatory, 豁免→waiver, 收斂→converge, Steering 演進機制→"Steering Evolution Mechanism") was fixed from SKILL.md first so cross-referenced section names and recurring terms stay consistent across files.
+- **No behavior change**: the `briefing-checkpoint` hook matches on transcript structure (not message text), so its regression test still passes 12/12. The one deliberate non-English character left is the fullwidth colon `：` inside `spec-verifier`'s waiver-detection regex `[：:]`, which matches residue in either colon style.
+- **One adaptation**: `spec-verifier`'s review-residue detection regexes were switched from Chinese verb-lists (`reviewer (建議|標記|…)`) to English (`reviewer (suggested|flagged|…)`) to match the now-English docs being scanned.
 
 ## 1.7.3 (2026-06-28)
 
-把 Steering Candidate 的門檻大幅拉高、預設不昇華 —— 解決「每輪 review / 實作後幾乎都冒出一堆其實是 spec-specific / 太細節 / 專案記憶級、不該進 steering 的昇華候選」的過度觸發問題。
+Raise the bar for Steering Candidates substantially and default to not promoting — solving the over-triggering problem where "almost every review round / post-implementation, a pile of promotion candidates pops up that are actually spec-specific / too detailed / project-memory-level, and shouldn't go into steering".
 
-- **根因**：SC 生成點（review-protocol「Steering Candidates」、兩個 reviewer 的 SC 段、checklists §6）門檻又低又模糊（「依賴或確立 steering 未記錄的專案級原則 / 慣例」就列）；SKILL「Steering 演進機制」的「為什麼」又偏向多昇華（強調不昇華會讓 steering 過時）；真正的排除清單只在 steering-guide，reviewer 生成 SC 時根本不會讀到。
-- **新門檻（權威定義在 `review-protocol.md`「Steering Candidates」）**：**預設不昇華**。三條同時成立才列 SC —— (1) 貫穿整個專案的核心概念 / 原則 / 慣例；(2) 不記進 steering 幾乎肯定會造成未來規劃或實作的不一致或困難（「不記會出事」而非「記了比較好」）；(3) steering 目前確實沒寫。**明確排除** spec-specific 選擇、實作細節、專案記憶級事實、「記了比較整齊但沒它也不會出事」的東西。判斷不出來就不是 SC。寧可漏一個邊緣的，也不要灌水（灌水稀釋護欄、洗版 user 注意力 —— 呼應 v1.7.0 的認知負擔準則）。
-- **同步收緊**：design-reviewer / implementation-reviewer 的 SC 段、checklists §6（Design + Impl）、spec-implementer 的候選提報、decision-escalation 的「拍板後昇華判斷」都改成高門檻 + 預設不昇華；SKILL「Steering 演進機制」加克制原則、「為什麼」改成平衡（過度昇華是更常見的實務失敗）；核心原則 #7 `Steering is Living` → `Steering is Living (but restrained)`。
+- **Root cause**: the SC generation points (review-protocol's "Steering Candidates", the SC sections of the two reviewers, checklists §6) had a bar that was both low and vague ("depends on or establishes a project-level principle / convention not recorded in steering" was enough to list it); the SKILL's "Steering Evolution Mechanism" "why" leaned toward more promotion (emphasizing that not promoting lets steering go stale); and the real exclusion list lived only in steering-guide, which the reviewer never reads when generating an SC.
+- **New bar (authoritative definition in `review-protocol.md` "Steering Candidates")**: **default to not promoting**. List an SC only when all three hold simultaneously — (1) a core concept / principle / convention that runs through the entire project; (2) not recording it in steering would almost certainly cause inconsistency or difficulty in future planning or implementation ("not recording it will cause trouble", not "recording it would be nicer"); (3) steering genuinely doesn't have it yet. **Explicitly excludes** spec-specific choices, implementation details, project-memory-level facts, and things that are "tidier if recorded but won't cause trouble without". If you can't decide, it's not an SC. Better to miss a borderline one than to pad the list (padding dilutes the guardrails and floods the user's attention — echoing the v1.7.0 cognitive-load principle).
+- **Tightened in sync**: the SC sections of design-reviewer / implementation-reviewer, checklists §6 (Design + Impl), spec-implementer's candidate reporting, and decision-escalation's "post-resolution promotion judgment" were all changed to a high bar + default to not promoting; the SKILL's "Steering Evolution Mechanism" gained a restraint principle, and its "why" was rebalanced (over-promotion is the more common practical failure); Core Principle #7 `Steering is Living` → `Steering is Living (but restrained)`.
 
 ## 1.7.2 (2026-06-28)
 
-新增 SessionStart hook，在 session 啟動 / resume 時注入一段提醒，要 agent 載入並使用 spec-driven-development skill（補強 skill 容易被 under-trigger 的問題）。
+Add a SessionStart hook that injects a reminder at session startup / resume, telling the agent to load and use the spec-driven-development skill (shoring up the skill's tendency to be under-triggered).
 
-- 新增 `hooks/session-start-skill-reminder.js`：固定輸出 `hookSpecificOutput.additionalContext` 一段提醒 —— 「本專案安裝了此 skill；若為程式專案，規劃/動手前先載入並使用（會自動分流 Quick Fix / Spec Mode 並跑強制 review loop）；非程式專案略過」。掛在 hooks.json 的 SessionStart，matcher `startup|resume`（不含 compact，避免 session 中途注入）。
-- **不做專案偵測**：是否為程式專案的判斷直接寫進 prompt、交給 agent。SessionStart 每次啟動都跑，靜態字串最輕量，省去 file-scan 成本與型別誤判。
-- SessionStart 無法 block、純注入 context；腳本唯讀、無副作用。hooks.json / README Hooks 章節同步描述兩個 hook。
+- Add `hooks/session-start-skill-reminder.js`: statically outputs a `hookSpecificOutput.additionalContext` reminder — "this project has the skill installed; if it's a code project, load and use it before planning/starting work (it auto-routes to Quick Fix / Spec Mode and runs the mandatory review loop); skip for non-code projects". Mounted on hooks.json's SessionStart, matcher `startup|resume` (excluding compact, to avoid injecting mid-session).
+- **No project detection**: whether it's a code project is stated directly in the prompt and left to the agent. SessionStart runs on every startup, so a static string is the lightest option — saving file-scan cost and project-type misjudgment.
+- SessionStart cannot block, only injects context; the script is read-only and side-effect-free. The hooks.json / README Hooks section describe both hooks in sync.
 
 ## 1.7.1 (2026-06-28)
 
-修正 briefing checkpoint hook 在**手動進入 plan mode**（尤其 restart 後重進）會誤擋、卡住的問題。
+Fix the briefing checkpoint hook falsely blocking and getting stuck when **manually entering plan mode** (especially re-entering after a restart).
 
-- **根因**：1.6.7 把 hook 改成「保護每一個 ExitPlanMode」，但用「最近一則實質訊息是不是 user 回覆」判斷，而它**看不見手動進入 plan mode 的標記**（`{type:"permission-mode",permissionMode:"plan"}` 不是 user/assistant，被 classify 當雜訊跳過）。於是往回走會越過手動重進的標記、甚至越過 restart，撞到 restart **之前**的 agent 文字就 DENY —— deny 指向跟這次 plan session 無關的過時文字，agent 搞不清狀況而卡住。典型觸發：agent 進 plan mode → 過陣子重開 Claude Code（plan mode 狀態掉了）→ user 手動 shift+tab 重進續流程 → ExitPlanMode 被卡。
-- **修法**：把檢查**錨定在「當前這次 plan session」**。往回走遇到 plan mode 的（重）進入邊界就停 —— 手動的 `permission-mode:"plan"` 標記，或 agent 的 `EnterPlanMode` tool call。邊界之後沒有 briefing + user 回覆 → DENY（但可解：brief → 結束回合等回覆 → 重試即放行）；邊界之後有 user 回覆 → 放行。如此 deny 不再洩漏到 restart 之前的過時文字，且 restart 後重進會正確要求補一段新的 briefing。
-- **配套**：briefing-guide 新增「restart 後手動重進 plan mode 續流程 → ExitPlanMode 前補 condensed briefing」觸發，沿用既有「/implement 隔 session condensed briefing」pattern，讓 agent 自動補 briefing、全程不卡。
-- 新增 `hooks/briefing-checkpoint.test.js`：用真實 transcript 的標記形狀構造情境（spec-driven 有/無 briefing、手動重進有/無 briefing、不可洩漏到 restart 前的 stale reply 等），`node` 直接跑、免 test framework。鎖住這個曾在 1.6.6 漏掉手動進入路徑的回歸。
-- hooks.json / README Hooks 章節同步描述錨定行為。
+- **Root cause**: 1.6.7 changed the hook to "protect every ExitPlanMode", but judged via "is the most recent substantive message a user reply", and it **can't see the manual-entry-into-plan-mode marker** (`{type:"permission-mode",permissionMode:"plan"}` is not user/assistant, so classify skips it as noise). So walking back, it passes over the manual re-entry marker, even past the restart, and DENYs as soon as it hits agent text from **before** the restart — the deny points at stale text unrelated to this plan session, the agent gets confused and stuck. Typical trigger: agent enters plan mode → some time later Claude Code is reopened (plan-mode state is dropped) → user manually shift+tabs to re-enter and resume the flow → ExitPlanMode gets stuck.
+- **Fix**: **anchor the check to "the current plan session"**. Walking back, stop at the (re-)entry boundary of plan mode — the manual `permission-mode:"plan"` marker, or the agent's `EnterPlanMode` tool call. No briefing + user reply after the boundary → DENY (but recoverable: brief → end the turn and wait for a reply → retrying allows it); a user reply after the boundary → allow. This way the deny no longer leaks to stale text from before the restart, and re-entering after a restart correctly asks for a fresh briefing.
+- **Accompanying**: briefing-guide adds a "manually re-enter plan mode after a restart to resume the flow → add a condensed briefing before ExitPlanMode" trigger, reusing the existing "/implement condensed briefing in a later session" pattern, so the agent adds the briefing automatically and never gets stuck.
+- Add `hooks/briefing-checkpoint.test.js`: constructs scenarios from the real-transcript marker shapes (spec-driven with/without briefing, manual re-entry with/without briefing, must-not-leak-to-the-stale-reply-before-restart, etc.), runs directly with `node`, no test framework needed. Locks down this regression, whose manual-entry path was missed back in 1.6.6.
+- The hooks.json / README Hooks section describe the anchoring behavior in sync.
 
 ## 1.7.0 (2026-06-28)
 
-把「為人類認知負擔校準」昇華為主 agent 全域準則，並讓 review 與 briefing 共用同一個「使用情境 + 執行流程 + 資料結構」透鏡。
+Promote "Calibrate for Cognitive Load" into a global principle for the main agent, and let review and briefing share the same "use case + execution flow + data structure" lens.
 
-- **新增全域準則（核心原則 9）「Calibrate for Cognitive Load」**：主 agent 對 user 的任何輸出（mode 宣告 / 進度 / 問題說明 / review 結論 / summary / Decision 升級 / briefing）都先消化、抽象再呈現。過去認知負擔校準的哲學散落在 briefing-guide 與 decision-escalation-guide 兩個檢查點，沒有一條全域準則 — SKILL.md 新增「為人類認知負擔校準」節統一三個下游應用。放 SKILL.md 而非 reference：reference 只在跑到該檢查點才 lazy load，全域準則必須常駐 context。
-- **review 改為 use-case-first**：`review-protocol.md` 新增「Review 方法：先建使用情境模型，再交叉比對」 — 先盤點真實 use cases + 資料結構 + 執行流程當判斷基準，而非從 checklist 條目逐條套。design-reviewer / implementation-reviewer 工作流程加「先建使用情境模型」步驟，checklists.md 兩節開頭加 gating note 指向協定（不重述，防漂移）。
-- **新增上位判準「無使用情境的邊緣 case 不過度設計」**：理論可達但無真實情境驅動、不應發生的路徑 → 不寫防禦程式碼，改 fail-fast + error log（不可 silent）。明文界定這是「不過度設計」非忽略 robustness — 有真實情境的失敗路徑照常要 robust。凌駕 Failure Modes / Bugs 面向。
-- **briefing 與 review 收斂為同一透鏡**：briefing-guide 強化「從 use case 出發」→ 帶出該情境觸及的執行流程與資料結構、不假設 user 記得前幾輪講過的結構（人類跨輪 / 長期會忘記架構）；明講 briefing 重點說明的就是 review 找出的核心設計概念。decision-escalation-guide 加 cross-link 標明它是全域準則的具體化。
-- 連帶：核心原則清單 Spec / Quick Fix Mode 編號順移（9–14 → 10–15，#1–#8 不動，CHANGELOG 對「核心原則 8」的引用不受影響）；README Core Principles 同步。
+- **Add a global principle (Core Principle 9) "Calibrate for Cognitive Load"**: any output the main agent gives the user (mode declaration / progress / problem explanation / review conclusion / summary / Decision escalation / briefing) is first digested and abstracted before being presented. Previously the cognitive-load-calibration philosophy was scattered across two checkpoints, briefing-guide and decision-escalation-guide, with no single global principle — SKILL.md adds a "Calibrate for Cognitive Load" section unifying the three downstream applications. Put in SKILL.md rather than a reference: a reference is only lazy-loaded when that checkpoint is reached, but a global principle must stay resident in context.
+- **Review becomes use-case-first**: `review-protocol.md` adds "Review method: build a use-case model first, then cross-check" — first inventory the real use cases + data structures + execution flows as the basis for judgment, rather than applying checklist items one by one. The design-reviewer / implementation-reviewer workflows gain a "build the use-case model first" step, and the two checklists.md sections add a gating note at the top pointing to the protocol (not restating it, to prevent drift).
+- **Add an overriding criterion "do not over-engineer edge cases with no use case"**: paths that are theoretically reachable but driven by no real scenario and shouldn't happen → write no defensive code, use fail-fast + error log instead (must not be silent). Explicitly framed as "not over-engineering" rather than ignoring robustness — failure paths with a real scenario must still be robust as usual. Overrides the Failure Modes / Bugs aspects.
+- **briefing and review converge on the same lens**: briefing-guide strengthens "start from the use case" → surfacing the execution flows and data structures that scenario touches, not assuming the user remembers structures explained in earlier rounds (humans forget the architecture across rounds / over time); it states plainly that what the briefing highlights is exactly the core design concepts the review surfaced. decision-escalation-guide adds a cross-link marking it as a concretization of the global principle.
+- Knock-on: the core-principles list's Spec / Quick Fix Mode numbering shifts (9–14 → 10–15, #1–#8 unchanged, and the CHANGELOG's references to "Core Principle 8" are unaffected); README Core Principles in sync.
 
 ## 1.6.8 (2026-06-16)
 
-修正 hook 對 **deferred ExitPlanMode** 的誤擋。實測:user 批准後,agent 必須先 `ToolSearch` 載入 deferred 的 ExitPlanMode 工具（並常回一句確認）,這些 agent 回合插在「user 批准」與「ExitPlanMode」之間 → hook 看到緊鄰的是 agent 動作而非 user 回覆 → 誤擋,逼 user 再批准一次。
+Fix the hook's false block on a **deferred ExitPlanMode**. Observed in practice: after the user approves, the agent must first `ToolSearch` to load the deferred ExitPlanMode tool (and often replies with an acknowledgment), and these agent turns sit between "user approval" and "ExitPlanMode" → the hook sees the immediately preceding entry as an agent action rather than a user reply → false block, forcing the user to approve again.
 
-- **修法**：hook 往回找時**略過 agent 的機械性回合**（任何帶 `tool_use` 的 assistant 回合 —— ExitPlanMode 本身、載入它的 ToolSearch、批准後的 Edit 等）+ tool_result + 注入訊息,只認第一個「實質」訊息:user 回覆 → 放行；agent 純文字（其後無 user 回覆）→ 擋。
-- 「agent 講完話沒等 user 回覆就 ExitPlanMode」仍擋得住；deferred-tool ToolSearch、批准後小編輯不再誤擋。代價:純靠 tool call、完全無文字敘述的 skip 可能漏（安全方向,絕不 false-block）。
+- **Fix**: when walking back, the hook **skips the agent's mechanical turns** (any assistant turn with a `tool_use` — ExitPlanMode itself, the ToolSearch that loads it, a post-approval Edit, etc.) + tool_result + injected messages, recognizing only the first "substantive" message: a user reply → allow; agent plain text (with no user reply after it) → block.
+- "the agent finishes talking and ExitPlanModes without waiting for a user reply" is still blocked; the deferred-tool ToolSearch and post-approval small edits are no longer falsely blocked. Cost: a skip done purely via tool calls with no narration at all may slip through (the safe direction, never false-blocks).
 
 ## 1.6.7 (2026-06-16)
 
-briefing 全面覆蓋 + /update-spec 升級到與 /create-spec 同等紀律。
+Full briefing coverage + /update-spec upgraded to the same discipline as /create-spec.
 
-- **briefing 重新定位**：briefing 是為了**降低讀完整 plan/spec 的認知負擔**,不只是審核 gate。所以凡 user 即將面對一大坨 plan/spec 的時刻都該有 briefing,不只 Quick Fix。
-- **新增 briefing 點**：/create-spec plan-exit（方向確認,輕量）、/update-spec plan-exit（改動規劃）、/update-spec 結尾（改動定案 Spec Briefing）。原有的 /create-spec 結尾 Spec Briefing、Quick Fix Plan Briefing、/implement condensed 不變。
-- **/update-spec 升級**：design.md 有實質變更時,跑與 /create-spec **同等的強制 design-reviewer 多輪 loop**（到 0 issues,同協定:Decisions 兩拍、Critical/High 必修、Medium/Low defer-and-batch、Steering Candidates、保險絲、100% 隔離）;plan-exit + 結尾各一個 briefing。改已完成的 spec 風險不亞於新建,不該是更輕的路徑。純 requirements 釐清 / 純 tasks 狀態 bookkeeping 可略過 loop。
-- **hook 改為保護「每一個 ExitPlanMode」**（移除 1.6.6 的 design-reviewer cycle-scoping）：理由 — briefing 降認知負擔對任何 plan 都有益,且 hook fail-open 不會弄壞 plan mode,故不限縮。好處:create-spec/update-spec 的 plan-exit 不會漏（其 design-reviewer Mode A 是 optional,scoping 會漏判）;普通 plan mode 也一併受保護（多一道摘要、無害）。hook 因此**大幅簡化** — 只剩「ExitPlanMode 前一則是否為 user 回覆」的 skip 判斷 + isSidechain/isMeta 濾除 + fail-open,移除了 design-reviewer 偵測與 cycle-start 界定整套。
-- 連帶:design-reviewer 適用範圍加 /update-spec、review-protocol 收斂提醒改 mode-aware、briefing-guide 觸發表 + 認知負擔原則 + 三層架構第 3 層同步。
+- **briefing repositioned**: a briefing exists to **lower the cognitive load of reading a full plan/spec**, not merely as an approval gate. So every moment the user is about to face a wall of plan/spec should have a briefing, not just Quick Fix.
+- **New briefing points**: /create-spec plan-exit (direction confirmation, lightweight), /update-spec plan-exit (change planning), /update-spec end (change-finalized Spec Briefing). The existing /create-spec end Spec Briefing, Quick Fix Plan Briefing, and /implement condensed are unchanged.
+- **/update-spec upgraded**: when design.md has substantive changes, run the **mandatory multi-round design-reviewer loop, the same as /create-spec** (to 0 issues, same protocol: two-beat Decisions, Critical/High must-fix, Medium/Low defer-and-batch, Steering Candidates, convergence fuse, 100% isolation); a briefing each at plan-exit + end. Modifying a finished spec is no less risky than creating one, and shouldn't be a lighter path. Pure requirements clarification / pure tasks-status bookkeeping may skip the loop.
+- **hook changed to protect "every ExitPlanMode"** (removing 1.6.6's design-reviewer cycle-scoping): reason — a briefing that lowers cognitive load benefits any plan, and the hook's fail-open won't break plan mode, so no narrowing. Benefits: the create-spec/update-spec plan-exit won't be missed (its design-reviewer Mode A is optional, and scoping would misjudge it); plain plan mode is protected too (one extra summary, harmless). The hook is therefore **greatly simplified** — leaving only the "is the entry before ExitPlanMode a user reply" skip judgment + isSidechain/isMeta filtering + fail-open, removing the whole design-reviewer detection and cycle-start delimitation.
+- Knock-on: design-reviewer's scope adds /update-spec, review-protocol's convergence reminder becomes mode-aware, and briefing-guide's trigger table + cognitive-load principle + layer 3 of the three-layer architecture are in sync.
 
 ## 1.6.6 (2026-06-15)
 
-ExitPlanMode 的 briefing checkpoint 從 **prompt hook 改為 deterministic command hook**，根治 1.6.2–1.6.5 的 deadlock。（註:本版號先前曾有一個「移除 hook」的短命提交被 push 後又 force-push 撤回、未留存於遠端;此 1.6.6 為正式版本。若本機 plugin cache 殘留舊的 1.6.6 目錄,需清除後重新拉取才會取得此版內容。）
+The ExitPlanMode briefing checkpoint changed from a **prompt hook to a deterministic command hook**, curing the 1.6.2–1.6.5 deadlock for good. (Note: this version number previously had a short-lived "remove the hook" commit that was pushed and then reverted via force-push, not retained on the remote; this 1.6.6 is the official release. If a stale 1.6.6 directory remains in the local plugin cache, it must be cleared and re-pulled to get this version's content.)
 
-- **根因**：prompt hook 的判斷者是一個 LLM、看不到對話歷史。即使被指示「永遠放行」，它仍會因「無法確認 briefing 是否已交付」保守 block ExitPlanMode —— briefing 已正確交付、user 已確認的情況下照樣擋，造成 agent 無法 propose plan 的 deadlock（實測連 block 兩次）。LLM 會自我推翻 prompt 指令，無法當可靠的 gate。
-- **解法**：改用 Node command hook（`hooks/briefing-checkpoint.js`，deterministic code，非 LLM）。讀 transcript 判斷「ExitPlanMode 前一則是否為真正的 user 回覆」—— turn-final briefing 紀律保證合法流程一定緊接 user 回覆；skip 一定是 assistant / tool_result。是 → 放行；skip → 擋並回一句簡短提醒。
-- **範圍限縮（不綁架正常 plan mode）**：hook 雖掛在所有 ExitPlanMode，但**只在「這個 plan cycle 跑過 design-reviewer」**（= spec-driven Quick Fix 流程）時才 enforce。cycle 起點用**最近一次進 plan mode**（`permission-mode:plan` / `mode:plan` / `EnterPlanMode` tool_use）界定,design-reviewer 須在起點之後才算數 —— 兩輪之間（如 Spec Mode `/create-spec`,也跑 design-reviewer 但不在 plan mode）的呼叫不會被誤計。**找不到 cycle 起點即放行**(不退用「上一個 ExitPlanMode」當邊界,那是上一輪結尾、會把空檔折進來造成 false-positive)。普通 plan mode 沒有 design-reviewer → 一律放行,裝了 plugin 不會影響內建 plan mode。
-- **不會 deadlock**：briefing 完 + user 回覆後前一則就是 user 訊息 → 放行；且 **fail-open** —— 讀不到 transcript / 解析失敗 / 非 Quick Fix cycle 一律放行，只在「確定是 spec-driven cycle 內的 skip」才擋。
-- **判別細節**：subagent 呼叫在 transcript 是 `Agent`/`Task` tool_use + `input.subagent_type`；hook 據此偵測 design-reviewer。並濾除 `isSidechain`（subagent 內部訊息,否則會 false-deny）與 `isMeta`（注入的 local-command / reminder,否則 false-allow）。真人回覆是 `type:user` 且 content 為 string。
-- **marker 經實測驗證**（對真實 transcript）：user 手動 shift+tab 進 plan mode → `{type:"permission-mode", permissionMode:"plan"}`；agent 用工具進 → `EnterPlanMode` tool_use。兩條 cycle-start 路徑都偵測得到,所以「user 先手動進 plan mode」不會造成漏判。（`mode` 欄位在 bypassPermissions session 恆為 `"normal"`,plan 狀態存在 `permissionMode`。）
-- **跨平台 + 無狀態**：純 Node（Claude Code 自帶），Windows/Linux/Mac 通用；只讀 stdin + transcript（唯讀），不在任何地方（含專案資料夾）寫檔。命令用 `node "${CLAUDE_PLUGIN_ROOT}/hooks/briefing-checkpoint.js"`。
-- briefing-guide「三層提醒架構」第 3 層改述為 command hook；README Hooks 章節同步。
+- **Root cause**: the prompt hook's judge is an LLM that can't see the conversation history. Even when instructed to "always allow", it still conservatively blocks ExitPlanMode because it "can't confirm whether the briefing was delivered" — blocking even when the briefing was correctly delivered and the user confirmed, causing a deadlock where the agent can't propose a plan (observed blocking twice in a row in practice). An LLM will override the prompt instruction itself, and can't serve as a reliable gate.
+- **Solution**: switch to a Node command hook (`hooks/briefing-checkpoint.js`, deterministic code, not an LLM). Reads the transcript to judge "is the entry before ExitPlanMode a real user reply" — the turn-final briefing discipline guarantees a legitimate flow is always immediately preceded by a user reply; a skip is always assistant / tool_result. Yes → allow; skip → block and return a short reminder.
+- **Scope narrowing (no hijacking of normal plan mode)**: although the hook is mounted on all ExitPlanMode, it only enforces **when "this plan cycle has run design-reviewer"** (= the spec-driven Quick Fix flow). The cycle start is delimited by **the most recent entry into plan mode** (`permission-mode:plan` / `mode:plan` / `EnterPlanMode` tool_use), and design-reviewer only counts if it comes after that start — calls between rounds (e.g. Spec Mode `/create-spec`, which also runs design-reviewer but not in plan mode) won't be miscounted. **If no cycle start is found, allow** (do not fall back to "the previous ExitPlanMode" as the boundary — that's the previous round's end and would fold the gap in, producing a false positive). Plain plan mode has no design-reviewer → always allow, so installing the plugin won't affect built-in plan mode.
+- **No deadlock**: after the briefing + user reply, the preceding entry is a user message → allow; and **fail-open** — unreadable transcript / parse failure / not a Quick Fix cycle all allow, blocking only on "a confirmed skip inside a spec-driven cycle".
+- **Detection details**: a subagent call appears in the transcript as an `Agent`/`Task` tool_use + `input.subagent_type`; the hook detects design-reviewer from this. It also filters out `isSidechain` (subagent-internal messages, otherwise false-deny) and `isMeta` (injected local-command / reminder, otherwise false-allow). A real human reply is `type:user` with string content.
+- **Markers verified in practice** (against real transcripts): user manually shift+tabs into plan mode → `{type:"permission-mode", permissionMode:"plan"}`; agent enters via tool → `EnterPlanMode` tool_use. Both cycle-start paths are detectable, so "user manually enters plan mode first" won't cause a miss. (The `mode` field is always `"normal"` in a bypassPermissions session; the plan state lives in `permissionMode`.)
+- **Cross-platform + stateless**: pure Node (shipped with Claude Code), works on Windows/Linux/Mac; only reads stdin + transcript (read-only), writes no file anywhere (including the project folder). The command uses `node "${CLAUDE_PLUGIN_ROOT}/hooks/briefing-checkpoint.js"`.
+- briefing-guide's "three-layer reminder architecture" layer 3 is restated as a command hook; README Hooks section in sync.
 
 ## 1.6.5 (2026-06-12)
 
-- **Briefing / 提問改為「回合終止交付」**（實測回饋：1.6.4 兩拍制下 briefing 仍然看不到）：根因 — 夾在 tool call 前的「回合中段文字」顯示不可靠，CLI 與 remote-control 都會整段隱形，只有**回合最終訊息**在所有 client 保證顯示。修正：
-  - Briefing（Plan / Spec / condensed）必須以**回合最終訊息**交付並**結束回合**（同回合不接 AskUserQuestion / ExitPlanMode / 任何工具）；結尾固定確認問句，**user 的回覆就是確認** — briefing 停點不再需要 AskUserQuestion 選項卡
-  - Decision escalation 的兩拍制改為**兩個回合**：briefing 回合（最終訊息 + 結束回合）→ user 回覆 → 提問回合（短 stem AskUserQuestion；user 已在回覆中表態則跳過）
-  - 三層提醒（review-protocol 收斂結論 / tasks-design-verifier 報告 / ExitPlanMode hook）措辭同步；briefing-guide 新增「補救」節（user 反映沒看到 → 以回合最終訊息重新交付）
+- **Briefing / questions changed to "turn-final delivery"** (field feedback: under 1.6.4's two-beat scheme the briefing was still invisible): root cause — "mid-turn text" placed before a tool call displays unreliably, both the CLI and remote-control hide the whole block, and only a **turn-final message** is guaranteed to display in all clients. Fixes:
+  - The briefing (Plan / Spec / condensed) must be delivered as a **turn-final message** and **end the turn** (no AskUserQuestion / ExitPlanMode / any tool in the same turn); a fixed confirmation question at the end, and **the user's reply is the confirmation** — the briefing stop point no longer needs an AskUserQuestion option card
+  - Decision escalation's two-beat scheme becomes **two turns**: the briefing turn (final message + end the turn) → user reply → the question turn (short-stem AskUserQuestion; skipped if the user already took a position in the reply)
+  - The three-layer reminders (review-protocol convergence conclusion / tasks-design-verifier report / ExitPlanMode hook) are reworded in sync; briefing-guide adds a "remedy" section (user reports not seeing it → redeliver as a turn-final message)
 
 ## 1.6.4 (2026-06-12)
 
-- **AskUserQuestion 全面兩拍制**（實測截圖回饋：Decision 提問時 user 看不懂在問什麼）：context 塞進 question stem 的策略與 TUI 對抗 — stem 對話框窄小難讀、code preview 被折疊，且內容易壓縮成未解釋的行話。改為：(1) 先用對話文字輸出問題 briefing（review 脈絡 + 以實際 use case 講問題 + code 對照，markdown 完整渲染）；(2) 再發 stem 很短（1-3 行）的 AskUserQuestion。適用所有 AskUserQuestion 互動：Decision 拍板、Medium/Low waiver 批次、Steering Candidates 批次
-- decision-escalation-guide 的好範例改寫為兩拍制示範，第一拍以 use case 開場（「列表頁圖示 → A 看到 B 的記憶暗示」），不從概念詞開場
+- **AskUserQuestion fully two-beat** (screenshot feedback from the field: at a Decision question the user couldn't tell what was being asked): the strategy of stuffing context into the question stem fights the TUI — the stem dialog is narrow and hard to read, the code preview is collapsed, and the content easily compresses into unexplained jargon. Changed to: (1) first output the question briefing as conversational text (review context + explaining the problem via an actual use case + code comparison, fully rendered as markdown); (2) then send an AskUserQuestion with a very short stem (1-3 lines). Applies to all AskUserQuestion interactions: Decision resolution, Medium/Low waiver batches, Steering Candidates batches
+- decision-escalation-guide's good example is rewritten as a two-beat demonstration, the first beat opening with a use case ("list-page icon → the memory cue of A seeing B"), not opening with a concept word
 
 ## 1.6.3 (2026-06-12)
 
-- **Briefing 敘事方式改為 use-case-driven**：briefing 與 plan / design 的本質差異是敘事視角 — 文件描述「系統是什麼」（概念性、為反覆查閱優化），briefing 描述「使用者會經歷什麼」（為第一次理解優化）。以 1-2 條代表性 use case（happy path + 關鍵 failure path）走流程，元件 / 新概念 / Decisions 的後果在場景中帶出，取代純概念條列；Quick Fix 敘事形：「bug 在什麼操作下發生 → 修完同個操作變怎樣 → 剩什麼風險」
-- **1.6.2 根因記錄修正**：實測發現 briefing 並非完全沒觸發 — 是文字輸出後緊接 ExitPlanMode，被 plan 審核視窗蓋掉看不到（UI 層問題）。1.6.2 的兩拍制剛好同時解決可見性（AskUserQuestion 小選項框在 plan 大視窗之前，briefing 文字就在其上方可見）；三層提醒保留，防真正跳過的情況
+- **Briefing narration changed to use-case-driven**: the essential difference between a briefing and a plan / design is narrative viewpoint — a doc describes "what the system is" (conceptual, optimized for repeated reference), a briefing describes "what the user will experience" (optimized for first-time understanding). Walk through 1-2 representative use cases (happy path + key failure path), surfacing the consequences of components / new concepts / Decisions within the scenario, replacing a pure conceptual list; the Quick Fix narrative form: "under what operation the bug occurs → what that same operation becomes after the fix → what risk remains"
+- **1.6.2 root-cause record corrected**: in practice the briefing wasn't entirely failing to trigger — the text was output and immediately followed by ExitPlanMode, covered by the plan approval window and thus invisible (a UI-layer problem). 1.6.2's two-beat scheme happens to also solve visibility (the small AskUserQuestion option box comes before the large plan window, so the briefing text is visible above it); the three-layer reminders are kept to guard against genuine skips
 
 ## 1.6.2 (2026-06-12)
 
-針對 briefing 實測沒有出現的問題加固（後於 1.6.3 確認實際根因是 UI 遮蔽，本版的結構性修正仍然有效且必要）：(a) 純文字輸出步驟沒有 blocking tool call，agent 可能跳過或跟下一步擠在同一輪；(b) SKILL.md 在任務開頭載入，briefing 決策點在幾十輪 tool call 之後，步驟指示已遠離注意焦點（或被 context compaction 摘要掉）。
+Hardening against the field problem of the briefing not appearing (later, 1.6.3 confirmed the actual root cause was UI occlusion; this version's structural fixes remain valid and necessary): (a) the plain-text output step has no blocking tool call, so the agent might skip it or cram it into the same turn as the next step; (b) SKILL.md is loaded at the start of the task, but the briefing decision point is dozens of tool-call turns later, by which point the step instructions are far from the focus of attention (or summarized away by context compaction).
 
-- **兩拍制停點**：briefing 輸出後必須立即接 AskUserQuestion（「繼續」/「有疑問」）— tool call 才是強制停點，user 確認後才能進下一步（ExitPlanMode / 結束 /create-spec / Stage 1）
-- **三層轉場提醒**（把提醒放在轉場時刻的最新 context，不只靠任務開頭的步驟清單）：
-  1. review-protocol.md 收斂結論模板附帶續步提醒（design 收斂 → briefing 在 ExitPlanMode 前）
-  2. tasks-design-verifier 通過報告附帶 Spec Briefing 續步提醒（原樣輸出指定文字）
-  3. 新增 `hooks/hooks.json`：PreToolUse hook 攔 ExitPlanMode，harness 強制注入 briefing 檢查提醒（永不 block，只注入 systemMessage）— 不依賴模型自覺的最後防線
-- 注意：hooks 在 session 啟動時載入 — 更新 plugin 後需重啟 session 才生效
+- **Two-beat stop point**: after the briefing is output it must immediately be followed by an AskUserQuestion ("continue" / "have questions") — only a tool call is a mandatory stop point, and only after the user confirms can it proceed to the next step (ExitPlanMode / ending /create-spec / Stage 1)
+- **Three-layer transition reminders** (put the reminder in the freshest context at the moment of transition, not just relying on the step list at the start of the task):
+  1. review-protocol.md's convergence-conclusion template carries a next-step reminder (design converges → briefing before ExitPlanMode)
+  2. the tasks-design-verifier pass report carries a Spec Briefing next-step reminder (output the specified text verbatim)
+  3. add `hooks/hooks.json`: a PreToolUse hook intercepts ExitPlanMode, and the harness forcibly injects a briefing-check reminder (never blocks, only injects a systemMessage) — a last line of defense that doesn't rely on the model's self-awareness
+- Note: hooks are loaded at session start — after updating the plugin, the session must be restarted to take effect
 
 ## 1.6.1 (2026-06-11)
 
-- **Briefing 機制（Brief Before Build，核心原則 8）**：實作開始前主 agent 用對話輸出 spec / plan 重點摘要，讓 user 低成本進入狀況、在最便宜的時點觸發討論。三個觸發點：
-  - `/create-spec` 完成兩個 verifier 後 → 完整 Spec Briefing（定位 / 架構重點 / 拍板 Decisions / Waivers / 實作展望 + 邀請討論）
-  - `/implement` 於新 session 啟動 → condensed briefing（10-20 行重建 context）
-  - Quick Fix Mode 在 ExitPlanMode **之前** → Plan Briefing（ExitPlanMode 呈現完整 plan，briefing 是它的人類入口）
-- 新增 `references/briefing-guide.md`：內容結構 / 認知校準（2-3 分鐘讀完、翻譯不是節錄）/ user 疑慮處理流程。釐清與隔離紀律的關係 — briefing 是對話輸出非 formal doc，可（且應該）揭露 review 結論（Decisions / Waivers），但不回寫進文件
+- **Briefing mechanism (Brief Before Build, Core Principle 8)**: before implementation begins, the main agent uses conversation to output a summary of the spec / plan key points, letting the user get up to speed cheaply and triggering discussion at the cheapest moment. Three trigger points:
+  - `/create-spec` after the two verifiers pass → a full Spec Briefing (positioning / architecture highlights / resolved Decisions / Waivers / implementation outlook + an invitation to discuss)
+  - `/implement` starting in a new session → a condensed briefing (10-20 lines to rebuild context)
+  - Quick Fix Mode **before** ExitPlanMode → a Plan Briefing (ExitPlanMode presents the full plan, the briefing is its human entry point)
+- Add `references/briefing-guide.md`: content structure / cognitive calibration (readable in 2-3 minutes, a translation not an excerpt) / the process for handling user concerns. Clarifies its relationship to the isolation discipline — a briefing is conversational output, not a formal doc, and may (and should) reveal review conclusions (Decisions / Waivers), but is not written back into the docs
 
 ## 1.6.0 (2026-06-11)
 
-### Steering 整合
-- **Steering Alignment 成為正式 review 面向**：design-reviewer（面向 6）與 implementation-reviewer（面向 6）依 tech.md / structure.md 的選型、設計哲學、慣例、模組邊界審查設計與程式碼。判斷紀律：違反明文條文 → issue（通常 High）；與 steering 衝突但可能 steering 過時 → Architecture Decision（user 決定修設計或更新 steering）；steering 沒寫而本次確立新原則 → Steering Candidate
-- **Steering 演進機制**：三掛載點（reviewer 的 non-blocking `📌 Steering Candidates` 區段 / Architecture Decision 拍板後的昇華判斷 / 實作過程發現）+ 輕量更新路徑（AskUserQuestion 批次確認 → 直接 Edit steering → 一致性檢查），不走 /update-steering 完整 Plan Mode。review log 新增 §5 Steering Updates 記錄昇華項（原則 / 寫入位置 / 來源）
+### Steering integration
+- **Steering Alignment becomes a formal review aspect**: design-reviewer (aspect 6) and implementation-reviewer (aspect 6) review the design and code against tech.md / structure.md's technology choices, design philosophy, conventions, and module boundaries. Judgment discipline: violating an explicit clause → issue (usually High); conflicting with steering but steering may be stale → Architecture Decision (the user decides whether to fix the design or update steering); steering doesn't cover it and this round establishes a new principle → Steering Candidate
+- **Steering Evolution Mechanism**: three hook points (the reviewer's non-blocking `📌 Steering Candidates` section / the promotion judgment after an Architecture Decision is resolved / discoveries during implementation) + a lightweight update path (AskUserQuestion batch confirmation → directly Edit steering → consistency check), not going through /update-steering's full Plan Mode. The review log adds §5 Steering Updates recording promoted items (principle / where written / source)
 
-### Review loop 行為變更
-- **Medium/Low defer-and-batch**：mixed round 不再逐輪詢問 user — 累積到 Critical/High 清零的那一輪一次批次 AskUserQuestion
-- **收斂保險絲**：第 5 輪仍有新 Critical/High → 停止 loop，整理跨輪 pattern 向 user 報告結構性問題（升級，不是收斂）
-- **雙向誠實明文化**：reviewer 乾淨一輪輸出 0 issues 是好結果不是失職；發明 issue 與假收斂同罪
+### Review loop behavior changes
+- **Medium/Low defer-and-batch**: a mixed round no longer asks the user round by round — they accumulate until the round where Critical/High reaches zero, in a single batch AskUserQuestion
+- **Convergence fuse**: if round 5 still has new Critical/High → stop the loop and organize the cross-round pattern to report the structural problem to the user (escalate, not converge)
+- **Two-way honesty made explicit**: a reviewer outputting 0 issues on a clean round is a good result, not dereliction; inventing issues is as culpable as false convergence
 
-### 架構修正
-- **Reviewer 支援 Quick Fix Mode**：design-reviewer / implementation-reviewer 的 workflow 不再寫死 Spec Mode 路徑（steering / requirements / design.md / tasks.md）— 改為「讀主 agent 指定的文件；steering 存在才讀」，frontmatter description 同步涵蓋兩種 mode
-- **Reviewer model 改 `inherit`**：跟隨 session model，不再寫死 opus（verifier 類維持 sonnet）
-- **Quick Fix plan file 路徑去耦合**：不再寫死 `~/.claude/plans/<random>.md`，改為 EnterPlanMode 時確認實際路徑；環境未提供時 fallback 自建 `.spec/quickfix/<slug>.md`
+### Architecture fixes
+- **Reviewers support Quick Fix Mode**: the design-reviewer / implementation-reviewer workflow no longer hardcodes the Spec Mode paths (steering / requirements / design.md / tasks.md) — changed to "read the docs the main agent specifies; read steering only if it exists", and the frontmatter description covers both modes in sync
+- **Reviewer model changed to `inherit`**: follows the session model, no longer hardcoding opus (the verifier class stays sonnet)
+- **Quick Fix plan file path decoupled**: no longer hardcodes `~/.claude/plans/<random>.md`, instead confirming the actual path at EnterPlanMode; when the environment doesn't provide one, falls back to creating `.spec/quickfix/<slug>.md`
 
-### Drift 修正與單一來源化
-- spec-verifier 內嵌的 checklist 副本移除（含已漂移的「Prompt 欄位」stale 項）— checklists.md 為唯一來源；spec-verifier 僅保留其特有的跨文件 Review-Residue regex 檢查
-- reviewer agent 檔的審查面向細項清單收斂為一行式定調 + 指向 checklists.md；嚴重度表以 review-protocol.md 為唯一來源
-- checklists.md 修正殘留的舊版 /load-spec 驗證行為敘述（/load-spec 載入時不驗證）
-- spec-workflow.md 輸出位置補上 review-log.md；移除重複 bullet
-- review-log-template.md 不再把 `${CLAUDE_PLUGIN_ROOT}` 路徑複製進使用者 repo（變數在使用者專案不會展開）
-- decision-escalation-guide.md 移除殘留個人註記
-- README agents 表補上 design-reviewer；修正 implementation-reviewer 的「Review + fix」描述（reviewer 是 review only）
-- 文件內的版本敘事（「1.4.0 曾允許…1.5.0 廢止」）全部移除，保留行為理由（pointer 誘發 drift），歷史脈絡移入本檔
-- SKILL.md frontmatter 與 mode-selection.md 對齊：純文字編輯（README typo）可走非開發流程
+### Drift fixes and single-sourcing
+- The checklist copy embedded in spec-verifier is removed (including the drifted, stale "Prompt field" item) — checklists.md is the single source; spec-verifier keeps only its unique cross-file Review-Residue regex check
+- The reviewer agent files' detailed review-aspect lists are condensed into a one-line framing + a pointer to checklists.md; the severity table uses review-protocol.md as the single source
+- checklists.md fixes the leftover old-version description of /load-spec verification behavior (/load-spec does not verify on load)
+- spec-workflow.md adds review-log.md to the output locations; removes a duplicate bullet
+- review-log-template.md no longer copies the `${CLAUDE_PLUGIN_ROOT}` path into the user's repo (the variable won't expand in the user's project)
+- decision-escalation-guide.md removes a leftover personal note
+- The README agents table adds design-reviewer; fixes implementation-reviewer's "Review + fix" description (the reviewer is review only)
+- The version narration inside the docs ("1.4.0 once allowed… abolished in 1.5.0") is all removed, keeping the behavioral rationale (pointers induce drift), with the historical context moved into this file
+- SKILL.md frontmatter aligns with mode-selection.md: a pure-text edit (a README typo) may take the non-development path
 
 ## 1.5.0
 
-- **100% formal-doc 隔離**：廢止 1.4.0 的 footnote pointer（`> ⓘ ... — 詳見 review-log §X`）。實測發現：只要允許任何「formal doc 提一下 review-log」的後門，agent 會逐步退化 — 寫回整段 `## Architecture Decisions Record`（業界 ADR pattern 訓練深植）、在表格用 `(per Decision O)` letter tag、寫「Round 1 提出」過程敘述。唯一可靠的紀律邊界是 formal doc 對 review-log 完全零引用，設計理由用中性 design rationale（技術限制 / codebase 慣例 / 反面後果）表達
-- spec-verifier 新增跨文件 Review-Residue regex 檢查；implementation-reviewer 把 code 內 review-residue 註解開為新 Smell；新增 review-log-bad-examples.md（5 種 pattern bad/good 對照）
+- **100% formal-doc isolation**: abolish 1.4.0's footnote pointer (`> ⓘ ... — see review-log §X`). Found in practice: allowing any "the formal doc mentions the review-log" backdoor at all makes the agent gradually degrade — writing back a whole `## Architecture Decisions Record` section (the industry ADR pattern is deeply ingrained in training), using `(per Decision O)` letter tags in tables, writing "raised in Round 1" process narration. The only reliable discipline boundary is zero references from formal doc to review-log, with design rationale expressed as neutral design rationale (technical constraints / codebase conventions / adverse consequences)
+- spec-verifier adds a cross-file Review-Residue regex check; implementation-reviewer raises review-residue comments in code as a new Smell; add review-log-bad-examples.md (5 patterns, bad/good comparison)
 
 ## 1.4.0
 
-- **Review-log 機制**：waivers / decisions / 跨輪 audit trail 從正式文件移入 review-log.md（背景：tasks.md 曾被 8 行「SRP 例外（已知並接受）」區塊污染 — 正式文件回歸 single source of truth 可讀性）。當時允許 1 行 footnote pointer 作為「異常但 tracked」signal（1.5.0 廢止）
+- **Review Log Mechanism**: waivers / decisions / cross-round audit trail moved out of the formal docs into review-log.md (background: tasks.md was once polluted by an 8-line "SRP exception (known and accepted)" block — the formal docs return to single-source-of-truth readability). At the time a 1-line footnote pointer was allowed as an "anomalous but tracked" signal (abolished in 1.5.0)
 
-## 1.3.0 以前
+## Before 1.3.0
 
-- Architecture Decision 呈現紀律（decision-escalation-guide：context-first / code 直接貼 / 多維度 trade-off / AskUserQuestion 欄位使用）
-- Plan 內容指引（plan-content-guide：寫 substance 不寫 process narration）+ review protocol lazy loading
-- 兩 mode 路由（Quick Fix / Spec）+ 多輪 review protocol（D/I prefix、letter ID 跨輪累加、0 issues 收斂）
-- Steering 三文件 + spec 三文件工作流、verifier agents、spec-implementer 兩 mode
+- Architecture Decision Presentation Discipline (decision-escalation-guide: context-first / paste code directly / multi-dimensional trade-offs / AskUserQuestion field usage)
+- Plan content guidance (plan-content-guide: write substance not process narration) + review protocol lazy loading
+- Two-mode routing (Quick Fix / Spec) + the multi-round review protocol (D/I prefix, letter IDs accumulating across rounds, converge at 0 issues)
+- The three steering documents + three spec documents workflow, verifier agents, spec-implementer's two modes

@@ -1,18 +1,18 @@
 # Design Document
 
-> ## ⛔ 禁止段落（formal doc 100% 隔離原則）
+> ## ⛔ Forbidden sections (formal-doc 100% isolation principle)
 >
-> design.md **描述「決定後的世界」**，不夾雜 review 過程的任何痕跡。以下段落 / 內容 **絕對不可** 出現於本文件 — 違反會被 `spec-verifier` 拒絕：
+> design.md **describes "the world after the decisions are made"** and carries no trace of the review process. The following sections / content **must absolutely NOT** appear in this document — violations will be rejected by `spec-verifier`:
 >
-> - `## Architecture Decisions` / `## Decisions Record` / `## ADR` / `## Decision Log` 任何形式的 Decision 段落 — 所有 Decision content 屬 `review-log.md §2`
-> - 任何 **reviewer letter tag**：`(per Decision X)` / `(per Bug Y)` / `(per Smell Z)` / `Decision AL` / `Round 1 Bug C`
-> - 任何 **review 過程敘述**：「Round N review 提出」/ 「user 在 Round 3 拍板」/ 「reviewer 建議」/ 「review 期間發現」
-> - 任何 **review-log 引用**：`review-log.md` 字串 / `→ §W1` / `> ⓘ <一句話> — 詳見 review-log`
-> - 任何 **豁免 / 例外宣告**：`> **X 例外（已知並接受）**：` / `<!-- WAIVED -->` / `<!-- REVIEWER NOTE -->`
+> - Any form of Decision section — `## Architecture Decisions` / `## Decisions Record` / `## ADR` / `## Decision Log` — all Decision content belongs in `review-log.md §2`
+> - Any **reviewer letter tag**: `(per Decision X)` / `(per Bug Y)` / `(per Smell Z)` / `Decision AL` / `Round 1 Bug C`
+> - Any **review-process narration**: "raised in the Round N review" / "user resolved in Round 3" / "reviewer suggested" / "discovered during review"
+> - Any **review-log reference**: the `review-log.md` string / `→ §W1` / `> ⓘ <one-liner> — see review-log`
+> - Any **waiver / exception declaration**: `> **X exception (known and accepted)**:` / `<!-- WAIVED -->` / `<!-- REVIEWER NOTE -->`
 >
-> **若某 Component 設計需要解釋「為什麼這樣做」**：用**中性 design rationale**（技術限制 / codebase 慣例 / 反面後果）整合進 Component 描述。**不揭露** reviewer 來源、Decision 編號、review 過程。範例見 `references/review-log-bad-examples.md`。
+> **If a Component's design needs to explain "why it was done this way"**: use **neutral design rationale** (technical constraints / codebase conventions / adverse consequences) integrated into the Component description. **Do not reveal** the reviewer source, Decision number, or review process. See `references/review-log-bad-examples.md` for examples.
 >
-> **完整理由**：review log 是 single source of truth for 「為什麼是這個世界」；design.md 是 single source of truth for 「這個世界長什麼樣」。兩者物理隔離維持各自可讀性。
+> **Full rationale**: the review log is the single source of truth for "why this world"; design.md is the single source of truth for "what this world looks like". Physically isolating the two preserves the readability of each.
 
 ## Overview
 

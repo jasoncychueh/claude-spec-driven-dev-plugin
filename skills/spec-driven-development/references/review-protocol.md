@@ -1,171 +1,171 @@
-# Review Protocol（reviewer agent 共用）
+# Review Protocol (shared by reviewer agents)
 
-`design-reviewer` 跟 `implementation-reviewer` 共用同一套 review loop 機制。本文件是兩個 reviewer 與主 agent 都應該理解的「合約」。每個 reviewer agent 啟動時應該讀過這個文件，再回去看自己 agent prompt 裡的特有審查面向。
+`design-reviewer` and `implementation-reviewer` share the same review loop mechanism. This file is the "contract" that both reviewers and the main agent should understand. Each reviewer agent should read this file when it starts, then go back to the specific review dimensions in its own agent prompt.
 
-## 核心模型
+## Core model
 
-Reviewer 的價值來自**多輪對抗式審查**：每輪都假設前一輪有遺漏，直到收斂為止。這跟「一次過 review」的差別在於：複雜系統的 design / implementation flaw 通常**不是同個檢視角度能一次抓完的** — 修了 race condition 露出 idempotency 漏洞，修了 idempotency 才看見 invariant 沒守住。多輪 review 模擬這個「修一層、揭一層」的真實過程。
+A reviewer's value comes from **multi-round adversarial review**: every round assumes the previous round missed something, until convergence. The difference from a "one-pass review" is this: in a complex system, design / implementation flaws usually **cannot all be caught from a single inspection angle in one go** — fixing a race condition exposes an idempotency hole, fixing idempotency reveals an invariant that wasn't upheld. Multi-round review simulates this real "fix a layer, reveal a layer" process.
 
-收斂條件嚴格：**當輪 0 issues 才結束**。妥協（「夠好就停」）會讓系統累積技術債，且每次妥協會降低未來 review 的標準（thin-edge-of-the-wedge）。
+The convergence condition is strict: **end only when a round reports 0 issues**. Compromising ("good enough, let's stop") lets the system accumulate technical debt, and each compromise lowers the bar for future reviews (thin-edge-of-the-wedge).
 
-這條紀律有對稱的另一面：**乾淨的一輪輸出 `0 issues` 是好結果，不是失職**。為了顯得盡責而發明 issue（把 nit 升級成 High、對已正確的設計硬挑毛病），跟假收斂傷害的是同一個東西 — review 的可信度。兩個方向的誠實同等重要。
+This discipline has a symmetric flip side: **a clean round outputting `0 issues` is a good result, not a dereliction of duty**. Inventing issues to look diligent (promoting a nit to High, nitpicking an already-correct design) damages the same thing as false convergence — the credibility of the review. Honesty in both directions matters equally.
 
-**收斂保險絲**：若 review 進行到第 5 輪仍有**新的 Critical/High** 浮現，繼續 loop 通常已無意義 — 這代表 design / 實作本身有結構性問題（每修一處冒一處），或 review 在 churn。此時主 agent 應停止 loop，整理跨輪 issue 的 pattern 向 user 報告，由 user 決定：回頭重做 design、縮小 scope、或知情後繼續。保險絲是「停下來升級給 user」，**不是**「視為收斂」。
+**Convergence fuse**: if review reaches round 5 and **new Critical/High** still keep surfacing, continuing the loop is usually pointless — it means the design / implementation itself has a structural problem (every fix spawns another), or the review is churning. At this point the main agent should stop the loop, summarize the cross-round issue pattern, and report to the user, who decides: redo the design, narrow the scope, or continue with full knowledge. The fuse is "stop and escalate to the user", **not** "treat as converged".
 
-## Review 方法：先建使用情境模型，再交叉比對
+## Review method: build a use-case model first, then cross-check
 
-下面的審查面向 / checklist 是**檢查項目**，不是 review 的起點。起點是**真實會發生的使用情境**。每輪 review 開始時先盤點三件事，作為後續所有判斷的基準：
+The review dimensions / checklists below are **check items**, not the starting point of review. The starting point is **the usage scenarios that will actually occur**. At the start of each review round, first take stock of three things as the basis for all subsequent judgments:
 
-1. **使用情境（use cases / 場景）** — 這個 design / 實作服務哪些真實情境？happy path + 重要的 failure / edge path
-2. **相關資料結構** — 這些情境觸及哪些資料模型、欄位、狀態
-3. **執行流程** — 情境如何在元件間流動、誰呼叫誰、什麼順序
+1. **Use cases / scenarios** — which real scenarios does this design / implementation serve? happy path + important failure / edge paths
+2. **Relevant data structures** — which data models, fields, and states do these scenarios touch
+3. **Execution flow** — how the scenarios flow between components, who calls whom, in what order
 
-然後拿這三者去**交叉比對**：設計是否符合良好架構、是否符合 steering 文件規範、哪個情境會踩到設計缺陷。**從「真實情境會經歷什麼」找問題，而不是從 checklist 條目逐條套** — checklist 是覆蓋率保險，不是判斷的源頭。
+Then take these three and **cross-check**: does the design conform to good architecture, does it conform to the steering docs, which scenario would hit a design flaw. **Find problems from "what real scenarios go through", rather than running down the checklist item by item** — the checklist is coverage insurance, not the source of judgment.
 
-**為什麼**：從情境走讀才看得出缺陷的真實影響與優先序；脫離情境的 review 容易淪為理論性勾選，或對「理論上可達、實際不會發生」的路徑硬開 issue。這個透鏡也是 briefing / Decision escalation 用來降低 user 認知負擔的同一個透鏡（見 SKILL.md「為人類認知負擔校準」）—— **review 在這裡找出的「核心設計概念」，正是 briefing 要對 user 重點說明的東西**。
+**Why**: only by walking through scenarios can you see a flaw's real impact and priority; review detached from scenarios easily degenerates into theoretical box-ticking, or into raising issues for paths that are "reachable in theory, never happen in practice". This lens is the same lens that briefing / Decision escalation use to reduce the user's cognitive load (see SKILL.md "Calibrate for Cognitive Load") — **the "core design concepts" that review surfaces here are exactly what the briefing needs to explain to the user**.
 
-### 上位判準：無使用情境的邊緣 case 不要過度設計
+### Overriding criterion: don't over-engineer for edge cases with no use case
 
-某個 edge case 即使在資料結構 / 執行流程上理論可達，但若**沒有任何真實使用情境會驅動它、實際上不會也不應該發生**，就**不要為它寫過度的防禦程式碼與保護分支**。正確做法：確保程式落到該 dead end 時**停止執行並留下必要的 error log**（fail-fast，不可 silent 吞掉）。
+Even if some edge case is theoretically reachable in terms of data structure / execution flow, if **no real usage scenario drives it and it neither will nor should happen in practice**, then **don't write excessive defensive code and protective branches for it**. The correct approach: ensure that when the program lands at that dead end it **halts and leaves the necessary error log** (fail-fast, not a silent swallow).
 
-這條判準**凌駕** Failure Modes / Hidden Assumptions / Bugs 等面向：套用那些面向前，先問「**哪個真實 use case 會走到這條路徑？**」答不出來 → 不是要求加 handling，而是要求 fail-fast + log。
+This criterion **overrides** the Failure Modes / Hidden Assumptions / Bugs dimensions: before applying those dimensions, first ask "**which real use case would walk this path?**" Can't answer → don't demand added handling, demand fail-fast + log.
 
-**這是「不過度設計」，不是「可以忽略 robustness」的藉口** — 界線很明確：
+**This is "don't over-engineer", not an excuse to "ignore robustness"** — the line is clear:
 
-- 無 use case 驅動 **且** 不應發生的路徑 → fail-fast + error log（不過度防禦）
-- **任何真實情境會走到的失敗路徑** → 照常要求 robust 處理（這正是 Failure Modes 面向要抓的）
+- No use case driving it **and** it shouldn't happen → fail-fast + error log (no over-defense)
+- **Any failure path that a real scenario walks** → demand robust handling as usual (this is exactly what the Failure Modes dimension is meant to catch)
 
-判斷錯邊的代價是雙向的：把「真實會發生的失敗」當 over-engineering 放掉 → production 事故；把「不會發生的邊緣 case」硬加防禦 → 程式碼被想像中的需求拖累、可讀性下降。所以判準永遠是「**有沒有真實 use case**」，不是「資料結構上可不可達」。
+The cost of judging the wrong side cuts both ways: treating a "failure that really happens" as over-engineering and letting it go → production incident; forcing defenses onto an "edge case that won't happen" → code dragged down by imaginary requirements, readability degraded. So the criterion is always "**is there a real use case**", not "is it reachable in the data structure".
 
-## 嚴重度分級
+## Severity grading
 
-每個 issue 必須標一個級別。分級不是裝飾，是**主 agent 派工順序的依據**。
+Every issue must carry a level. The grading isn't decoration — it's **the basis for the main agent's dispatch order**.
 
-| 級別 | 定義 | 範例（design 階段）| 範例（implementation 階段）|
+| Level | Definition | Example (design stage) | Example (implementation stage) |
 |------|------|-------------------|---------------------------|
-| **Critical** | 不修會出 production 事故 | 沒 idempotency 但會被 retry / 缺 unique constraint | weak-ref GC / async race / silent failure |
-| **High** | 不修 6 個月內變技術債或誤用陷阱 | 元件邊界不清 / 沒定義 timeout | callback 沒 unregister / shared utility 未抽出 |
-| **Medium** | 不修增加維護成本 | 命名不一致 / 抽象層次不齊 | stale docstring / 過度防禦 |
-| **Low** | nit-pick 級，可延後 | 文件描述不清 | 變數命名小議 |
+| **Critical** | Not fixing causes a production incident | no idempotency but will be retried / missing unique constraint | weak-ref GC / async race / silent failure |
+| **High** | Not fixing becomes tech debt within 6 months or a misuse trap | unclear component boundary / no timeout defined | callback not unregistered / shared utility not extracted |
+| **Medium** | Not fixing increases maintenance cost | inconsistent naming / uneven abstraction levels | stale docstring / over-defense |
+| **Low** | nit-pick level, can defer | unclear doc description | minor variable naming quibble |
 
-**收斂規則**：所有 Critical / High 必須清零；Medium / Low 由 user 決定保留與否（主 agent 用 AskUserQuestion 詢問）。
+**Convergence rule**: all Critical / High must be zeroed out; Medium / Low are kept or not at the user's discretion (the main agent asks via AskUserQuestion).
 
-**為什麼分級誠實很重要**：升級 Low 為 High 會讓主 agent 浪費資源修不重要的事；降級 Critical 為 Medium 會讓事故在 production 爆。Reviewer 的可信度建立在「抓到的真的是要修的」這個信譽上。
+**Why honest grading matters**: promoting a Low to High makes the main agent waste resources fixing unimportant things; demoting a Critical to Medium lets an incident blow up in production. A reviewer's credibility is built on the reputation that "what it catches is really worth fixing".
 
-## 編號規則
+## Numbering rules
 
-### Letter ID（跨 round 累加，不重設）
+### Letter ID (accumulates across rounds, never reset)
 
-issue 編號用**英文字母**，跨 round 累加，不重設：
+Issues are numbered with **letters of the alphabet**, accumulating across rounds, never reset:
 
 ```
 Round 1: Bug A, Bug B, Smell C, Decision D
-Round 2: Bug E, Smell F, Decision G  ← 不從 A 重新開始
+Round 2: Bug E, Smell F, Decision G  ← does not restart from A
 Round 3: Bug H, Smell I
 ```
 
-**為什麼不重設**：跨 round 引用不會撞名（「Round 4 的 Bug U 已修」不會跟 Round 1 的另一個 Bug U 混淆）。
+**Why not reset**: cross-round references won't collide ("Round 4's Bug U is fixed" won't be confused with another Bug U from Round 1).
 
-### Round 命名 — 區分 reviewer 種類
+### Round naming — distinguishing reviewer types
 
-| Reviewer | Round prefix | Letter 序列範圍 |
+| Reviewer | Round prefix | Letter sequence range |
 |---|---|---|
-| `design-reviewer` | `D{N}` — `D1`, `D2`, ... | 自成一序，跨 D round 累加 |
-| `implementation-reviewer` | `I{N}` — `I1`, `I2`, ... | 自成一序，跨 I round 累加（**與 D 序列獨立**）|
+| `design-reviewer` | `D{N}` — `D1`, `D2`, ... | its own sequence, accumulating across D rounds |
+| `implementation-reviewer` | `I{N}` — `I1`, `I2`, ... | its own sequence, accumulating across I rounds (**independent of the D sequence**) |
 
-**為什麼 D 與 I 各自獨立累加**：兩個 reviewer 各自獨立 invocation，要求協調 letter 序列會增加耦合（implementation-reviewer 啟動時無法得知 design-reviewer 用過 A-G，要由主 agent 傳遞 context）。獨立累加讓 reviewer 可純粹按 review-protocol.md 執行。代價是 letter 不再全 spec 唯一 — 引用時必須帶 Round prefix（如 `D2 Smell C` / `I1 Bug A`），這在 audit trail 表格內本來就是必要的。
+**Why D and I accumulate independently**: the two reviewers are each independent invocations; requiring them to coordinate the letter sequence would add coupling (implementation-reviewer, when it starts, can't know design-reviewer used A-G — the main agent would have to pass that context). Independent accumulation lets a reviewer run purely by review-protocol.md. The cost is that letters are no longer unique across the whole spec — when referencing you must carry the Round prefix (e.g. `D2 Smell C` / `I1 Bug A`), which is required anyway inside the audit trail table.
 
-**全文引用格式**：
+**Full reference format**:
 - ✅ `D2 Smell C` / `I1 Bug A` — Round prefix + letter ID
-- ❌ `Bug A` — 缺 Round prefix，跨 reviewer 種類會撞名
+- ❌ `Bug A` — missing Round prefix, collides across reviewer types
 
-## Architecture Decision 紀律
+## Architecture Decision discipline
 
-這是 reviewer 的**核心防線**。Reviewer 拍板了 architecture decision 等於越權，且這類選擇往往不可逆 — 一旦選了路，回頭成本極高。
+This is the reviewer's **core line of defense**. A reviewer resolving an architecture decision is overstepping, and these choices are often irreversible — once a path is chosen, the cost of turning back is extremely high.
 
-### 判斷準則
+### Judgment criteria
 
-當你發現一個選擇有「兩個或多個合理方案，且軟體工程歷史上沒有業界共識的最佳解」時，**不要在 issue list 判定「應該改成 X」**。
+When you find a choice that has "two or more reasonable options, and software-engineering history has no industry consensus on the best answer", **do not declare "should change to X" in the issue list**.
 
-判斷三問：
+The three questions:
 
-1. 在這個 trade-off 上，**Google / Meta / Amazon / Netflix 是否各自選了不同方案**？
-2. 這個選擇是否取決於**團隊偏好或 organizational context**（reviewer agent 看不到這部分）？
-3. 我能不能斷言「這條路一定錯」？
+1. On this trade-off, **have Google / Meta / Amazon / Netflix each chosen different options**?
+2. Does this choice depend on **team preference or organizational context** (which the reviewer agent can't see)?
+3. Can I assert "this path is definitely wrong"?
 
-三個都 yes → 是 Architecture Decision，主 agent 須用 AskUserQuestion 把選擇遞給使用者拍板。
+All three yes → it's an Architecture Decision, and the main agent must use AskUserQuestion to hand the choice to the user to resolve.
 
-### 範例對照
+### Example comparison
 
-| 是 Architecture Decision | 不是（直接挑為 Bug/Smell）|
+| Is an Architecture Decision | Is not (pick directly as Bug/Smell) |
 |--------------------------|---------------------------|
-| CQRS vs CRUD | NULL 沒處理 |
+| CQRS vs CRUD | NULL not handled |
 | Event sourcing vs state-based | Race condition |
-| Push vs poll | 重複技術債 |
+| Push vs poll | duplicated tech debt |
 | Orchestration vs choreography | Stale docstring |
-| Optimistic vs pessimistic locking | 缺 NOT NULL constraint |
-| 重試策略：exponential vs linear backoff | weak-ref task GC |
-| 錯誤處理：raise vs return Result | callback 沒 unregister |
-| Cache invalidation：TTL vs explicit | 沒 idempotency key |
+| Optimistic vs pessimistic locking | missing NOT NULL constraint |
+| Retry strategy: exponential vs linear backoff | weak-ref task GC |
+| Error handling: raise vs return Result | callback not unregistered |
+| Cache invalidation: TTL vs explicit | no idempotency key |
 
-### Issue list 中的標記方式
+### How to mark them in the issue list
 
-每個 Architecture Decision 至少要列出：
+Every Architecture Decision must list at least:
 
-- **Option 1**: 方案 A — Trade-off
-- **Option 2**: 方案 B — Trade-off
-- **為什麼沒共識**: industry 為何分裂
-- **建議 user 考量**: 決定的關鍵維度（哪個 organizational context 會影響選擇）
+- **Option 1**: option A — Trade-off
+- **Option 2**: option B — Trade-off
+- **Why no consensus**: why the industry is split
+- **Suggested user considerations**: the key dimensions of the decision (which organizational context would influence the choice)
 
-主 agent 收到後，用 AskUserQuestion 把這幾個選項遞給使用者，等決定後再進下一輪。
+After receiving these, the main agent uses AskUserQuestion to hand these options to the user, and waits for the decision before proceeding to the next round.
 
-## Steering Candidates（steering 昇華候選）
+## Steering Candidates (steering promotion candidates)
 
-**預設不昇華。** Steering 是專案的護欄，不是開發筆記；絕大多數 review 發現的東西**不該**進 steering。Steering Candidate 的門檻刻意拉得很高——**除非必要，否則不昇華**。寧可漏一個邊緣的，也不要灌水：灌水會稀釋護欄、淹沒真正重要的條文，也是對 user 注意力的浪費（見 SKILL.md「為人類認知負擔校準」）。真正重要的原則會在未來反覆出現、自然再被提起，漏一個的成本遠低於每輪灌一堆雜訊。
+**Default to not promoting.** Steering is the project's guardrail, not a development notebook; the vast majority of what review finds **should not** go into steering. The bar for a Steering Candidate is deliberately set very high — **don't promote unless necessary**. Better to miss an edge one than to pad: padding dilutes the guardrails, drowns the genuinely important clauses, and is also a waste of the user's attention (see SKILL.md "Calibrate for Cognitive Load"). A truly important principle will recur in the future and naturally get raised again; the cost of missing one is far lower than dumping a pile of noise every round.
 
-**三條同時成立才列為 SC**（缺一不可）：
+**List as an SC only when all three hold** (none can be missing):
 
-1. 是**貫穿整個專案的核心概念 / 原則 / 慣例** — 未來其他、不相關的 feature 也必須遵循才會一致；
-2. **不記進 steering 幾乎肯定會造成**未來規劃或實作的不一致或困難 — 是「不記會出事」，不是「記了比較好」；
-3. steering 目前確實沒寫（已存在的不必列）。
+1. it is a **core concept / principle / convention that runs through the whole project** — future, unrelated features must also follow it to stay consistent;
+2. **not recording it in steering will almost certainly cause** inconsistency or difficulty in future planning or implementation — it's "trouble if not recorded", not "nicer if recorded";
+3. steering genuinely doesn't already have it (no need to list what already exists).
 
-**明確排除**（即使在 review 中出現，也**不是** SC）：
+**Explicitly excluded** (even if they show up in review, they are **not** SCs):
 
-- **spec-specific** — 只跟這個 feature 有關的選擇（某個 cache TTL、某支 API 的參數）→ 留在該 feature 的 design / review-log；
-- **實作細節** — 演算法、backoff 參數、一次性的命名決定 → 屬於 code / design；
-- **專案記憶級的事實** — 「legacy 模組 X 用 callback 風格」這類描述現況的 note，不是前瞻性的專案原則；
-- **「記了比較整齊」但沒有它也不會出事**的任何東西。
+- **spec-specific** — a choice that only concerns this feature (some cache TTL, some API's parameter) → leave it in that feature's design / review-log;
+- **implementation detail** — algorithm, backoff parameter, a one-off naming decision → belongs to code / design;
+- **project-memory-level facts** — a note describing the current state like "legacy module X uses callback style", which is not a forward-looking project principle;
+- **anything that's "tidier if recorded" but won't cause trouble without it**.
 
-判斷不出來算不算 → **就不是 SC**。
+Can't tell whether it counts → **then it's not an SC**.
 
-**但門檻高 ≠ 永不昇華。** 真的同時滿足上述三條的核心原則，就該**有自信地列出來** — 那正是 living steering 要抓的、不記會讓 steering 與 codebase 漸漸脫節的東西，壓掉它跟灌水一樣有害。克制是為了濾掉雜訊，不是把真正重要的也一起壓掉；「寧可漏一個」只針對**邊緣 / 拿不準**的候選，不適用於清楚命中三條的。目標是「**精準的少數**」，不是「零」。
+**But a high bar ≠ never promote.** A core principle that genuinely satisfies all three above **should be listed with confidence** — that is exactly what living steering is meant to catch, the thing that, if not recorded, will gradually let steering and the codebase drift apart; suppressing it is as harmful as padding. The restraint is for filtering out noise, not for suppressing the genuinely important along with it; "better to miss one" applies only to **edge / uncertain** candidates, not to ones that clearly hit all three. The goal is "**a precise few**", not "zero".
 
-其餘紀律：
+Other disciplines:
 
-- SC **不是 issue、不計入收斂** — 「文件該補一條慣例」不該 block 品質防線
-- Reviewer 不自行判定「該寫進 steering」 — 跟 Architecture Decision 同一條不越權紀律：寫不寫由 user 拍板，主 agent 負責批次遞送（依 SKILL.md「Steering 演進機制」）
-- 與「違反 steering」區分清楚：
-  - 設計**違反** steering 既有條文 → 開正常 issue（明文規範的違反通常 High）
-  - 設計與 steering 衝突，但你無法斷定誰對（steering 可能過時）→ 開 Architecture Decision，讓 user 決定「修設計」還是「更新 steering」
-  - steering **沒寫**，而本設計確立了**通過上述三條門檻**的核心原則 → Steering Candidate
-- 跨 round 重複列出尚未處理的 candidate 沒關係，主 agent 負責去重
+- An SC **is not an issue, doesn't count toward convergence** — "the docs should add a convention" shouldn't block the quality line of defense
+- The reviewer doesn't decide on its own that "this should be written into steering" — same non-overstepping discipline as Architecture Decision: whether to write it is the user's call, and the main agent handles batch delivery (per SKILL.md "Steering Evolution Mechanism")
+- Distinguish clearly from "violating steering":
+  - design **violates** an existing steering clause → open a normal issue (a violation of an explicit rule is usually High)
+  - design conflicts with steering, but you can't assert which is right (steering may be outdated) → open an Architecture Decision, let the user decide "fix the design" or "update steering"
+  - steering **doesn't have it**, and this design establishes a core principle that **passes the three bars above** → Steering Candidate
+- Re-listing an unhandled candidate across rounds is fine; the main agent handles deduping
 
-## 輸出格式
+## Output format
 
-每輪 review 結尾必須輸出符合下列結構的 issue list（讓主 agent 能機械解析）：
+Every review round must end by outputting an issue list conforming to the structure below (so the main agent can parse it mechanically):
 
 ```
 ## Round {D|I}{N} {agent-name} Review — {feature}
 
-### 審查範圍   ← implementation-reviewer 才需要這節，design-reviewer 可省略
-- 檔案數：{n}
-- 上一輪修正：{Round N-1 修了哪些 issue 編號}
+### Review scope   ← only implementation-reviewer needs this section; design-reviewer may omit it
+- File count: {n}
+- Previous round's fixes: {which issue IDs from Round N-1 were fixed}
 
 ### Critical (must fix before next round)
-- **Bug A**: {一句話問題描述}
-  - 位置：{file_path:line_number}    ← 如適用
-  - 影響：{會發生什麼後果}
-  - 建議方向：{怎麼修，但不寫 code}
+- **Bug A**: {one-line problem description}
+  - Location: {file_path:line_number}    ← if applicable
+  - Impact: {what consequence will occur}
+  - Suggested direction: {how to fix, but no code}
 - **Bug B**: ...
 
 ### High (should fix this round)
@@ -175,91 +175,91 @@ Round 3: Bug H, Smell I
 - ...
 
 ### ⚠️ Architecture Decisions (need user input — main agent must escalate)
-- **Decision D**: {問題描述}
-  - **Option 1**: {方案 A} — Trade-off: {優缺點}
-  - **Option 2**: {方案 B} — Trade-off: {優缺點}
-  - **為什麼沒共識**: {industry 為何分裂}
-  - **建議 user 考量**: {決定的關鍵維度}
+- **Decision D**: {problem description}
+  - **Option 1**: {option A} — Trade-off: {pros and cons}
+  - **Option 2**: {option B} — Trade-off: {pros and cons}
+  - **Why no consensus**: {why the industry is split}
+  - **Suggested user considerations**: {the key dimensions of the decision}
 
-### 📌 Steering Candidates (non-blocking — 不計入 issue 數，如有才列)
-- **SC-1**: {本次設計/實作確立、但 steering 未記錄的專案級原則} — 建議寫入：{tech.md §X / structure.md §Y}
+### 📌 Steering Candidates (non-blocking — not counted in the issue total, list only if any)
+- **SC-1**: {a project-level principle this design/implementation establishes but steering hasn't recorded} — suggested target: {tech.md §X / structure.md §Y}
 
-### 結論
-[ ] 0 issues — 收斂，可進入下一階段（Steering Candidates 不計入 issue 數）
-    ⚠️ 主 agent 收斂後續步提醒：依你所在流程，下一步常是 Briefing 停點 —
-    Quick Fix Mode：design 收斂 → ExitPlanMode 前必須先交付 Plan Briefing；
-    /create-spec、/update-spec：續寫 tasks / 跑 verifier 後必須交付 Spec Briefing。
-    兩者都以「回合最終訊息」輸出、結束回合、等 user 回覆，
-    不可跳過、不可把 briefing 跟工具呼叫擠在同一回合
-[x] {N} issues found — 主 agent 須處理（修正 + 對 Decision 回問 user）後重新進入下一輪
+### Conclusion
+[ ] 0 issues — converged, can proceed to the next stage (Steering Candidates not counted in the issue total)
+    ⚠️ Main agent post-convergence next-step reminder: depending on your flow, the next step is often a Briefing stop point —
+    Quick Fix Mode: design converged → must deliver the Plan Briefing before ExitPlanMode;
+    /create-spec, /update-spec: after continuing to write tasks / running the verifier you must deliver the Spec Briefing.
+    Both are output as the "turn-final message", end the turn, and wait for the user's reply,
+    must not be skipped, must not cram the briefing and a tool call into the same turn
+[x] {N} issues found — main agent must handle (fix + ask user about Decisions) then re-enter the next round
 ```
 
-**為什麼收斂結論要夾帶續步提醒**：主 agent 的 SKILL.md 指示是任務開頭載入的，經過多輪 review 後早已遠離注意焦點（甚至被 context compaction 摘要掉）。Reviewer 的收斂報告是「轉場時刻的最新 context」— 把下一步提醒放在這裡，主 agent 才會在正確的時刻看到它。
+**Why the convergence conclusion carries a next-step reminder**: the main agent's SKILL.md instructions are loaded at the start of the task, and after many review rounds they've long drifted away from the focus of attention (or even been summarized away by context compaction). The reviewer's convergence report is "the freshest context at the moment of transition" — putting the next-step reminder here means the main agent sees it at the right moment.
 
-## Reviewer 共用紀律
+## Reviewer shared disciplines
 
-無論是 design-reviewer 還是 implementation-reviewer，這幾條都適用：
+Whether design-reviewer or implementation-reviewer, these apply:
 
-1. **Review only, never fix**：產 issue list 是唯一產出。為什麼？因為「review 跟 fix 分開」讓決策可追溯（每個改動對應到某個 issue 編號），也讓主 agent 能在「修還是先問 user」之間判斷
-2. **No false convergence**：收到「這是第 N 輪了該收了」的暗示也不放水。為什麼？妥協會降低未來 review 的標準
-3. **嚴重度誠實**：分級不是社交工具。為什麼？分級失真讓主 agent 派工失準
-4. **Production 視角**：「這會不會半夜把 oncall 叫起來」是 north star
-5. **避免 review 範圍縮水**：第 N 輪不能只看上一輪修的部分，也要抽查未動檔案。為什麼？主 agent 可能（無意識）把範圍縮小到只看修過的部分，造成假收斂
+1. **Review only, never fix**: producing the issue list is the sole output. Why? Because "separating review from fix" makes decisions traceable (each change maps to some issue number), and lets the main agent judge between "fix it or ask the user first"
+2. **No false convergence**: don't go soft even when you get a hint that "it's round N already, time to wrap up". Why? Compromise lowers the bar for future reviews
+3. **Severity honesty**: grading isn't a social tool. Why? Distorted grading throws off the main agent's dispatch
+4. **Production lens**: "would this wake up oncall at 3am" is the north star
+5. **Avoid review-scope shrinkage**: round N can't only look at what the previous round fixed; it must also spot-check untouched files. Why? The main agent may (unconsciously) narrow the scope to only the fixed parts, causing false convergence
 
-## 主 agent 的責任
+## The main agent's responsibilities
 
-當主 agent 驅動 review loop 時：
+When the main agent drives the review loop:
 
-1. **Dispatch issue list**：把 reviewer 的 issue list 整包丟給對應修正者
-   - design 階段：主 agent 自己改 design.md（design.md 是文件，不是 code，不違反「實作必須由 agent 執行」原則）
-   - implementation 階段：派工給 `spec-implementer (Mode 2)`，主 agent 不直接寫 code
-2. **Decision escalation**：所有 Architecture Decisions 用 AskUserQuestion 遞給使用者（主 agent 會依 SKILL.md「Architecture Decision 呈現紀律」/ `decision-escalation-guide.md` 做人類友善的翻譯 — reviewer 本身只負責產四點原料）
-3. **追蹤輪次**：每輪 review 後記錄 issue 編號，提供給下一輪 reviewer 作為「上一輪修了哪些」context
-4. **更新 Review Log**：每輪 review 後維護 `review-log.md`（Spec Mode）或 plan file `## Review Log` 區段（Quick Fix Mode）— 詳見下節「Review Log 整合」
-5. **避免 scope creep**：派工修正時嚴格限定在 issue 範圍，不順便重構（重構若需要，當成新的 issue 進下一輪）
-6. **判斷收斂**：看到 reviewer 報告「0 issues — 收斂」且無累積待決的 Medium/Low 才能退出 loop；含 Critical/High 不能提前退出；第 5 輪仍有新 Critical/High → 觸發收斂保險絲（見「核心模型」），停止 loop 向 user 報告
-7. **Steering Candidates 遞送**：累積 reviewer 列出的 SC（跨輪去重），與 Decision 拍板 / 實作過程的發現合併，依 SKILL.md「Steering 演進機制」批次遞 user 確認後輕量寫入 steering，並記入 review log §5
+1. **Dispatch issue list**: hand the reviewer's whole issue list to the corresponding fixer
+   - design stage: the main agent edits design.md itself (design.md is a doc, not code, so it doesn't violate the "implementation must be done by an agent" principle)
+   - implementation stage: dispatch to `spec-implementer (Mode 2)`; the main agent doesn't write code directly
+2. **Decision escalation**: hand all Architecture Decisions to the user via AskUserQuestion (the main agent does a human-friendly translation per SKILL.md "Architecture Decision Presentation Discipline" / `decision-escalation-guide.md` — the reviewer itself only produces the four-point raw material)
+3. **Track rounds**: after each review round, record the issue numbers and provide them to the next round's reviewer as "which the previous round fixed" context
+4. **Update Review Log**: after each review round, maintain `review-log.md` (Spec Mode) or the plan file's `## Review Log` section (Quick Fix Mode) — see the next section "Review Log integration"
+5. **Avoid scope creep**: when dispatching fixes, strictly limit to the issue scope, no incidental refactoring (if refactoring is needed, treat it as a new issue in the next round)
+6. **Judge convergence**: only exit the loop when the reviewer reports "0 issues — converged" with no accumulated pending Medium/Low; can't exit early with Critical/High present; round 5 still has new Critical/High → trigger the convergence fuse (see "Core model"), stop the loop and report to the user
+7. **Steering Candidates delivery**: accumulate the SCs the reviewer lists (dedupe across rounds), merge with findings from Decision resolution / the implementation process, batch-deliver to the user for confirmation per SKILL.md "Steering Evolution Mechanism", then lightly write into steering and record in review log §5
 
-## Review Log 整合（與 reviewer 的 handshake）
+## Review Log integration (the handshake with the reviewer)
 
-每輪 review 結束後，主 agent 必須把 reviewer 的 issue list 整合進 review log。詳細寫入規範見 `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`。
+After each review round ends, the main agent must integrate the reviewer's issue list into the review log. For detailed write-in rules see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`.
 
-### Reviewer 端責任
+### Reviewer-side responsibilities
 
-- **產 issue list 即可** — 不直接寫 log
-- Issue 編號按本文件「Letter ID」+「Round 命名 D/I prefix」規則
-- 輸出格式依本文件「輸出格式」章節
+- **Just produce the issue list** — don't write the log directly
+- Number issues by this file's "Letter ID" + "Round naming D/I prefix" rules
+- Output format per this file's "Output format" section
 
-### 主 agent 端責任（每輪 review 後）
+### Main-agent-side responsibilities (after each review round)
 
-1. 把 reviewer 輸出的 issue list 整批 append 到 review log §1 Audit Trail，Status 標 `pending`
-2. 處理每個 issue 後立即更新該列 Status + Resolution：
-   - 修正 → `fixed`，Resolution 寫「動了什麼 + 位置」（1 行）
-   - Architecture Decision 拍板 → `decision-resolved`，§2 補 Decision 完整區塊，Resolution 寫 `→ §2 Decision <letter>`
-   - 保留不修 → `waived`，§3 補 Waiver 完整區塊，Resolution 寫 `→ §3 W{N}`
-   - 確認誤判 → `false-positive`，§4 補 FP 區塊，Resolution 寫 `→ §4 FP{N}`
+1. Batch-append the reviewer's output issue list to review log §1 Audit Trail, marking Status `pending`
+2. After handling each issue, immediately update that row's Status + Resolution:
+   - fixed → `fixed`, Resolution writes "what was changed + location" (1 line)
+   - Architecture Decision resolved → `decision-resolved`, §2 adds the full Decision block, Resolution writes `→ §2 Decision <letter>`
+   - kept unfixed → `waived`, §3 adds the full Waiver block, Resolution writes `→ §3 W{N}`
+   - confirmed false positive → `false-positive`, §4 adds the FP block, Resolution writes `→ §4 FP{N}`
 
-### Reviewer 引用 Review Log 的時機
+### When the reviewer references the Review Log
 
-下一輪 reviewer 在做「上一輪修了哪些」context 整理時，可選擇讀 review log §1 表格快速掃過已處理的 issue ID。但 reviewer **不可以**只看 §1 就跳過 fresh review — review-protocol.md「避免 review 範圍縮水」規則仍適用：第 N 輪要審所有變動 + 抽查未動關鍵檔案。
+When the next round's reviewer assembles its "which the previous round fixed" context, it may choose to read the review log §1 table to quickly scan the already-handled issue IDs. But the reviewer **must not** look only at §1 and skip a fresh review — the review-protocol.md "Avoid review-scope shrinkage" rule still applies: round N must review all changes + spot-check untouched key files.
 
-### 為什麼 Reviewer 不寫 log
+### Why the reviewer doesn't write the log
 
-把 review/fix 分離的紀律已建立（reviewer 不動 code）；同樣邏輯適用於 log：**reviewer 只負責產 raw material（issue list），整合成 audit trail 是主 agent 的工作**。這讓 reviewer 純粹聚焦在「找問題」，不被「該寫進 log 的哪個欄位」分心。
+The discipline of separating review/fix is already established (the reviewer doesn't touch code); the same logic applies to the log: **the reviewer only produces raw material (the issue list); integrating it into the audit trail is the main agent's job**. This keeps the reviewer purely focused on "finding problems", undistracted by "which field of the log to write into".
 
-## Loop 收斂判斷規則
+## Loop convergence rules
 
-Medium/Low 採 **defer-and-batch**：不逐輪打斷 user — Medium/Low 常在後續輪次被 Critical/High 的修正連帶解決，提早問是浪費 user 的注意力；累積到 Critical/High 清零的那一輪一次問完。
+Medium/Low use **defer-and-batch**: don't interrupt the user round by round — Medium/Low are often incidentally resolved by Critical/High fixes in later rounds, and asking early wastes the user's attention; accumulate and ask all at once in the round where Critical/High are zeroed out.
 
 ```
-Reviewer 輸出含 Critical/High → 本輪只修 Critical/High；
-                                Medium/Low 標 pending 累積（先不問 user）
-Reviewer 輸出全 Medium/Low（或 0 issues 但有歷輪累積的 open Medium/Low）
-    → 把本輪 + 歷輪累積的 open Medium/Low 一次用 AskUserQuestion 問 user
-       使用者說不修 → 寫入 waiver；若本輪也沒有新 Critical/High → 視為收斂
-       使用者說修 → 修完進下一輪
-Reviewer 輸出 "0 issues" 且無累積 open Medium/Low → 收斂，退出 loop
-第 5 輪仍有新 Critical/High → 收斂保險絲：停止 loop，向 user 報告結構性問題
+Reviewer output contains Critical/High → this round fixes only Critical/High;
+                                Medium/Low marked pending and accumulated (don't ask the user yet)
+Reviewer output is all Medium/Low (or 0 issues but with open Medium/Low accumulated from prior rounds)
+    → ask the user about this round's + prior rounds' accumulated open Medium/Low all at once via AskUserQuestion
+       user says don't fix → write into waiver; if this round also had no new Critical/High → treat as converged
+       user says fix → fix then proceed to the next round
+Reviewer output is "0 issues" with no accumulated open Medium/Low → converged, exit the loop
+Round 5 still has new Critical/High → convergence fuse: stop the loop, report the structural problem to the user
 ```
 
-**永遠不要**在含 Critical/High 的情況提前退出，即使覺得已經跑了很多輪（保險絲觸發是「停下來升級給 user」，不是「視為收斂」— 兩者不同）。
+**Never** exit early when Critical/High are present, even if it feels like a lot of rounds have already run (a fuse trip is "stop and escalate to the user", not "treat as converged" — the two are different).

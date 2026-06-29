@@ -1,273 +1,273 @@
-# Review Log 撰寫指引
+# Review Log Authoring Guidelines
 
-主 agent 在 review/resolve 過程中維護 review-log.md 的細部規範。Reviewer agent 也可讀本文件理解 log 結構（但 reviewer **不直接寫 log** — 只產 issue list）。
+The detailed conventions the main agent follows when maintaining review-log.md during the review/resolve process. The reviewer agent may also read this document to understand the log structure (but the reviewer **does not write the log directly** — it only produces the issue list).
 
-> 本文件回答「**怎麼寫 review log**」。「為什麼需要 review log」與「整體流程」見 SKILL.md 的 Review Log 章節。
-
----
-
-## 核心理念
-
-**正式文件描述「決定後的世界」；review log 描述「為什麼是這個世界」。兩者物理隔離。**
-
-- requirements.md / design.md / tasks.md / production code → **完全不出現** review 過程的任何痕跡（waiver / decision content / reviewer references / process narration / review-log 引用 / footnote pointer 全禁止）
-- review-log.md → 集中保留五類 artifact（audit trail / Decisions / Waivers / False Positives / Steering Updates）
-
-當正式文件需要交代「為什麼這個 Component 這樣設計」/ 「為什麼這個 task 看起來大」時，用**中性 design rationale**（技術限制 / codebase 慣例 / 反面後果）整合進對應段落 — **不揭露** reviewer / Decision / review-log。
-
-**為什麼 100% 隔離**：
-1. 正式文件被讀的次數遠多於 review log；保留 single source of truth 可讀性是核心 KPI
-2. Footnote pointer 看似輕量，實際讓 agent 養成「我可以在 design.md 提一下 review-log」的習慣，逐步退化成 inline waiver block（實測證明：開了 pointer 後門，agent 自然加回 ADR 段落 + reviewer letter tag + Round 過程敘述）
-3. 設計理由用中性技術 prose 即可表達；不需要為了「強調這是討論過的」而引用 reviewer — reader 不需要這層信息，需要這層信息的人去看 review-log
-
-詳細 bad/good 對照：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+> This document answers "**how to write the review log**". For "why a review log is needed" and "the overall flow", see the Review Log section of SKILL.md.
 
 ---
 
-## 檔案位置
+## Core Philosophy
 
-| Mode | 位置 | Commit |
+**Formal docs describe "the world after the decision"; the review log describes "why it is this world". The two are physically isolated.**
+
+- requirements.md / design.md / tasks.md / production code → **never contain** any trace of the review process (waiver / decision content / reviewer references / process narration / review-log references / footnote pointers are all forbidden)
+- review-log.md → centrally retains five kinds of artifact (audit trail / Decisions / Waivers / False Positives / Steering Updates)
+
+When a formal doc needs to explain "why this Component is designed this way" / "why this task looks large", use **neutral design rationale** (technical constraints / codebase conventions / adverse consequences) integrated into the corresponding passage — **without revealing** reviewer / Decision / review-log.
+
+**Why 100% isolation**:
+1. Formal docs are read far more often than the review log; preserving the readability of the single source of truth is a core KPI
+2. A footnote pointer looks lightweight, but in practice it trains the agent into the habit of "I can mention the review-log in design.md", which gradually degenerates into an inline waiver block (empirically proven: once the pointer back door is opened, the agent naturally adds back ADR sections + reviewer letter tags + Round process narration)
+3. Design rationale can be expressed with neutral technical prose; there's no need to cite the reviewer just to "emphasize that this was discussed" — the reader doesn't need that layer of information, and whoever does need it goes to the review-log
+
+Detailed bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+
+---
+
+## File Location
+
+| Mode | Location | Commit |
 |---|---|---|
-| Spec Mode | `.spec/specs/{feature}/review-log.md`（與 r/d/t 並列） | 是 |
-| Quick Fix Mode | plan file 結尾的 `## Review Log` section | 否（plan file 本就 ephemeral） |
+| Spec Mode | `.spec/specs/{feature}/review-log.md` (alongside r/d/t) | Yes |
+| Quick Fix Mode | The `## Review Log` section at the end of the plan file | No (the plan file is ephemeral anyway) |
 
 ---
 
-## ID 與引用協定
+## ID and Reference Protocol
 
-### Letter ID 規則
+### Letter ID Rules
 
-- **Design review** 與 **Implementation review** 各自獨立累加 letter（A, B, C, ...）
-- 同 review 種類內**跨輪累加不重設**（D Round 1 用 A-B，D Round 2 從 C 接續）
-- 全文引用必須含 Round prefix 才能唯一識別：寫 `D2 Smell C` 或 `I1 Bug A`，**單寫 `Bug A` 視為違反引用協定**
+- **Design review** and **Implementation review** each accumulate letters independently (A, B, C, ...)
+- Within the same review kind, letters **accumulate across rounds without resetting** (D Round 1 uses A-B, D Round 2 continues from C)
+- References anywhere in the text must include the Round prefix to be uniquely identifiable: write `D2 Smell C` or `I1 Bug A` — **writing just `Bug A` counts as violating the reference protocol**
 
-### Round 命名
+### Round Naming
 
 `D{N}` = design review round N
 `I{N}` = implementation review round N
 
-### Section 引用
+### Section References
 
-- 跨輪 issue 引 letter ID：`D2 Smell C`
-- §2 Decisions 引用 reviewer 原 Decision letter：`Decision D`
-- §3 Waivers 用獨立 W 編號：`W1`, `W2`
-- §4 False Positives 用獨立 FP 編號：`FP1`, `FP2`
+- Cross-round issues cite the letter ID: `D2 Smell C`
+- §2 Decisions cite the reviewer's original Decision letter: `Decision D`
+- §3 Waivers use independent W numbers: `W1`, `W2`
+- §4 False Positives use independent FP numbers: `FP1`, `FP2`
 
-### Status 欄取值
+### Status Field Values
 
-| 值 | 意義 |
+| Value | Meaning |
 |---|---|
-| `pending` | 主 agent 剛 append 進 §1、尚未處理完 |
-| `fixed` | 已修正（design.md / code / tasks.md 已改）|
-| `waived` | 刻意保留 — Resolution 欄須指向 §3 對應 Waiver |
-| `decision-resolved` | Architecture Decision 已拍板 — Resolution 欄須指向 §2 |
-| `false-positive` | 經確認為誤判 — Resolution 欄須指向 §4 |
+| `pending` | The main agent just appended it to §1, not yet processed |
+| `fixed` | Already fixed (design.md / code / tasks.md changed) |
+| `waived` | Deliberately kept — the Resolution field must point to the corresponding Waiver in §3 |
+| `decision-resolved` | An Architecture Decision has been resolved — the Resolution field must point to §2 |
+| `false-positive` | Confirmed a false positive — the Resolution field must point to §4 |
 
 ---
 
-## 五大區塊寫入規範
+## Writing Conventions for the Five Sections
 
 ### §1 Audit Trail
 
-每輪 reviewer 結束後，主 agent 把該輪所有 issue 一次 append 進表格，Status 先標 `pending`。處理完更新 Status + Resolution。
+After each reviewer round ends, the main agent appends all of that round's issues into the table at once, marking Status as `pending` first. After processing, it updates Status + Resolution.
 
-**Resolution 欄的 1 行原則**：
-- `fixed`：寫「動了什麼 + 位置」（例：`design.md §Component-X 改用 mutex` 或 `src/cache.py:42 加 RLock`）
-- `waived` / `decision-resolved` / `false-positive`：寫 cross-reference（例：`→ §3 W1`）
+**The 1-line principle for the Resolution field**:
+- `fixed`: write "what was changed + where" (e.g., `design.md §Component-X switched to mutex` or `src/cache.py:42 added RLock`)
+- `waived` / `decision-resolved` / `false-positive`: write a cross-reference (e.g., `→ §3 W1`)
 
-**為什麼要 1 行**：表格的價值在於 scan 一眼看全貌。完整理由放對應子節。
+**Why 1 line**: the value of the table is to scan the whole picture at a glance. Put the full reasoning in the corresponding subsection.
 
 ### §2 Architecture Decisions
 
-每個 Decision 用三級標題加 letter ID：
+Each Decision uses a level-3 heading plus a letter ID:
 
 ```markdown
-### Decision D（raised at D2）
-**Problem**: <一句話陳述爭議>
+### Decision D (raised at D2)
+**Problem**: <one-sentence statement of the contention>
 **Options considered**:
-- **Option 1**: <方案> — <一句 trade-off>
-- **Option 2**: <方案> — <一句 trade-off>
+- **Option 1**: <approach> — <one-sentence trade-off>
+- **Option 2**: <approach> — <one-sentence trade-off>
 **Chosen**: Option N
-**Rationale (user, YYYY-MM-DD)**: <user 在 AskUserQuestion 補充的理由 + 主 agent 整理>
-**Affects**: <影響的正式文件位置，例 design.md §Cache, tasks.md T2.3>
+**Rationale (user, YYYY-MM-DD)**: <the reasoning the user added in AskUserQuestion + the main agent's tidy-up>
+**Affects**: <the affected formal-doc locations, e.g. design.md §Cache, tasks.md T2.3>
 ```
 
-**為什麼有 `Affects` 欄**：未來改動相關 component 時，可反查「這個改動會不會推翻過去 user 的決定」。
+**Why there's an `Affects` field**: when a related component is changed in the future, you can look back to "will this change overturn a past user decision".
 
 ### §3 Waivers
 
-當 issue 處理結果是「保留不修」（無論是 user 主動拍板還是 trade-off 評估後接受）時寫入。
+Written when an issue's resolution is "kept, not fixed" (whether the user actively resolved it or it was accepted after a trade-off assessment).
 
 ```markdown
-### W1: <一句話標題>（from <Round> <Issue ID>）
+### W1: <one-sentence title> (from <Round> <Issue ID>)
 **Raised by**: <agent name>, Round <X>, severity <Y>
-**Principle violated**: <被違反的原則，例 SRP / DRY / Idempotency>
-**Where**: <正式文件位置，例 tasks.md task 1.4 或 src/handler.py:42>
-**Why kept**: <為什麼接受這個違反 — 技術理由>
-**Trade-off accepted**: <承認失去什麼，換得什麼>
-**Related Decisions**: <若與某 Decision 連動，列 letter ID>
+**Principle violated**: <the principle violated, e.g. SRP / DRY / Idempotency>
+**Where**: <formal-doc location, e.g. tasks.md task 1.4 or src/handler.py:42>
+**Why kept**: <why this violation is accepted — the technical reason>
+**Trade-off accepted**: <acknowledge what is lost, and what is gained>
+**Related Decisions**: <if linked to some Decision, list the letter ID>
 **Accepted by**: User decision, YYYY-MM-DD
 ```
 
-**為什麼需要 `Trade-off accepted` 欄**：避免「豁免越積越多但沒人記得各自付了什麼代價」。維護者需要知道「保留這個違反等於放棄了什麼」。
+**Why the `Trade-off accepted` field is needed**: to avoid "waivers piling up but nobody remembering what each one cost". The maintainer needs to know "keeping this violation means giving up what".
 
 ### §4 False Positives
 
 ```markdown
-### FP1: <一句話標題>（from <Round> <Issue ID>）
-**Reviewer claim**: <reviewer 提出的問題>
-**Actual situation**: <實際狀況、為什麼不是問題 — 含 design rationale / 上游保證 / 其他釐清>
-**Resolution**: <如何避免未來重複提出，例：加 docstring 提示 / 更新 design.md 說明 / 加 inline comment 解釋約束>
+### FP1: <one-sentence title> (from <Round> <Issue ID>)
+**Reviewer claim**: <the problem the reviewer raised>
+**Actual situation**: <the actual situation, why it's not a problem — including design rationale / upstream guarantee / other clarification>
+**Resolution**: <how to avoid raising it again in the future, e.g.: add a docstring hint / update design.md explanation / add an inline comment explaining the constraint>
 ```
 
-**為什麼需要這節**：reviewer 是獨立 invocation，沒有跨 round 記憶。沒有 FP 紀錄會讓同個誤判反覆出現，浪費 review round。
+**Why this section is needed**: the reviewer is an independent invocation with no cross-round memory. Without an FP record, the same false positive recurs repeatedly, wasting review rounds.
 
-### §5 Steering Updates（昇華紀錄）
+### §5 Steering Updates (Promotion Record)
 
-當開發過程發現的專案級原則經 user 確認寫入 steering 後（依 SKILL.md「Steering 演進機制」），在此記錄一列：
+When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in SKILL.md), record a row here:
 
 ```markdown
-| #   | 日期       | 原則（一句話）                          | 寫入位置                | 來源        |
+| #   | Date       | Principle (one sentence)                          | Written into            | Source        |
 |-----|------------|----------------------------------------|------------------------|------------|
-| SU1 | 2026-05-12 | service 層錯誤一律 raise，不用 Result type | tech.md §Error Handling | D2 SC-1    |
+| SU1 | 2026-05-12 | service-layer errors always raise, no Result type | tech.md §Error Handling | D2 SC-1    |
 ```
 
-**來源欄取值**：reviewer 的 SC 編號（`D2 SC-1`）、Architecture Decision 編號（`Decision D`）、或 `implementer report`（實作過程發現）。
+**Source field values**: the reviewer's SC number (`D2 SC-1`), the Architecture Decision number (`Decision D`), or `implementer report` (discovered during implementation).
 
-**為什麼需要這節**：steering 改了但沒人記得「為什麼加這條」時，這張表是反查入口 — 從原則回溯到觸發它的 review / Decision 脈絡。steering 本身只寫原則（決定後的世界），不寫來源。
+**Why this section is needed**: when steering has been changed but nobody remembers "why this entry was added", this table is the lookup entry point — tracing from the principle back to the review / Decision context that triggered it. Steering itself only states the principle (the world after the decision), not the source.
 
 ---
 
-## 引用協定 — 完全隔離
+## Reference Protocol — Complete Isolation
 
-**Formal doc ↔ review-log 之間沒有引用關係**。
+**There is no reference relationship between the formal doc and the review-log.**
 
-舊版曾允許 `> ⓘ <一句話> — 詳見 review-log.md §<id>` footnote pointer 作為「異常 + tracked」signal，**現已完全廢止** — 實測 agent 看到 pointer 被允許，會逐步退化成 ADR 段落 + reviewer letter tag + Round 過程敘述（formal doc 100% 隔離才能根除這個 drift）。
+An older version once allowed the `> ⓘ <one sentence> — see review-log.md §<id>` footnote pointer as an "abnormal + tracked" signal, **now fully abolished** — empirically, once the agent sees the pointer is allowed, it gradually degenerates into ADR sections + reviewer letter tags + Round process narration (only 100% isolation of the formal doc can root out this drift).
 
-### Formal doc 解釋「為什麼這樣設計」的正確方式
+### The Correct Way for a Formal Doc to Explain "Why It's Designed This Way"
 
-用 **中性 design rationale** 整合進 Component / docstring / task description：
+Use **neutral design rationale** integrated into the Component / docstring / task description:
 
-| 維度 | 寫法 |
+| Dimension | How to write it |
 |---|---|
-| **技術限制** | 「Synchronous for atomicity guarantees」 |
-| **Codebase 慣例** | 「Returns None per upstream convention in UserService」 |
-| **反面後果** | 「Splitting would leave intermediate states violating schema invariants」 |
-| **系統 invariant 依賴** | 「No locking: caller serializes via key-sharded queue (see EventDispatcher)」 |
+| **Technical constraint** | "Synchronous for atomicity guarantees" |
+| **Codebase convention** | "Returns None per upstream convention in UserService" |
+| **Adverse consequence** | "Splitting would leave intermediate states violating schema invariants" |
+| **System invariant dependency** | "No locking: caller serializes via key-sharded queue (see EventDispatcher)" |
 
-**禁止**：
+**Forbidden**:
 
-- 「per Decision X」 / 「per Smell Y」 / 「per Bug Z」
-- 「reviewer 建議 / 標記 / 提出」
-- 「user 在 Round N 拍板」
-- 「See review-log.md §X」/ `> ⓘ` / `→ §W1`
-- 整段 `## Architecture Decisions Record` / `## ADR` / `## Decisions`
+- "per Decision X" / "per Smell Y" / "per Bug Z"
+- "reviewer suggested / flagged / raised"
+- "user resolved it in Round N"
+- "See review-log.md §X" / `> ⓘ` / `→ §W1`
+- Whole `## Architecture Decisions Record` / `## ADR` / `## Decisions` sections
 
-完整 bad/good 對照（5 種 pattern + 通用改寫公式）：`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+Full bad/good comparison (5 patterns + a general rewrite formula): `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
-### Review log 內部結構
+### Review Log Internal Structure
 
-Review log 內部使用 letter ID + W / FP 編號 cross-reference（如 §1 Audit Trail 表格 Resolution 欄寫 `→ §3 W1`）。這些**只在 review-log.md 內**，不外溢到 formal doc。
+The review log internally uses letter ID + W / FP number cross-references (e.g., the §1 Audit Trail table's Resolution field writes `→ §3 W1`). These exist **only within review-log.md**, never spilling over into the formal doc.
 
 ---
 
-## ✅/❌ 對照表
+## ✅/❌ Comparison Table
 
-| ✅ 做 | ❌ 不做 |
+| ✅ Do | ❌ Don't |
 |---|---|
-| §1 表格每列 Resolution 欄 1 行；完整理由放對應子節 | Resolution 欄寫 3 行解釋 |
-| Waiver 寫進 §3；formal doc 用中性 design rationale 解釋 | 在 tasks.md 寫 `> **SRP 例外（已知並接受）**：...` 多行區塊 |
-| Decision 用 reviewer 原 letter ID（Decision D）| 重新編號（Decision 1, Decision 2）|
-| §3 Waiver 必填 `Trade-off accepted` 欄 | 只寫「為什麼保留」不寫「失去了什麼」|
-| Architecture Decision 拍板後立刻寫進 §2 | 拖到全部 review 收斂後才補寫（細節已模糊）|
-| FP1 寫 Resolution 欄說明如何避免重複提出 | 只記「reviewer 誤判」不記如何防止再犯 |
-| 跨 review 種類用獨立 letter 序（D 與 I 各自累加）| 把 design / impl issue 混在同 letter 序 |
-| Formal doc 100% 不出現 review-log reference / pointer / letter tag | 用 `> ⓘ ... — 詳見 review-log §W1` footnote pointer（已廢止）|
-| Steering 昇華後在 §5 記一列（原則 / 位置 / 來源）| steering 改了但 review log 無紀錄，未來無從反查為什麼加這條 |
-| Formal doc 解釋設計理由用中性 prose（技術 / codebase 慣例 / 反面後果）| 用 `per Decision X` / `reviewer 建議` / `Round N 提出` 等 review-residue |
+| Each §1 table row's Resolution field is 1 line; the full reasoning goes in the corresponding subsection | Write a 3-line explanation in the Resolution field |
+| Write the waiver into §3; the formal doc explains with neutral design rationale | Write a multi-line block `> **SRP exception (known and accepted)**: ...` in tasks.md |
+| Use the reviewer's original letter ID for a Decision (Decision D) | Renumber (Decision 1, Decision 2) |
+| §3 Waiver mandatorily fills in the `Trade-off accepted` field | Only write "why kept" without "what was lost" |
+| Write an Architecture Decision into §2 immediately after it's resolved | Wait until all reviews converge before backfilling it (the details have already blurred) |
+| FP1 writes the Resolution field explaining how to avoid raising it again | Only record "reviewer false positive" without recording how to prevent recurrence |
+| Use independent letter sequences across review kinds (D and I each accumulate separately) | Mix design / impl issues into the same letter sequence |
+| The formal doc never contains a review-log reference / pointer / letter tag | Use the `> ⓘ ... — see review-log §W1` footnote pointer (abolished) |
+| After steering promotion, record a row in §5 (principle / location / source) | Steering changed but the review log has no record, so there's no way to look up later why this entry was added |
+| The formal doc explains design rationale with neutral prose (technical / codebase convention / adverse consequence) | Use `per Decision X` / `reviewer suggested` / `raised in Round N` and other review-residue |
 
 ---
 
-## 寫入時機（主 agent 動作）
+## When to Write (Main Agent Actions)
 
-每輪 review 結束，主 agent 執行：
+At the end of each review round, the main agent does:
 
-1. 把 reviewer 輸出的 issue list 整批 append 到 §1，Status 先標 `pending`
-2. 處理 issue（修 / 派工 / 問 user）後更新該列 Status + Resolution
-3. 若 issue 成為 waiver → 在 §3 補完整 Waiver 區塊，§1 該列 Resolution 改 `→ §3 W{N}`
-4. 若 issue 是 Architecture Decision 拍板 → 在 §2 補完整 Decision 區塊，§1 改 `→ §2 Decision <letter>`
-5. 若 issue 確認為誤判 → 在 §4 補 False Positive 區塊，§1 改 `→ §4 FP{N}`
-6. 若某原則經 user 確認寫入 steering → 完成 steering 編輯後在 §5 加一列（原則 / 寫入位置 / 來源）
+1. Append the reviewer's output issue list as a batch into §1, marking Status as `pending` first
+2. After processing an issue (fix / dispatch / ask user), update that row's Status + Resolution
+3. If the issue becomes a waiver → fill in the full Waiver block in §3, and change that §1 row's Resolution to `→ §3 W{N}`
+4. If the issue is an Architecture Decision resolution → fill in the full Decision block in §2, and change §1 to `→ §2 Decision <letter>`
+5. If the issue is confirmed a false positive → fill in the False Positive block in §4, and change §1 to `→ §4 FP{N}`
+6. If a principle is, after user confirmation, written into steering → after finishing the steering edit, add a row in §5 (principle / written-into location / source)
 
-**為什麼一筆一筆即時更新而非 batch**：reviewer 結束時 context 還新鮮，wait 太久細節會模糊；user 答 AskUserQuestion 後立即寫入 §2，rationale 還是 user 原話。
+**Why update entry by entry in real time rather than in a batch**: when the reviewer finishes, the context is still fresh; waiting too long blurs the details; after the user answers AskUserQuestion, writing into §2 immediately keeps the rationale in the user's original words.
 
 ---
 
-## 完整範例
+## Full Example
 
 ```markdown
 # Review Log — agent-memory-system
 
-> 本文件記錄此 feature 的 review/resolve 過程。
-> 正式文件（r/d/t/code）描述「決定後的世界」；本 log 描述「為什麼是這個世界」。
-> 寫入規範：references/review-log-guide.md
+> This document records the review/resolve process for this feature.
+> The formal docs (r/d/t/code) describe "the world after the decision"; this log describes "why it is this world".
+> Authoring conventions: references/review-log-guide.md
 
 ## 1. Audit Trail
 
 | Round | ID         | Severity | Status            | Resolution                                       |
 |-------|------------|----------|-------------------|--------------------------------------------------|
-| D1    | Bug A      | Critical | fixed             | design.md §MemoryService 加 lock invariant       |
+| D1    | Bug A      | Critical | fixed             | design.md §MemoryService added lock invariant    |
 | D1    | Smell B    | Medium   | fixed             | design.md L88 rename `extract` → `extract_memory`|
 | D2    | Smell C    | High     | waived            | → §3 W1                                           |
 | D2    | Decision D | -        | decision-resolved | → §2 Decision D                                   |
 | I1    | Bug A      | Critical | false-positive    | → §4 FP1                                          |
-| I1    | Bug B      | Critical | fixed             | src/cache.py:42 加 RLock                          |
-| I2    | Smell C    | Medium   | fixed             | src/handler.py refactor，抽 _format_payload      |
+| I1    | Bug B      | Critical | fixed             | src/cache.py:42 added RLock                       |
+| I2    | Smell C    | Medium   | fixed             | src/handler.py refactor, extracted _format_payload |
 
 ## 2. Architecture Decisions
 
-### Decision D（raised at D2）
-**Problem**: Cache invalidation 策略 — TTL vs explicit invalidation
+### Decision D (raised at D2)
+**Problem**: Cache invalidation strategy — TTL vs explicit invalidation
 **Options considered**:
-- **Option 1**: 60s TTL — 簡單，可容忍 staleness，背景輪詢省事
-- **Option 2**: 顯式 invalidation — 強一致性，但需要事件廣播機制
+- **Option 1**: 60s TTL — simple, tolerates staleness, easy background polling
+- **Option 2**: explicit invalidation — strong consistency, but needs an event broadcast mechanism
 **Chosen**: Option 1
-**Rationale (user, 2026-05-12)**: read-heavy workload 可容忍 1 分鐘 staleness，simplicity 優先；未來真的需要強一致再升級
+**Rationale (user, 2026-05-12)**: a read-heavy workload tolerates 1 minute of staleness, simplicity comes first; upgrade later if strong consistency is truly needed
 **Affects**: design.md §Cache, tasks.md T2.3
 
 ## 3. Waivers
 
-### W1: Task 1.4 違反 SRP（from D2 Smell C）
+### W1: Task 1.4 violates SRP (from D2 Smell C)
 **Raised by**: spec-verifier, Round D2, severity High
 **Principle violated**: Single Responsibility
 **Where**: tasks.md task 1.4
 **Why kept**:
-DB migration 必須 atomic — backfill owner_user_id、drop memory_owners、加 CHECK constraint、
-drop group_id、rename extracted_*、加 FK CASCADE 任一拆分都會留下 schema invariant 違反的中間態
-（例如先加 CHECK 但 backfill 未完成，或先 drop 表但 caller 未改完）。
-**Trade-off accepted**: 大型 multi-purpose task 的可讀性 vs schema integrity guarantee；
-換得「production 不會出現中間態 schema 違反」，付出「task 描述偏長、grep 看不到單一職責」
+The DB migration must be atomic — backfill owner_user_id, drop memory_owners, add CHECK constraint,
+drop group_id, rename extracted_*, add FK CASCADE; any split would leave an intermediate state violating a schema invariant
+(e.g. adding CHECK first but backfill not done, or dropping the table first but callers not yet updated).
+**Trade-off accepted**: the readability of a large multi-purpose task vs schema integrity guarantee;
+gaining "production won't see an intermediate-state schema violation", paying with "a longer task description, no single responsibility visible via grep"
 **Related Decisions**: AL, Q, M
 **Accepted by**: User decision, 2026-05-12
 
 ## 4. False Positives
 
-### FP1: process_batch 缺 idempotency key（from I1 Bug A）
-**Reviewer claim**: src/processor.py process_batch 沒做 idempotency
-**Actual situation**: 上游 webhook handler 已在 receiver layer 用 event_id 去重（src/webhook.py:23），
-process_batch 是內部 callee，呼叫端已保證每個 batch_id 只進來一次
-**Resolution**: process_batch docstring 加一行 "idempotency enforced by caller (see src/webhook.py)"，
-避免後續 reviewer 重複提出
+### FP1: process_batch missing idempotency key (from I1 Bug A)
+**Reviewer claim**: src/processor.py process_batch doesn't do idempotency
+**Actual situation**: the upstream webhook handler already dedupes by event_id at the receiver layer (src/webhook.py:23),
+process_batch is an internal callee, and the caller already guarantees each batch_id enters only once
+**Resolution**: add a line to the process_batch docstring "idempotency enforced by caller (see src/webhook.py)",
+to avoid subsequent reviewers raising it again
 
 ## 5. Steering Updates
 
-| #   | 日期       | 原則                                      | 寫入位置                | 來源     |
+| #   | Date       | Principle                                 | Written into            | Source     |
 |-----|------------|-------------------------------------------|------------------------|----------|
-| SU1 | 2026-05-12 | cache 類元件預設 TTL 失效，不做 explicit invalidation | tech.md §Caching        | Decision D |
+| SU1 | 2026-05-12 | cache-type components default to TTL expiry, no explicit invalidation | tech.md §Caching        | Decision D |
 ```
 
 ---
 
-## 為什麼不寫 MUST / NEVER
+## Why Not Write MUST / NEVER
 
-本文件用「✅/❌」與「為什麼這樣設計」說明，不用硬性禁令。判斷準則永遠是：**正式文件能不能保持「single source of truth」可讀性？review log 能不能讓未來維護者快速回答「為什麼這裡這樣設計」？** 這兩問通過，細節彈性處理；通不過則需要回到本指引調整寫法。
+This document uses "✅/❌" and "why it's designed this way" to explain, not hard prohibitions. The decision criterion is always: **can the formal doc keep its "single source of truth" readability? Can the review log let a future maintainer quickly answer "why is it designed this way here"?** If both questions pass, handle the details flexibly; if they fail, you need to come back to this guide to adjust the approach.
