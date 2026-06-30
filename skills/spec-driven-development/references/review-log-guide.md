@@ -163,7 +163,7 @@ Use **neutral design rationale** integrated into the Component / docstring / tas
 - "See review-log.md §X" / `> ⓘ` / `→ §W1`
 - Whole `## Architecture Decisions Record` / `## ADR` / `## Decisions` sections
 
-Full bad/good comparison (5 patterns + a general rewrite formula): `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+Full bad/good comparison (6 patterns + a general rewrite formula): `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
 ### Review Log Internal Structure
 

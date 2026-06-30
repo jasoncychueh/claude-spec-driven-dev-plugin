@@ -4,6 +4,18 @@ The "translation work" the main agent must do when, having received an Architect
 
 > This file only needs to be read when the main agent needs to hand a Decision to the user. Reviewer agents **need not** read this file — they still output a mechanically parseable issue list per `review-protocol.md`; what this file governs is how the main agent **translates** that list into a conversation a human can digest.
 
+## Table of Contents
+
+1. [Core principle: calibrate for the human cognitive limit](#core-principle-calibrate-for-the-human-cognitive-limit)
+2. [Two-beat delivery: briefing turn → asking turn](#two-beat-delivery-briefing-turn--asking-turn-two-separate-turns)
+3. [✅/❌ comparison table](#-comparison-table)
+4. [Three judgment rules](#three-judgment-rules)
+5. [AskUserQuestion field usage](#askuserquestion-field-usage)
+6. [Example comparison](#example-comparison)
+7. [Remediation flow](#remediation-flow)
+8. [Write into the Review Log after resolving a Decision](#write-into-the-review-log-after-resolving-a-decision)
+9. [Why not write MUST / NEVER](#why-not-write-must--never)
+
 ---
 
 ## Core principle: calibrate for the human cognitive limit

@@ -29,7 +29,8 @@ After reading the steering docs, your **default is NOT to promote**: only when t
 The following review-residue comments are not allowed in implementation code:
 - `// WAIVED:` / `# HACK: reviewer accepted` / `# this design was accepted by the reviewer...`
 - `# ⓘ <one-liner> — see review-log.md §W<N>` footnote pointer (**fully abolished**)
-- Any comment containing the strings `review-log` / `Round N` / `Decision X` / `Smell Y` / `(per reviewer)`
+- **(A) review-log codes** — `review-log` / `Round-N` / `R<n>` (round) / `D<n>` / `Decision X` / `Bug X` / `Smell X` / `Pivot-Event-N` / `SC-N` / `(per reviewer)`, **even when riding inside an otherwise-normal technical comment** (e.g. `# owner_user_id is the single ACL column (Decision AL)`)
+- **(B) spec-doc section / requirement pointers** — code pinned to a project doc's numbering: `design.md §X` / `§Component N` / a bare `Component N` / requirement IDs (`R6.1` / `R13` / `Requirements: R6.1, R6.4`). Section/requirement numbers drift as the spec is reorganized, leaving the pointer stale
 
 Code that violates this rule is opened as a new **Medium Smell** issue.
 
@@ -39,8 +40,11 @@ Code that violates this rule is opened as a new **Medium Smell** issue.
 - ✅ `# Synchronous for atomicity — async would leave intermediate states violating schema invariants` — technical reason
 - ✅ `# Returns None per upstream convention in UserService` — codebase convention
 - ❌ `# WAIVED in Round I2 — see review-log §W3` — exposes the review process
+- ❌ `# matches design.md §Component 13` / `Requirements: R6.1, R6.4` — pins the comment to a doc's section/requirement numbering (Pattern F-B)
 
-**Why even the pointer is banned**: in practice, once footnote pointers were allowed, the agent would drift — writing ADR sections, letter tags, and Round narration back into design.md; the same happens in code (the pointer becomes a gateway habit of "I can reference review"). A total ban on any review-log reference is the only reliable discipline boundary. Full comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md` Pattern E.
+**Why even the pointer is banned**: in practice, once footnote pointers were allowed, the agent would drift — writing ADR sections, letter tags, and Round narration back into design.md; the same happens in code (the pointer becomes a gateway habit of "I can reference review"). A total ban on any review-log reference is the only reliable discipline boundary. Full comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md` Pattern E (waiver blocks) and Pattern F (inline codes / spec-section pointers).
+
+**Outside-the-spec exception**: only a reference that doesn't drift with this project's spec is allowed — an external standard (`RFC 6749 §5.2`, OAuth / IETF), or a spec's **name** (`tool-approval-modes spec`, without its `Component N`). **`ADR-N` is *not* allowed**: here ADRs are `#### ADR-N:` sections inside design.md, so an ADR number drifts like `§Component N` (type-B). Inline the decision instead: `# ADR-3 Option 4b (D11 Bug C)` → `# reuse the origin SDK client to stay within the latency budget`.
 
 **Exception**: pure code semantic comments are allowed (system invariant / precondition / dependency pointer) — but they **must not** touch the reviewer / review process.
 

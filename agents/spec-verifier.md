@@ -42,6 +42,8 @@ Scan requirements.md / design.md / tasks.md one by one, and **treat finding any 
 - [ ] `\(per (user )?(Decision|Bug|Smell|Issue) [A-Z]+\)` — `(per Decision O)`, `(per Smell G)`
 - [ ] `\b(Decision|Bug|Smell) [A-Z]{1,3}\b` appearing in prose or a table cell (a lone letter like `Bug A`, `Decision AL`)
 - [ ] `\bRound [DI]?\d+( review)?\b` — a Round number appearing (`Round D2`, `Round 3 review`)
+- [ ] `\bPivot-Event-\d+\b` / `\bSC-\d+\b` — bare reviewer-emitted codes (a Pivot-Event or Steering-Candidate id like `Pivot-Event-5`, `SC-1`)
+- [ ] `\bD\d+\b` / `\(per reviewer\)` — a bare Decision-round id (`D11`) or reviewer citation. Matches `implementation-reviewer`'s code-side type-(A) list; a bare `R\d+` is deliberately **not** here — `R6.1`-style requirement refs are legitimate traceability in tasks.md
 
 **C. Review-process narration / waiver declaration**:
 - [ ] `reviewer (suggested|flagged|raised|thinks|requires)` — prose citing reviewer behavior

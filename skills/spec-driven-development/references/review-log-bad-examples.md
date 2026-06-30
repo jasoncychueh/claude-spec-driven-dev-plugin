@@ -6,6 +6,18 @@ Before writing a doc, if you're unsure where a piece of content belongs, first c
 
 > Why this doc exists: relying on the verifier to detect afterward alone, the agent still habitually introduces ADR / reviewer letter tags / Round process narration (Architecture Decision Records are a common industry pattern, and the agent's training data contains plenty of examples). So we teach the negative pattern clearly in the places the agent can reach at the moment it writes the doc (the template, the guide, this bad-examples file).
 
+**Production code is also a formal surface** (Pattern F): beyond review-log residue, shipped comments must not pin themselves to a **spec doc's section/requirement numbering** (`design.md §Component 8` / `Requirements: R6.1`). Only references that don't drift with your spec's structure may be cited — an external standard (`RFC §` / OAuth / IETF) or a spec's **name** (a stable handle). **`ADR-N` is *not* exempt**: in this project ADRs are `#### ADR-N:` sections inside design.md, so an ADR *number* drifts exactly like `§Component 8` — write the decision, not the pointer.
+
+## Table of Contents
+
+1. [Pattern A: Architecture Decisions Record Section](#pattern-a-architecture-decisions-record-section)
+2. [Pattern B: Reviewer Letter Tags in a Table](#pattern-b-reviewer-letter-tags-in-a-table)
+3. [Pattern C: Process Narration Section](#pattern-c-process-narration-section)
+4. [Pattern D: SRP Exception Declaration in tasks.md](#pattern-d-srp-exception-declaration-in-tasksmd)
+5. [Pattern E: WAIVED Comment in Production Code](#pattern-e-waived-comment-in-production-code)
+6. [Pattern F: Review-Log Codes & Spec-Section Pointers in Production Comments](#pattern-f-review-log-codes--spec-section-pointers-in-production-comments)
+7. [General Rewrite Formula](#general-rewrite-formula)
+
 ---
 
 ## Pattern A: Architecture Decisions Record Section
@@ -168,7 +180,7 @@ Main design choices:
 ```markdown
 #### Task 1.4: Schema migration combined
 
-Four schema changes in the same task: (a) add owner_user_id + migrate + drop the memory_owners
+Five schema changes in the same task: (a) add owner_user_id + migrate + drop the memory_owners
 table; (b) drop group_id; (c) rename extracted_personal → extracted; (d) add a CHECK
 constraint; (e) add FK CASCADE.
 
@@ -265,6 +277,64 @@ def update(self, key, value):
 
 ---
 
+## Pattern F: Review-Log Codes & Spec-Section Pointers in Production Comments
+
+Pattern E covers the blatant *waiver block* (`# WAIVED in Round I2 — see review-log §W3`). This pattern covers the subtler residue: a code / pointer that **rides inside an otherwise-legitimate technical comment**, so it reads as normal at a glance and survives review.
+
+**The principle**: a production comment describes the **code** — its invariant, its precondition, the *why* behind how it's written — not the design **process**, and not a planning doc's **table of contents**. The test for whether a reference may stay is **durability**: a *stable identifier* (won't churn) may be cited; a *fragile pointer* (drifts every time a doc is reorganized, or points at something the reader can't open) may not. Crucially, *stable* is about **where the identifier lives**, not what it's called — an `ADR-N` number sounds like a durable artifact, but in this project ADRs are `#### ADR-N:` sections inside design.md, so it drifts with the spec (see below).
+
+**Forbidden — fragile references**:
+
+- **(A) review-log codes** — `Decision X` / `Bug X` / `Smell X` / `Round-N` / `R<n>` (review round) / `D<n>` / `Pivot-Event-N` / `SC-N`. They point at review-process artifacts the reader can't see, and that the review invalidates as it evolves. A future reader hits `(Decision AL)` with no file to open and no way to tell if the rationale still holds.
+- **(B) internal spec-doc pointers** — `design.md §X` / `§Component N` / a bare `Component N` / requirement IDs (`R6.1`, `R13`, `Requirements: R6.1, R6.4, R6.5`) / **`ADR-N`** (in this project an ADR is a `#### ADR-N:` section *inside* design.md, not a separate registry — so it drifts like any other section ref). These pin shipped code to a project doc's numbering, which is re-sorted, split, and renamed constantly. The design rationale belongs **inlined as prose** in the comment, not cited by a number that rots.
+
+**Allowed — stable handles that don't drift with your spec's structure** (cite freely; just strip any fragile code riding alongside):
+
+- **External-standard citations** — `RFC 6749 §5.2`, an OAuth 2.0 / W3C / IETF section: an external spec with frozen, versioned numbering, owned by a standards body — not your moving design.md.
+- A spec's **name** — `tool-approval-modes spec`: a stable handle. Cite the *name*; drop its Component / section / requirement numbers.
+
+> **`ADR-N` is *not* on this list — the counter-intuitive part.** An Architecture Decision Record *sounds* like the canonical durable-decision artifact, and with a frozen ADR registry it would be citable. But durability is about *where the thing lives*, not the name: here ADRs are `#### ADR-N:` subsections **inside design.md**, so `ADR-7` drifts with every spec reorg like `§Component 8`. It belongs under Forbidden (B) — write the decision itself.
+
+### (A) Review-log codes riding inside a normal comment
+
+| ❌ Bad | ✅ Good |
+|---|---|
+| `# Phase 11 (Decision AL): owner_user_id is the single ACL column` | `# owner_user_id is the single ACL column` |
+| `the current group's system prompt (Round-1 Bug B). When parse…` | `the current group's system prompt. When parse…` |
+| `# Bug A guard (Phase 11 R1): group memory MUST carry conversation_id` | `# Guard: group memory MUST carry a conversation_id` |
+| `Decision B column split: writes claimed_at = now()` | `The column split: writes claimed_at = now()` |
+| `# Decision tree (D11 final):` | `# Decision tree:` |
+| `Pending-interactions (Pivot-Event-5/-6): COMPLETE is terminal…` | `Pending-interactions: COMPLETE is terminal…` |
+| `comment="Audit trail — who triggered this write (D4)"` | `comment="Audit trail — who triggered this write"` |
+| `# ADR-3 Option 4b (D11 Bug C / D12)` | `# Continuation reuses the origin SDK client to stay within the latency budget` — drop the `(D11 Bug C / D12)` codes **and** `ADR-3` (a design.md §); inline the decision |
+
+### (B) Spec-doc section / requirement / ADR pointers
+
+| ❌ Bad | ✅ Good |
+|---|---|
+| `Requirements: R6.1, R6.4, R6.5` (module docstring header) | delete the line — or one plain sentence on what the module does |
+| `# Design ref: design.md §Component 8` / `# Design ref: design.md Component 8` | `# Design ref: design.md` — or drop the line |
+| `see design.md §Component 13.` | `see design.md.` |
+| `CRUD (tool-approval-modes spec Component 2 / Component 7).` | `CRUD (tool-approval-modes spec).` — keep the spec **name**, drop `Component N` |
+| `# R13 rename (formerly _resolve_task_authority)` | `# rename (formerly _resolve_task_authority)` — drop the `R13` |
+| `(design §Execution-model C / §Judgment state-packing query)` | drop it, or say it plainly: "dispatch once it holds; pack the judgment at check time" |
+| `# ADR-7 + Decision B schema (§Component 18)` | `# column-split schema` — drop `Decision B`, the `§Component 18`, **and** `ADR-7` (all design.md refs) |
+| `# ADR-7 Scheduler driver tick` | `# Scheduler driver tick` |
+| `Three terminal states per ADR-6/-7:` | `Three terminal states:` |
+| `# ADR-5: approval execution is system-driven, not LLM replay` | `# approval execution is system-driven, not LLM replay` — keep the WHAT, drop the ADR pointer |
+
+**Why these rot**:
+
+- (A) The bracketed `(Decision AL)` / `Round-1 Bug B` / `D11` / `Pivot-Event-5` add nothing a reader can act on — there is no `Decision AL` in the codebase, and even if they found the review-log the entry may have been superseded three rounds later. The comment's *technical* claim ("owner_user_id is the single ACL column") is the only durable part; the code beside it is noise that ages into a lie.
+- (B) `§Component 8` / `R6.1` are pointers into a *different file's structure*. Renumber the design doc, split a component, re-sort the requirements list — and the comment now points at the wrong place or nowhere. You've tied the half-life of a shipped comment to the editing of a planning doc.
+- The exceptions survive precisely because they live **outside** your spec's structure and don't rot with it: an RFC section is frozen by the standards body, and a spec's *name* doesn't change when its internal headings do. `ADR-N` looks like it belongs here but doesn't — it's a `#### ADR-N:` section inside design.md, so it rots with the spec like (B).
+
+**Rewrite recipe**: drop the code / pointer → ask *"what is this line of code guaranteeing?"* → rewrite using that invariant / precondition / reason.
+
+Example: `# Decision K: FK CASCADE on conversation_id` — the comment isn't "Decision K said to use CASCADE"; it's *"FK CASCADE is a schema-level safety net; the app layer never hard-deletes users."* Write the latter — it tells the reader what protects them, and they can verify it against the schema.
+
+---
+
 ## General Rewrite Formula
 
 | The review-residue you want to write | Neutral rewrite direction |
@@ -275,7 +345,9 @@ def update(self, key, value):
 | "SRP exception (known and accepted): ..." | "Reason for merging: <technical requirement like atomicity / dependency / invariant>" |
 | "rename per Smell G" | use the new name directly, and if needed a one-sentence docstring saying "naming aligns with X module convention" |
 | "See review-log §W1" | write the part of that content meaningful to the reader as neutral prose into the docstring / Component description |
+| inline tag: `owner_user_id is the single ACL column (Decision AL)` | drop `(Decision AL)`; keep only the technical claim the comment already makes |
+| `see design.md §Component 8` / `Requirements: R6.1` in a docstring | inline the one sentence that matters — or name the doc/spec without the section/requirement number |
 
-**Core formula**: **strip away** the three layers of review meta-info — **WHO** decided + **WHEN** in review + **WHAT** waiver code — keeping only the "**WHY** technically" rationale layer, integrated into the corresponding place in the Component / docstring / task description.
+**Core formula**: **strip away** the three layers of review meta-info — **WHO** decided + **WHEN** in review + **WHAT** waiver code — keeping only the "**WHY** technically" rationale layer, integrated into the corresponding place in the Component / docstring / task description. For production comments, strip one more layer — **WHERE-in-the-doc** (`§Component N` / `R6.1` / spec-section numbers) — and inline the WHY instead; keep only references that live *outside* your spec's structure (an external `RFC §`, or a spec's name — **not** `ADR-N`, which is a design.md section here).
 
 The full review trace (who raised it, which round, why it was accepted) goes in `review-log.md`, physically isolated from the formal doc.

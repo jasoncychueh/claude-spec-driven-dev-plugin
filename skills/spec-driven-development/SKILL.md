@@ -470,7 +470,7 @@ In the old review/resolve process, the agent would leave the review-process audi
 ### Detailed conventions
 
 - Writing conventions / ID rules / Status values / examples: `references/review-log-guide.md`
-- Bad / Good comparisons (5 patterns + a general rewrite formula): `references/review-log-bad-examples.md`
+- Bad / Good comparisons (6 patterns + a general rewrite formula): `references/review-log-bad-examples.md`
 - The reviewer/main-agent handshake protocol: the "Review Log integration" section of `references/review-protocol.md`
 
 ---
@@ -557,7 +557,7 @@ Three hook points:
 | `references/checklists.md` | All checklists (including Design Review / Implementation Review) |
 | `references/review-protocol.md` | The reviewer agents' shared protocol (read by the reviewer; the main agent needn't pre-read) |
 | `references/review-log-guide.md` | Review Log writing conventions (format / ID / neutralization principle / examples) |
-| `references/review-log-bad-examples.md` | Bad / Good comparisons of the 5 review-residue patterns + a general rewrite formula |
+| `references/review-log-bad-examples.md` | Bad / Good comparisons of the 6 review-residue patterns + a general rewrite formula |
 | `references/decision-escalation-guide.md` | Architecture Decision Presentation Discipline (including writing to review log §2 after a decision + neutralized reflection in design.md) |
 | `references/briefing-guide.md` | Spec / Plan Briefing guide (conversational summary before implementation — trigger timing / content structure / cognitive calibration) |
 | `templates/review-log-template.md` | The minimal review-log.md skeleton (used by /create-spec and Quick Fix Mode) |
