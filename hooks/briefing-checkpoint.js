@@ -13,33 +13,53 @@
  * approving any plan is never harmful, and the check is fail-open and
  * satisfiable, so it never blocks you for real.
  *
- * SIGNAL (stateless, from the transcript):
- *   The turn-final briefing discipline guarantees a real *human* reply sits
- *   between the briefing and a legitimate ExitPlanMode. Walking back from the
- *   ExitPlanMode call we SKIP the agent's MECHANICAL turns — any assistant turn
- *   that makes a tool call (the ExitPlanMode call itself; the ToolSearch that
- *   loads ExitPlanMode when it is a deferred tool; a post-approval Edit; etc.) —
- *   plus tool_result deliveries and injected entries. The first remaining
- *   "real" message:
+ * TWO-PASS SIGNAL (stateless, from the transcript):
+ *
+ *   PASS 1 — find where THIS plan session started (`sessionStart`). The check is
+ *   bounded to the current entry into plan mode, so a deny never points at stale
+ *   text from a previous plan session or from before a Claude Code restart. A
+ *   small state machine tracks whether we are currently in a plan session:
+ *     ENTER  (sets sessionStart):
+ *       - an EnterPlanMode tool call (agent entered plan mode), OR
+ *       - a *genuine* transition into plan on a real user message — read from the
+ *         message's OWN `permissionMode:"plan"` field while NOT already in a plan
+ *         session (the reliable signal for a manual shift+tab re-entry after a
+ *         restart, which carries no EnterPlanMode call), OR
+ *       - a bare `{type:"permission-mode",permissionMode:"plan"}` marker while NOT
+ *         already in a plan session (a manual re-entry that left no user message).
+ *     CLOSE  (ends the session):
+ *       - an APPROVED ExitPlanMode — Claude Code delivers a "…approved your plan…"
+ *         tool_result, correlated to the ExitPlanMode call by tool_use_id (so
+ *         arbitrary tool output — e.g. a Read of a file that merely echoes the
+ *         phrase — can NOT close the session). A *denied* ExitPlanMode does NOT
+ *         close: its tool_result is our own deny reason, so the same session
+ *         continues and recovery — brief → reply → retry — never deadlocks.
+ *       - a real user message carrying a NON-plan `permissionMode` (the human
+ *         typed while not in plan, i.e. plan mode had ended).
+ *
+ *   CRUCIAL: a bare `permission-mode:plan` marker seen while ALREADY in a plan
+ *   session is IGNORED — it is not a boundary. Claude Code writes such a marker
+ *   at essentially EVERY plan-mode turn boundary (verified in live transcripts:
+ *   it recurs while plan mode is already active), NOT only on a manual re-entry.
+ *   The old hook (1.7.1) treated every one of these as "a new plan session
+ *   started here, demand a fresh briefing" and so FALSE-BLOCKED the compliant
+ *   flow whenever such a marker happened to sit between the user's reply and the
+ *   exit. Keying re-entry off the state machine above — real signals only — is
+ *   what lets the routine markers be ignored without losing session anchoring.
+ *
+ *   PASS 2 — walk back from the ExitPlanMode call to `sessionStart`, SKIPPING the
+ *   agent's MECHANICAL turns (the ExitPlanMode call itself; the ToolSearch that
+ *   loads ExitPlanMode when it is a deferred tool; a post-approval Edit; etc.),
+ *   tool_result deliveries, injected entries, and the routine markers above. The
+ *   first remaining "real" message decides:
  *     - a human user reply        -> ALLOW (user was briefed and responded)
- *     - an assistant text message -> DENY (agent's own words with no human reply
- *       after them — it skipped the briefing, or didn't wait for one)
- *
- *   Skipping tool-call turns is what makes the check robust: a deferred
- *   ExitPlanMode forces a ToolSearch between the user's approval and the exit,
- *   and the agent often acknowledges approval before exiting — none of that
- *   should count as "no briefing". (Cost: a skip done purely via tool calls with
- *   no narration may slip through — the safe direction; we never false-block.)
- *
- *   ANCHORED TO THE CURRENT PLAN SESSION: the walk also stops at the point this
- *   plan mode was (re-)entered — a manual {type:"permission-mode",permissionMode:
- *   "plan"} marker (user shift+tab) OR an EnterPlanMode tool call (agent). Hitting
- *   that boundary before any human reply means no briefing happened since entering
- *   -> DENY. This stops a deny from pointing at stale text from BEFORE a Claude
- *   Code restart, and correctly asks for a fresh briefing when the user had to
- *   manually re-enter plan mode to resume a flow (a restart drops plan-mode state).
- *   Briefing in every plan session is the intended policy; anchoring just keeps the
- *   check satisfiable per-session instead of leaking across a restart boundary.
+ *     - an assistant TEXT message  -> DENY (agent delivered a briefing as its own
+ *       turn and then exited without waiting for a reply)
+ *   Reaching `sessionStart` with no human reply -> DENY (no briefing+reply since
+ *   entering this plan session — this also covers a briefing CRAMMED into the same
+ *   message as ExitPlanMode: that message carries a tool_use so it is skipped as
+ *   mechanical, and the walk denies at the boundary). If no plan session could be
+ *   identified (`sessionStart < 0`: scrolled off / compacted) -> fail-open ALLOW.
  *
  * NEVER DEADLOCKS: after a deny the agent briefs turn-final, the user replies,
  *   and the retry sees that human reply -> allow. (This is why the old prompt
@@ -47,13 +67,15 @@
  *   blocked even AFTER a confirmed briefing.)
  *
  * FAIL-OPEN: any uncertainty (no transcript, parse error, unexpected shape, no
- *   conclusive preceding message) -> allow.
+ *   identifiable plan session) -> allow.
  *
  * Filters (verified against live transcripts):
  *   - isSidechain: subagent messages — not the main conversation.
  *   - isMeta: injected user entries (local-command caveats, reminders).
  *   - tool_result-only user messages: a tool delivery, not a human reply.
- *   (A human reply is type:"user" with string / text content.)
+ *   (A human reply is type:"user" with string / text content. A real user
+ *   message also carries its own top-level `permissionMode` field — verified in
+ *   live transcripts — which is Pass 1's reliable transition signal.)
  *
  * Stateless & side-effect-free: reads stdin + the transcript (read-only),
  * writes NOTHING anywhere. Cross-platform pure Node (Claude Code ships Node).
@@ -82,9 +104,14 @@ try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch (_) { allow(); }
 const transcriptPath = input && input.transcript_path;
 if (!transcriptPath) allow();
 
-// ---- read transcript (JSONL) ----
-let lines;
-try { lines = fs.readFileSync(transcriptPath, 'utf8').split(/\r?\n/); } catch (_) { allow(); }
+// ---- read + parse transcript (JSONL) ----
+let objs;
+try {
+  objs = fs.readFileSync(transcriptPath, 'utf8').split(/\r?\n/).map((l) => {
+    if (!l || !l.trim()) return null;
+    try { return JSON.parse(l); } catch (_) { return null; }
+  });
+} catch (_) { allow(); }
 
 // ---- classify a main-conversation user/assistant entry (null for everything else) ----
 function classify(obj) {
@@ -110,31 +137,80 @@ function classify(obj) {
   return { role, isMeta: !!obj.isMeta, hasToolResult, hasToolUse, hasHumanText, hasEnterPlan };
 }
 
-// ---- walk back to the first "real" (non-mechanical) message before ExitPlanMode ----
-for (let i = lines.length - 1; i >= 0; i--) {
-  const raw = lines[i];
-  if (!raw || !raw.trim()) continue;
-  let obj; try { obj = JSON.parse(raw); } catch (_) { continue; }
+// ---- collect ExitPlanMode tool_use ids from an entry (assistant turns carry them) ----
+function collectExitIds(obj, into) {
+  const msg = obj && (obj.message || obj);
+  const content = msg && msg.content;
+  if (!Array.isArray(content)) return;
+  for (const b of content) {
+    if (b && b.type === 'tool_use' && b.name === 'ExitPlanMode' && b.id) into.add(b.id);
+  }
+}
 
-  // Plan-session boundary (manual entry): user shift+tab -> {type:"permission-mode", permissionMode:"plan"}.
-  // Reaching it first (before any human reply) means no briefing+reply happened since (re-)entering plan
-  // mode -> DENY. (Forces a fresh briefing; recoverable. Stops the deny from leaking past a restart.)
-  // Checked on the raw entry (classify nulls permission-mode), but main-conversation-only like classify.
-  if (obj && !obj.isSidechain && obj.type === 'permission-mode' && obj.permissionMode === 'plan') deny(DENY_REASON);
+// ---- is this user entry the APPROVED result of one of our ExitPlanMode calls? (session close) ----
+// Claude Code delivers "User has approved your plan…" when an ExitPlanMode is approved. We
+// correlate by tool_use_id (not free text), so arbitrary tool output that merely echoes
+// "approved your plan" (e.g. a Read of this very file) can NOT close the session. A DENIED
+// exit's result is our own DENY_REASON (no "approved your plan"), so recovery never closes.
+function isApprovedExit(obj, exitIds) {
+  const msg = obj && (obj.message || obj);
+  const content = msg && msg.content;
+  if (!Array.isArray(content)) return false;
+  for (const b of content) {
+    if (b && b.type === 'tool_result' && b.tool_use_id && exitIds.has(b.tool_use_id)) {
+      const t = typeof b.content === 'string' ? b.content : JSON.stringify(b.content);
+      if (/approved your plan/i.test(t)) return true;
+    }
+  }
+  return false;
+}
+
+// ---- PASS 1: find where the current plan session started (see header) ----
+let sessionStart = -1;
+let inPlan = false;
+const exitIds = new Set();
+for (let i = 0; i < objs.length; i++) {
+  const obj = objs[i];
+  if (!obj || obj.isSidechain) continue;
+
+  collectExitIds(obj, exitIds); // an ExitPlanMode tool_use always precedes its result
+
+  if (obj.type === 'permission-mode') {
+    // Bare marker opens a session only as a manual re-entry (not already in plan);
+    // while in plan it is routine turn-boundary bookkeeping -> ignore.
+    if (obj.permissionMode === 'plan' && !inPlan) { inPlan = true; sessionStart = i; }
+    continue;
+  }
 
   const c = classify(obj);
   if (!c) continue;
 
-  // Plan-session boundary (agent entry): the EnterPlanMode tool call that opened this plan session.
-  if (c.role === 'assistant' && c.hasEnterPlan) deny(DENY_REASON);
+  if (c.role === 'assistant' && c.hasEnterPlan) { inPlan = true; sessionStart = i; continue; }  // agent entry
 
-  if (c.role === 'assistant' && c.hasToolUse) continue;                  // mechanical agent turn (ExitPlanMode / ToolSearch / Edit / ...)
-  if (c.role === 'user' && c.isMeta) continue;                           // injected entry, not a human reply
-  if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue; // tool_result delivery
+  if (c.role === 'user' && isApprovedExit(obj, exitIds)) { inPlan = false; continue; }           // approved exit -> session closed
 
-  if (c.role === 'user' && c.hasHumanText) allow(); // a human reply since entry (mechanical turns aside) -> briefing flow
-  if (c.role === 'assistant') deny(DENY_REASON);    // agent's own text with no human reply after -> skip / didn't wait
-  allow(); // ambiguous -> fail-open
+  if (c.role === 'user' && c.hasHumanText && !c.isMeta) {
+    const pm = obj.permissionMode; // a real user message's own mode — the reliable transition signal
+    if (pm === 'plan') { if (!inPlan) { inPlan = true; sessionStart = i; } } // genuine ->plan re-entry
+    else if (pm != null) { inPlan = false; }                                 // typed while not in plan -> session ended
+  }
 }
 
-allow(); // nothing conclusive (plan entry scrolled off / compacted) -> fail-open
+// ---- PASS 2: walk back from ExitPlanMode to sessionStart, find the first real message ----
+if (sessionStart >= 0) {
+  for (let i = objs.length - 1; i > sessionStart; i--) {
+    const c = classify(objs[i]);
+    if (!c) continue;                                                      // markers / noise / subagent
+
+    if (c.role === 'assistant' && c.hasToolUse) continue;                  // mechanical agent turn (ExitPlanMode / ToolSearch / Edit / ...)
+    if (c.role === 'user' && c.isMeta) continue;                           // injected entry, not a human reply
+    if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue; // tool_result delivery
+
+    if (c.role === 'user' && c.hasHumanText) allow();                      // a human reply since entry (mechanical turns aside) -> briefing flow
+    if (c.role === 'assistant' && c.hasHumanText) deny(DENY_REASON);       // agent's own text with no human reply after -> briefed then didn't wait
+    // else: thinking-only / empty assistant, empty user, etc. -> keep walking
+  }
+  deny(DENY_REASON); // reached the session boundary with no human reply -> no briefing+reply since entering
+}
+
+allow(); // no identifiable plan session (scrolled off / compacted) -> fail-open
