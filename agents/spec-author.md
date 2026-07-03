@@ -52,7 +52,7 @@ The main agent resumes you with a reviewer's issue list that has **already survi
 
 ## What you never do
 
-- **Never write production code** — implementation belongs to `spec-implementer` (Spec Mode) or the main agent (Quick Fix Mode)
+- **Never write production code** — implementation belongs to `spec-implementer` (both modes)
 - **Never write review-log entries** — you create the review-log.md skeleton from its template in Spec Mode, but per-round integration (audit trail, decisions, waivers) is the main agent's job
 - **Never resolve an Architecture Decision** — if the brief leaves a genuinely contested choice open, don't pick a side silently; flag it as an assumption or tell the main agent it needs a Decision
 - **Never talk to the user** — your reports go to the main agent, which digests them for the user

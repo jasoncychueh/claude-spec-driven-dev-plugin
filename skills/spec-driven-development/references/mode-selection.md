@@ -6,7 +6,7 @@ This skill supports two development paths. **Any** work that writes / modifies c
 |---|---|---|
 | Document output | plan file only (outside the repo) | requirements.md + design.md + tasks.md |
 | Who writes docs | `spec-author` (plan file, per the main agent's brief) | `spec-author` (plan + spec docs, per the main agent's brief) |
-| Who writes code | main agent directly | `spec-implementer` agents |
+| Who writes code | `spec-implementer` (single session, plan-file-driven) | `spec-implementer` agents (parallel groups, tasks.md-driven) |
 | design-reviewer loop | **mandatory** (multi-round review of the plan content to 0 issues) | **mandatory** (multi-round review of design.md to 0 issues) |
 | implementation-reviewer loop | **mandatory** (multi-round review to 0 issues) | **mandatory** (multi-round review to 0 issues) |
 | Applicable situations | bug fix / refactor / small extension | new feature / large refactor / cross-component |
@@ -96,7 +96,7 @@ Both paths run the design-reviewer + implementation-reviewer multi-round loop. *
 | Mode | File design-reviewer reads | What implementation-reviewer reads |
 |---|---|---|
 | Spec mode | `.spec/specs/{feature}/design.md` | the code written by spec-implementer |
-| Quick fix mode | the plan file path specified by the main agent | the code written by the main agent |
+| Quick fix mode | the plan file path specified by the main agent | the code written by spec-implementer (plan-file-driven) |
 
 **Plan file path**: Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode and hands to `spec-author` in the dispatch); if the environment provides no plan file, `spec-author` creates `~/.claude/plans/<slug>.md` instead — **plan files never live inside the repo**. Don't hard-code a specific harness path — this is version-dependent internal behavior.
 

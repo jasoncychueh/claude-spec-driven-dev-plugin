@@ -90,14 +90,15 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │
     ├── ExitPlanMode (submit the reviewed version for the user to approve)
     │
-    ├── Main agent implements directly (per the plan file content)
-    │     ↳ Note: Quick Fix Mode allows the main agent to write code directly (unlike Spec Mode)
+    ├── spec-implementer (Mode 1) implements per the plan file
+    │     ↳ Main agent hands it the plan file path (the change list is its task list);
+    │       the session stays resumable for the review loop's fixes
     │
     └── implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
           ├── Reviewer produces an issue list
           ├── Challenge exchange → final post-challenge list is the round's record
           ├── Architecture Decision → AskUserQuestion, handed to the user
-          ├── Bugs/Smells → main agent fixes the code itself
+          ├── Bugs/Smells → resume spec-implementer (Mode 2) to fix the code
           └── Exit only when the round reaches 0 issues
 ```
 
@@ -150,7 +151,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     └── Stage 3: Summary
 ```
 
-The two modes differ only in "the document layer (plan file vs steering+spec docs)" and "who writes the code (main agent vs spec-implementer)" — document authoring (`spec-author`) and the review loop mechanism are fully shared (the same `review-protocol.md`, including persistent sessions and the challenge exchange).
+The two modes differ only in **the document layer** (plan file vs steering+spec docs) — document authoring (`spec-author`), implementation (`spec-implementer`), and the review loop mechanism are fully shared (the same `review-protocol.md`, including persistent sessions and the challenge exchange).
 
 ---
 
