@@ -2,6 +2,13 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.9.1 (2026-07-03)
+
+README-only release: bilingual README + the generator/arbiter split surfaces in the project's front door.
+
+- **Traditional Chinese README** (`README.zh-TW.md`) following the common OSS convention: English `README.md` stays the default GitHub-rendered file, both files carry a language-switcher line at the top (`English | 繁體中文`). The translation keeps commands, agent names, and workflow terms (spec / steering / review loop / briefing) in English — those are the identifiers used throughout the plugin's own docs — and renders the Core Principles as "English name — Chinese gloss" for the same reason.
+- **Philosophy section gains the third structural choice**: "generation in subagents, arbitration in the main agent" — the premium model spends tokens only on high-leverage judgment (organizing the task, distilling briefs, escalating decisions, challenging every subagent conclusion) while persistent cheaper-tier sessions carry all long-form generation; quality is held by the mandatory per-round adversarial challenge, not by paying premium rates for bulk writing. A matching **Features bullet** ("Generator/Arbiter Split") covers readers who scan the list without reading the philosophy prose.
+
 ## 1.9.0 (2026-07-03)
 
 Remove the last generator/arbiter exception: **Quick Fix Mode implementation now also dispatches `spec-implementer`** instead of the main agent writing code directly. 1.8.0 kept the exception for the mode's "lightweight identity", but that left the premium main-agent model doing exactly the bulk generation the split was built to avoid — and in practice a quick fix's code volume (plus the review loop's fix rounds) is not small enough to be free.

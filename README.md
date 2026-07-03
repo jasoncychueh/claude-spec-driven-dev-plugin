@@ -1,5 +1,7 @@
 # Spec-Driven Development Plugin
 
+**English** | [繁體中文](README.zh-TW.md)
+
 Claude Code plugin for spec-driven development workflow. Enforces "no spec, no code" discipline with structured steering documents, feature specs, verification, and agent-based implementation.
 
 ## Philosophy
@@ -13,12 +15,15 @@ The bridge is the **core design concept**: review decides what's important; comm
 
 Two disciplines keep the docs honest: **formal docs describe the decided world** — the *why* (waivers, decisions, rejected paths) lives in `review-log.md`, never polluting requirements/design/tasks/code — and **steering is living — but restrained**: the rare project-spanning principle whose absence would cause cross-feature inconsistency is promoted once the user confirms; by default, things stay out (spec-specific choices, implementation details, and one-off decisions don't belong in steering).
 
+A structural choice keeps the token economics honest too: **generation in subagents, arbitration in the main agent**. The main agent — on the session's most capable (and most expensive) model — spends its tokens only on high-leverage judgment: organizing the task and its direction, distilling briefs, escalating decisions, and **challenging every subagent conclusion**; all long-form generation (plans, spec docs, code, reviews) runs in persistent subagent sessions on a capable-but-cheaper tier, resumed across review rounds instead of respawned. Quality is preserved by adversarial arbitration — the mandatory challenge exchange on every round — not by paying premium rates for bulk writing.
+
 ## Features
 
 - **Steering Documents**: Project-level guidance (product vision, tech stack, code structure)
 - **Feature Specs**: Requirements, design, tasks, and review-log per feature
 - **Automated Verification**: Spec completeness and tasks-design alignment checks
 - **Agent-Based Implementation**: Parallel implementation with cross-agent review
+- **Generator/Arbiter Split**: the premium main-agent model arbitrates — organizes the task, distills briefs, challenges every subagent conclusion — while persistent cheaper-tier subagent sessions carry all long-form generation (plans, docs, code, reviews): quality held by adversarial challenge, tokens saved on bulk writing
 - **Review Log Discipline**: Waivers / Decisions / round-by-round audit trail live in `review-log.md`; formal docs (requirements / design / tasks / code) stay clean
 - **Living Steering**: review loops surface unrecorded project principles as steering candidates; user-confirmed updates flow back into steering docs as development progresses
 - **Brief Before Build**: before implementation starts, a conversational summary of key points, resolved decisions, and waivers gets the user oriented without reading the full spec — cheapest moment to catch misunderstandings
