@@ -43,6 +43,7 @@ Two disciplines keep the docs honest: **formal docs describe the decided world**
 | `spec-researcher` | Research existing solutions before design |
 | `spec-verifier` | Verify spec file completeness |
 | `tasks-design-verifier` | Verify tasks-design alignment |
+| `spec-author` | Author / revise planning & spec docs per the main agent's brief (persistent session) |
 | `design-reviewer` | Multi-round design review until 0 issues (review only) |
 | `spec-implementer` | Implement code per spec |
 | `implementation-reviewer` | Multi-round implementation review until 0 issues (review only) |

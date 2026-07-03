@@ -10,7 +10,30 @@ The convergence condition is strict: **end only when a round reports 0 issues**.
 
 This discipline has a symmetric flip side: **a clean round outputting `0 issues` is a good result, not a dereliction of duty**. Inventing issues to look diligent (promoting a nit to High, nitpicking an already-correct design) damages the same thing as false convergence — the credibility of the review. Honesty in both directions matters equally.
 
-**Convergence fuse**: if review reaches round 5 and **new Critical/High** still keep surfacing, continuing the loop is usually pointless — it means the design / implementation itself has a structural problem (every fix spawns another), or the review is churning. At this point the main agent should stop the loop, summarize the cross-round issue pattern, and report to the user, who decides: redo the design, narrow the scope, or continue with full knowledge. The fuse is "stop and escalate to the user", **not** "treat as converged".
+**Convergence fuse**: if review reaches round 5 and **new Critical/High** still keep surfacing, continuing the loop is usually pointless — it means the design / implementation itself has a structural problem (every fix spawns another), or the review is churning. At this point the main agent stops the loop and, before reporting, **spawns one fresh reviewer instance for a single independent round** (fresh eyes — the persistent session may by then be anchored on its own history; see the next section): if the fresh round broadly confirms the pattern, it's structural; if it diverges sharply, the loop itself was churning. Then summarize the cross-round issue pattern plus the fresh-eyes verdict and report to the user, who decides: redo the design, narrow the scope, or continue with full knowledge. The fuse is "stop and escalate to the user", **not** "treat as converged".
+
+## Persistent sessions and the challenge exchange
+
+The loop runs on a **generator/arbiter split**: long-form work (authoring documents, writing code, reviewing) is carried by subagent sessions on a capable-but-cheaper model, while the main agent — on the most capable model — spends its tokens only on short, high-leverage reasoning: distilling briefs, challenging conclusions, escalating decisions, maintaining the review log. The reviewer's depth is deliberately backstopped by the arbiter's challenge; that's why the challenge must be substantive, not ceremonial.
+
+### Persistent sessions
+
+- **One reviewer session per loop**: the main agent spawns the reviewer once (Round D1 / I1) and **resumes the same session via SendMessage for every subsequent round**. The reviewer keeps its protocol, steering, design basis, and issue history in context — resumed rounds re-read only what changed. Letter numbering accumulates naturally within the session.
+- **One author session per cycle**: `spec-author` (design phase) and `spec-implementer` (implementation phase, per parallel group) likewise stay alive; fix dispatches resume the session that wrote the artifact — the fixer remembers why it wrote what it wrote. For implementation fixes, resume the Mode 1 session whose group owns the affected files; if ownership is unclear, spawn a fresh Mode 2 instance.
+- **Resume-failure fallback**: sessions can die (context overflow, environment loss). If a resume fails, spawn a fresh agent and rebuild its context: for a reviewer, review log §1 is the memory — hand it over as "prior rounds' trail" plus the full first-round reading list; for an author/implementer, the current artifact state on disk is the memory. The review log thus doubles as the loop's disaster-recovery checkpoint at zero extra cost.
+- **Main agent reading discipline**: the arbiter reads the artifact under review **in full once**, then per round reads only the diffs of what the fixes changed. Challenging requires having actually read — but it does not require re-reading the unchanged 90% every round.
+
+### The challenge exchange (rigor challenge — reviewer, every round)
+
+After the reviewer outputs a round's issue list, the main agent sends **exactly one challenge message** in the reviewer's session before acting on the list: dispute suspected false positives (demand the concrete scenario), probe for suspected misses (name the class of problem and where it would live), question severity grades. The reviewer answers honestly in both directions and outputs the round's **final post-challenge list** — the official record the main agent integrates into the review log and dispatches from.
+
+- One exchange per round, no inner loops — if a disagreement survives it, that is by definition a contested design choice: escalate it as an Architecture Decision, don't relitigate
+- `0 issues` rounds are challenged too (probe convergence honesty before accepting the exit)
+- The challenge must engage with the artifact's substance; "are you sure?" is not a challenge
+
+### The fidelity challenge (author, after each authoring dispatch)
+
+After `spec-author` delivers a Mode 1 artifact, the main agent reads it against the brief and challenges **handoff drift**: content that doesn't match what was discussed with the user, invented scope, silently dropped decisions, unflagged assumptions. This is deliberately narrower than review — design *quality* belongs to the design-reviewer loop; the fidelity challenge only protects the brief→document handoff, catching drift before reviewer rounds are spent on the wrong document. If the artifact is faithful, proceed without manufacturing a challenge; drift found → one exchange in the author session, author fixes or justifies.
 
 ## Review method: build a use-case model first, then cross-check
 
@@ -210,14 +233,15 @@ Whether design-reviewer or implementation-reviewer, these apply:
 
 When the main agent drives the review loop:
 
-1. **Dispatch issue list**: hand the reviewer's whole issue list to the corresponding fixer
-   - design stage: the main agent edits design.md itself (design.md is a doc, not code, so it doesn't violate the "implementation must be done by an agent" principle)
-   - implementation stage: dispatch to `spec-implementer (Mode 2)`; the main agent doesn't write code directly
-2. **Decision escalation**: hand all Architecture Decisions to the user via AskUserQuestion (the main agent does a human-friendly translation per SKILL.md "Architecture Decision Presentation Discipline" / `decision-escalation-guide.md` — the reviewer itself only produces the four-point raw material)
-3. **Track rounds**: after each review round, record the issue numbers and provide them to the next round's reviewer as "which the previous round fixed" context
+1. **Challenge, then dispatch**: after each round's issue list, run the challenge exchange (see "Persistent sessions and the challenge exchange"), then hand the **final post-challenge list** to the corresponding fixer
+   - design stage: resume the `spec-author` session (Mode 2) to fix design.md / the plan file — the main agent doesn't author or fix long-form documents itself (exception: the review log, which the main agent always maintains)
+   - Spec Mode implementation stage: dispatch to `spec-implementer (Mode 2)`, preferring to resume the session whose group owns the affected files; the main agent doesn't write code directly
+   - Quick Fix Mode implementation stage: the main agent fixes the code directly (the Quick Fix special case)
+2. **Decision escalation**: hand all Architecture Decisions to the user via AskUserQuestion (the main agent does a human-friendly translation per SKILL.md "Architecture Decision Presentation Discipline" / `decision-escalation-guide.md` — the reviewer itself only produces the four-point raw material). Challenge-exchange deadlocks escalate through the same channel
+3. **Track rounds**: after each review round, record the issue numbers. The persistent reviewer session remembers its own history; the explicit trail matters as the rebuild source when a session dies (see "Resume-failure fallback")
 4. **Update Review Log**: after each review round, maintain `review-log.md` (Spec Mode) or the plan file's `## Review Log` section (Quick Fix Mode) — see the next section "Review Log integration"
 5. **Avoid scope creep**: when dispatching fixes, strictly limit to the issue scope, no incidental refactoring (if refactoring is needed, treat it as a new issue in the next round)
-6. **Judge convergence**: only exit the loop when the reviewer reports "0 issues — converged" with no accumulated pending Medium/Low; can't exit early with Critical/High present; round 5 still has new Critical/High → trigger the convergence fuse (see "Core model"), stop the loop and report to the user
+6. **Judge convergence**: only exit the loop when the reviewer reports "0 issues — converged" with no accumulated pending Medium/Low; can't exit early with Critical/High present; round 5 still has new Critical/High → trigger the convergence fuse (see "Core model"), stop the loop, run one fresh-eyes reviewer round, and report to the user
 7. **Steering Candidates delivery**: accumulate the SCs the reviewer lists (dedupe across rounds), merge with findings from Decision resolution / the implementation process, batch-deliver to the user for confirmation per SKILL.md "Steering Evolution Mechanism", then lightly write into steering and record in review log §5
 
 ## Review Log integration (the handshake with the reviewer)
@@ -226,7 +250,7 @@ After each review round ends, the main agent must integrate the reviewer's issue
 
 ### Reviewer-side responsibilities
 
-- **Just produce the issue list** — don't write the log directly
+- **Just produce the issue list** — don't write the log directly. What gets logged is the round's **final post-challenge list**
 - Number issues by this file's "Letter ID" + "Round naming D/I prefix" rules
 - Output format per this file's "Output format" section
 
@@ -259,7 +283,7 @@ Reviewer output is all Medium/Low (or 0 issues but with open Medium/Low accumula
        user says don't fix → write into waiver; if this round also had no new Critical/High → treat as converged
        user says fix → fix then proceed to the next round
 Reviewer output is "0 issues" with no accumulated open Medium/Low → converged, exit the loop
-Round 5 still has new Critical/High → convergence fuse: stop the loop, report the structural problem to the user
+Round 5 still has new Critical/High → convergence fuse: stop the loop, run one fresh-eyes reviewer round (see "Core model"), report the structural problem to the user
 ```
 
 **Never** exit early when Critical/High are present, even if it feels like a lot of rounds have already run (a fuse trip is "stop and escalate to the user", not "treat as converged" — the two are different).

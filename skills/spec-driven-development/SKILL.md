@@ -14,6 +14,8 @@ A development workflow with **two routing modes**, both backed by multi-round ar
 
 **Core discipline**: regardless of mode, the `design-reviewer` + `implementation-reviewer` multi-round loops are mandatory and run until 0 issues. Review discipline is the quality line of defense — **it does not bend for task size**.
 
+**Execution architecture (who generates, who arbitrates)**: the main agent — running the session's top-tier model — acts as orchestrator, arbiter, and the user's single interlocutor: it discusses requirements, distills briefs, challenges subagent conclusions, escalates decisions, and maintains the review log. **All long-form generation lives in persistent subagent sessions** on a capable-but-cheaper tier: `spec-author` writes plans and spec documents, `spec-implementer` writes code (Spec Mode), the two reviewers review — each session spawned once per loop and **resumed via SendMessage across rounds** instead of respawned, so nothing gets re-read that's already in a session's context. The arbiter's mandatory per-round challenge is what keeps the cheaper review deep (mechanics in `review-protocol.md`, "Persistent sessions and the challenge exchange"). Quick Fix Mode keeps one deliberate exception: the main agent still writes and fixes code itself.
+
 ## Quick Reference
 
 ### Route first (**do this before anything else**)
@@ -80,6 +82,7 @@ This skill uses the agents defined in the plugin to carry out each phase.
 | `spec-researcher` | Search existing solutions, libraries, best practices | /create-spec planning phase | review only |
 | `spec-verifier` | Verify spec file **completeness and format** (cookie-cutter check) | /verify-spec Stage 1, /create-spec | review only |
 | `tasks-design-verifier` | Verify **alignment** between tasks.md and design.md | /verify-spec Stage 2, /create-spec, /update-spec | review only |
+| `spec-author` | Author / revise planning & spec docs per the main agent's brief (two modes; **persistent session** across the authoring + review cycle) | Plan Mode in both modes (plan file); /create-spec + /update-spec (requirements/design/tasks); design-review fix dispatch (Mode 2) | **writes / fixes docs** |
 | `design-reviewer` | Review **design quality** from a senior engineer's perspective (multi-round to 0 issues) | /create-spec design phase; /update-spec when design changes; Quick Fix Mode reviewing the plan file | review only (produces issue list) |
 | `spec-implementer` | Write / fix code + self-verify + build (two modes) | /implement Stage 1 (Mode 1) + taking a reviewer issue list (Mode 2) | **write / fix code** |
 | `implementation-reviewer` | Review **implementation quality** from a senior engineer's perspective (multi-round to 0 issues) | /implement Stage 2; after Quick Fix Mode implementation | review only (produces issue list) |
@@ -101,8 +104,8 @@ Mode           ↓
    │       no  → /create-steering
    │       yes → /create-spec  (or /load-spec) → /implement
    ▼
-Plan Mode + design-reviewer loop → ExitPlanMode →
-main agent implements → implementation-reviewer loop
+Plan Mode (spec-author drafts plan) + design-reviewer loop
+→ ExitPlanMode → main agent implements → implementation-reviewer loop
 ```
 
 ---
@@ -117,16 +120,16 @@ When a task meets the Quick Fix Mode bar (see `mode-selection.md`) — bug fix /
 
 **Steps**:
 
-1. **EnterPlanMode** — confirm the actual path of this run's plan file (Claude Code usually creates it automatically; if the environment provides no plan file, create `.spec/quickfix/<slug>.md` instead). If the project already has `.spec/steering/`, load it too — the reviewer will do a steering alignment check, and any new conventions discovered go through the "Steering Evolution Mechanism."
-2. **Write the plan draft** — the main agent writes the plan into the plan file with the Edit tool. **Follow the `plan-content-guide.md` conventions** (focus on substance, no process narration). Append a `## Review Log` section at the end of the plan file (using the five-block skeleton from `review-log-template.md`) — in Quick Fix Mode the review log lives inside the plan file, not in a separate file.
-3. **design-reviewer multi-round loop (mandatory)** — give the reviewer the plan file path and run to 0 issues per `review-protocol.md` (Medium/Low use defer-and-batch; new Critical/High still present at Round 5 trips the convergence fuse). Architecture Decisions go to the user via AskUserQuestion; the main agent fixes Bugs/Smells with the Edit tool on the plan file; Steering Candidates accumulate for batch handling. **After each round, update the plan file's `## Review Log` section per `review-log-guide.md`** (add a new row to §1 Audit Trail, fill in the corresponding Decisions/Waivers subsections).
-4. **Plan Briefing (mandatory, delivered as the turn-final message)** — after review converges and **before** ExitPlanMode: per `briefing-guide.md`, output the plan summary as text — **walk through it with the actual use case / bug-trigger scenario**: "what happens now → what it becomes after the fix → what risk remains," surfacing the key decisions (not a bare concept list), and end with "anything here that doesn't match what you expected?" — **the briefing must be the turn-final message; after sending it, end the turn immediately** (no AskUserQuestion / ExitPlanMode / any tool in the same turn — mid-turn text wedged before a tool call renders unreliably and the whole block can go invisible). Only after the user replies with no objection do you ExitPlanMode in the next turn; if there are issues → clarify verbally or Edit the plan file (and add a review round if the design substance changes).
+1. **EnterPlanMode** — confirm the actual path of this run's plan file (Claude Code usually creates it automatically; if the environment provides no plan file, `spec-author` will create one under `~/.claude/plans/<slug>.md` — **plan files never live inside the repo**). If the project already has `.spec/steering/`, load it too — the reviewer will do a steering alignment check, and any new conventions discovered go through the "Steering Evolution Mechanism."
+2. **Dispatch the plan draft to `spec-author` (Mode 1)** — the main agent distills the discussion into a brief (context, decided direction, constraints, steering pointers) and hands it over together with the plan file's absolute path. The author writes the plan per `plan-content-guide.md` (focus on substance, no process narration) and appends a `## Review Log` section at the end (using the five-block skeleton from `review-log-template.md`) — in Quick Fix Mode the review log lives inside the plan file, not in a separate file. When the draft returns, the main agent reads it in full and runs the **fidelity challenge** (per `review-protocol.md`): drift from the brief → one exchange in the author session.
+3. **design-reviewer multi-round loop (mandatory)** — give the reviewer the plan file path and run to 0 issues per `review-protocol.md`: the reviewer session stays alive across rounds (resumed via SendMessage), and after each round's issue list the main agent runs the **challenge exchange** before acting — the final post-challenge list is the round's record (Medium/Low use defer-and-batch; new Critical/High still present at Round 5 trips the convergence fuse). Architecture Decisions go to the user via AskUserQuestion; Bugs/Smells → resume the `spec-author` session (Mode 2) to fix the plan file; Steering Candidates accumulate for batch handling. **After each round, the main agent updates the plan file's `## Review Log` section per `review-log-guide.md`** (add a new row to §1 Audit Trail, fill in the corresponding Decisions/Waivers subsections).
+4. **Plan Briefing (mandatory, delivered as the turn-final message)** — after review converges and **before** ExitPlanMode: per `briefing-guide.md`, output the plan summary as text — **walk through it with the actual use case / bug-trigger scenario**: "what happens now → what it becomes after the fix → what risk remains," surfacing the key decisions (not a bare concept list), and end with "anything here that doesn't match what you expected?" — **the briefing must be the turn-final message; after sending it, end the turn immediately** (no AskUserQuestion / ExitPlanMode / any tool in the same turn — mid-turn text wedged before a tool call renders unreliably and the whole block can go invisible). Only after the user replies with no objection do you ExitPlanMode in the next turn; if there are issues → clarify verbally or resume the `spec-author` session to fix the plan file (and add a review round if the design substance changes).
 5. **ExitPlanMode** — submit the converged plan for the user to approve.
 6. **Implement** — after exiting Plan Mode, **the main agent writes the code directly** (a Quick Fix Mode special case — no dispatch to spec-implementer).
-7. **implementation-reviewer multi-round loop (mandatory)** — run to 0 issues per `review-protocol.md`. The main agent fixes Bugs/Smells in the code directly (Quick Fix Mode special case). **After each round, update the plan file's `## Review Log` section the same way.**
+7. **implementation-reviewer multi-round loop (mandatory)** — run to 0 issues per `review-protocol.md`, with the same persistent reviewer session + per-round challenge exchange. The main agent fixes Bugs/Smells in the code directly (Quick Fix Mode special case). **After each round, update the plan file's `## Review Log` section the same way.**
 8. **Summary** — before reporting, batch-process the accumulated Steering Candidates per the "Steering Evolution Mechanism." Report changed files, review history (pointing at the plan file's `## Review Log`), user-decided Decisions, steering updates, and build status.
 
-**Key constraint**: Quick Fix Mode allows the main agent to write code directly; Spec Mode still strictly forbids it.
+**Key constraint**: Quick Fix Mode allows the main agent to write **code** directly (plan authoring and plan fixes still go through `spec-author`); Spec Mode still strictly forbids the main agent touching code.
 
 **Mid-flow escalation**: if you find the scope exceeds Quick Fix Mode (e.g., touching 5+ files, needing a formal design doc), stop and recommend the user upgrade to Spec Mode. The plan already written can serve as a starting point for design.md.
 
@@ -201,34 +204,38 @@ Create the spec documents for a feature.
    - If there's any inconsistency, **update steering first, then continue**
 4. **Enter Plan Mode** (use the EnterPlanMode tool)
 5. **Launch the `spec-researcher` agent** (runs in the background): search existing solutions, libraries, best practices
-6. Plan the spec content (requirements, design, tasks), folding the researcher's findings into design considerations
+6. Discuss and settle the spec direction with the user, folding the researcher's findings into design considerations; then distill the outcome into a **brief** and dispatch `spec-author` (Mode 1) to draft the plan file (hand it the harness plan-file path). When the draft returns, run the **fidelity challenge** per `review-protocol.md`
 7. **(Optional) `design-reviewer` Mode A — Plan Mode sparring partner**:
    - While drafting the design direction, **proactively ask the user**: "Want to invite design-reviewer in to challenge this design?"
    - If the user agrees, invoke the `design-reviewer` agent and hand it the current design draft (it need not be finished)
    - The agent returns a **challenge list + Architecture Decisions**
    - For each Architecture Decision, **use AskUserQuestion to hand the choice to the user**, don't let the main agent decide
-   - After revising the design direction you can invoke it again (this is an optional, non-mandatory loop)
+   - After revising the design direction you can resume it (this is an optional, non-mandatory loop)
+   - The sparring session doesn't end here — **the same reviewer session continues into the Mode B mandatory loop** (step 11), carrying everything it already read
 8. **Plan Briefing (mandatory, delivered as the turn-final message)** — **before** ExitPlanMode: per `briefing-guide.md`, with an actual use case / scenario, output "what I plan to build for this feature, the core design direction, the key trade-offs surfacing so far," ending with "does the direction match what you expected?" → **end the turn and wait for the user's reply → only then ExitPlanMode** (no tool in the same turn). This is a "direction confirmation" briefing (design isn't written yet, so it's lightweight); the full one is at the end of step 15.
 9. Create the `.spec/specs/{feature}/` directory
-10. Write in order (first Read the template, then write to the template's format):
+10. Dispatch `spec-author` (Mode 1 — **resume the same session from step 6**) to write in order (it Reads each template first, then writes to the template's format):
     - `requirements.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`
     - `design.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`
-    - `review-log.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/review-log-template.md` (create the minimal skeleton; the later review loop fills in content)
+    - `review-log.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/review-log-template.md` (create the minimal skeleton; the later review loop fills in content — the main agent, not the author, maintains it from here on)
+
+    When the author reports back, the main agent reads the documents **in full once** (later rounds read only diffs) and runs the **fidelity challenge** against the brief + plan
 11. **`design-reviewer` Mode B — mandatory multi-round review (until 0 issues)**:
     - **This step is mandatory** and cannot be skipped
     - Loop start (from Round D1):
-      - Invoke the `design-reviewer` agent to review design.md for design quality
+      - Round D1 spawns the `design-reviewer` (or continues the Mode A sparring session if one exists); **every later round resumes the same session via SendMessage**
       - The agent returns an issue list (Bugs / Smells / Decisions + non-blocking Steering Candidates, graded Critical/High/Medium/Low, rounds named `D{N}`)
-      - **Append the whole issue list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
+      - **Challenge exchange (mandatory, exactly one per round)**: before acting on the list, the main agent challenges it in the reviewer session — dispute suspected false positives, probe suspected misses, question severity (per `review-protocol.md`). The reviewer's **final post-challenge list** is the round's official record; a surviving disagreement escalates as an Architecture Decision
+      - **Append the final post-challenge list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
       - **If there are Architecture Decisions**: use AskUserQuestion to hand each Decision to the user (presentation format per the "Architecture Decision Presentation Discipline" section below / decision-escalation-guide.md). After it's decided, **write it to `review-log.md` §2** + update the corresponding §1 row + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
-      - **If there are Bugs/Smells (Critical/High)**: the main agent fixes design.md (it may also invoke the researcher for supplementary research); once done, update that §1 row's Status to `fixed`
+      - **If there are Bugs/Smells (Critical/High)**: resume the `spec-author` session (Mode 2) to fix design.md (the main agent may also invoke the researcher for supplementary research and fold the findings into the fix dispatch); once done, update that §1 row's Status to `fixed`
       - Medium/Low: **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion (per `review-protocol.md`'s "Loop convergence rules"); if the user decides to keep it, that's a waiver → **write it to `review-log.md` §3** + update §1
       - If an issue is judged a false positive after discussion → **write it to `review-log.md` §4** + update §1
       - **If there are Steering Candidates**: accumulate them (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
-      - Enter Round D{N+1} and re-invoke `design-reviewer`
-    - **End the loop only when a round has 0 issues (and no accumulated pending Medium/Low)**; new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop and report to the user
+      - Enter Round D{N+1} by resuming the reviewer session
+    - **End the loop only when a round has 0 issues (and no accumulated pending Medium/Low)**; new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop, run one fresh-eyes reviewer round, and report to the user
     - **100% isolation of formal docs** — design.md carries no Decisions / Waivers / round process / reviewer citations / footnote pointers at all. Express design rationale as **neutral prose** (technical constraints / codebase conventions / adverse consequences) woven into the Component descriptions. Full conventions and bad/good comparisons: `review-log-guide.md` + `review-log-bad-examples.md`
-12. **Write `tasks.md`** (only after design.md has converged) — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
+12. **Dispatch `spec-author` (same session) to write `tasks.md`** (only after design.md has converged) — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`
 13. Use the `spec-verifier` agent to **run the Spec completeness check** (including the "cross-file Review-Residue check" that ensures formal docs contain no inline waiver / decision blocks)
 14. Use the `tasks-design-verifier` agent to **run the Tasks vs Design alignment check**
 15. **Spec Briefing (mandatory, delivered as the turn-final message)** — after both verifiers pass: per `references/briefing-guide.md`, summarize the whole spec as text — **walk through it with 1–2 actual use cases** to surface the architecture highlights, new concepts, the scenario-grounded consequences of the resolved Decisions, the Waivers and their cost, and the implementation outlook (not a bare concept list), ending with "anything here that doesn't match what you expected?" — **the briefing must be the turn-final message; after sending it, end the turn immediately** (no tool follows). Only after the user replies with no objection is /create-spec complete; if there are issues → clarify verbally, or go back and fix the spec (which re-triggers the corresponding verifier)
@@ -264,9 +271,9 @@ Update a feature's spec documents.
 3. **Enter Plan Mode** (use the EnterPlanMode tool)
 4. Plan the changes (which parts of r/d/t to touch, and why); **(optional)** invite `design-reviewer` Mode A to challenge the direction
 5. **Plan Briefing (mandatory, delivered as the turn-final message)** — **before** ExitPlanMode: per `briefing-guide.md`, with an actual use case / scenario, output "what's changing → what it becomes → where it affects the existing design / already-implemented code," ending with "anything that doesn't match what you expected?" → **end the turn and wait for the user's reply → only then ExitPlanMode** (no tool in the same turn)
-6. Apply the changes (to requirements / design / tasks)
+6. Dispatch `spec-author` (Mode 1) with a brief of the agreed changes to apply them (to requirements / design / tasks); when it reports back, run the **fidelity challenge** against the brief (per `review-protocol.md`)
 7. **Steering sync check**: if the design change involves a shift in technical direction, update steering in sync
-8. **design.md changed substantively → mandatory `design-reviewer` Mode B multi-round review loop (until 0 issues)** — the **same protocol** as /create-spec step 11: append the issue list to review-log §1, two-beat AskUserQuestion for Architecture Decisions then write §2 + promotion judgment, Critical/High must be fixed, Medium/Low defer-and-batch, Steering Candidates batched, false positives to §4, new Critical/High still present at Round 5 trips the fuse, 100% isolation of formal docs. **Pure requirements wording clarification (design untouched) or pure tasks status bookkeeping may skip this loop.**
+8. **design.md changed substantively → mandatory `design-reviewer` Mode B multi-round review loop (until 0 issues)** — the **same protocol** as /create-spec step 11: persistent reviewer session + per-round challenge exchange, append the final post-challenge list to review-log §1, two-beat AskUserQuestion for Architecture Decisions then write §2 + promotion judgment, Critical/High fixed by resuming the `spec-author` session (Mode 2), Medium/Low defer-and-batch, Steering Candidates batched, false positives to §4, new Critical/High still present at Round 5 trips the fuse, 100% isolation of formal docs. **Pure requirements wording clarification (design untouched) or pure tasks status bookkeeping may skip this loop.**
 9. **Design-change impact assessment** (when implementation code already exists): identify the affected scope → update tasks.md markers (affected → `[~]`, deleted → `[-]`, add new tasks). Detailed flow in the "Design-change impact assessment" section of `references/checklists.md`
 10. Re-run the corresponding verifier:
     - changed requirements.md → `spec-verifier` (**Spec completeness check**, including review-residue check)
@@ -322,7 +329,7 @@ Start implementing the feature.
 
 1. Get the pending tasks from tasks.md (`[ ]` / `[~]` status)
 2. Analyze dependencies and group the tasks (independent groups can run in parallel, at most 4 groups)
-3. Launch `spec-implementer` agents (Mode 1) — spawn multiple independent groups in parallel within the same message; each agent receives the feature name, its task list, the `Mode 1` marker, and reads design.md via the `Design ref` field
+3. Launch `spec-implementer` agents (Mode 1) — spawn multiple independent groups in parallel within the same message; each agent receives the feature name, its task list, the `Mode 1` marker, and reads design.md via the `Design ref` field. **Keep each group's session resumable** — Stage 2 fix dispatches prefer resuming the session that owns the affected files
 4. Agent reports completion → immediately update tasks.md to `[x]`
 5. After all groups finish, enter Stage 2
 
@@ -332,15 +339,15 @@ Start implementing the feature.
 
 `spec-implementer`'s self-verification can't catch the "things that only blow up in production" (async race, weak-ref GC, idempotency, leak, test gap) — that's Stage 2's job.
 
-1. Each round, invoke `implementation-reviewer` to review all the implementation from a senior engineer's perspective, producing an issue list (interpret it per `review-protocol.md`'s Quick Summary, rounds named `I{N}`)
-2. **Append the whole issue list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
+1. Round I1 spawns `implementation-reviewer`; **every later round resumes the same session via SendMessage**. Each round it reviews the implementation from a senior engineer's perspective, producing an issue list (interpret it per `review-protocol.md`'s Quick Summary, rounds named `I{N}`). **Challenge exchange (mandatory, exactly one per round)**: before acting on the list, the main agent challenges it in the reviewer session; the **final post-challenge list** is the round's official record, and a surviving disagreement escalates as an Architecture Decision
+2. **Append the final post-challenge list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
 3. Process the issue list (update that §1 row's Status + Resolution as soon as each issue is handled):
    - **Architecture Decisions** → AskUserQuestion to the user (presentation format per the "Architecture Decision Presentation Discipline" section / decision-escalation-guide.md; may trigger /update-spec) → after it's decided, **write it to `review-log.md` §2** + update §1 + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
-   - **Critical/High Bugs/Smells** → dispatch `spec-implementer (Mode 2)` to fix (the main agent does not touch code directly) → once fixed, change that §1 row to `fixed`
+   - **Critical/High Bugs/Smells** → dispatch `spec-implementer (Mode 2)` to fix, preferring to **resume the Mode 1 session whose group owns the affected files** (it remembers why the code is shaped the way it is); spawn fresh only when ownership is unclear or the session is gone (the main agent does not touch code directly) → once fixed, change that §1 row to `fixed`
    - **Medium/Low** → **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion; if the user decides to keep it → **write it to `review-log.md` §3 Waivers** + update §1
    - **False positive** → confirmed a false positive after discussion → **write it to `review-log.md` §4** + update §1
    - **Steering Candidates** → accumulate (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
-4. After fixes, enter Round I{N+1}, until a round has 0 issues (and no accumulated pending Medium/Low); new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop and report to the user
+4. After fixes, enter Round I{N+1}, until a round has 0 issues (and no accumulated pending Medium/Low); new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop, run one fresh-eyes reviewer round, and report to the user
 
 **Only `spec-implementer` writes / fixes code** — the reviewer doesn't touch code, the main agent doesn't touch code (the Spec Mode rule).
 
@@ -431,12 +438,14 @@ Detailed guide + full has_related example: `${CLAUDE_PLUGIN_ROOT}/skills/spec-dr
 ### Quick Summary
 
 - **Severity**: Critical / High / Medium / Low — Critical+High must be fixed, Medium+Low are the user's call
+- **Persistent sessions**: one reviewer session per loop, spawned at Round 1 and **resumed via SendMessage** each later round (no respawning, no re-reading); `spec-author` / `spec-implementer` sessions likewise stay alive for fix dispatches. Resume fails → fresh spawn rebuilt from review-log §1 (see `review-protocol.md`)
+- **Challenge exchange**: after every round's issue list (including `0 issues` rounds), the main agent sends exactly one substantive challenge in the reviewer session — dispute false positives, probe misses, question severity; the **final post-challenge list** is the round's official record; surviving disagreements escalate as Architecture Decisions. The **fidelity challenge** (brief-vs-document drift) guards each `spec-author` handoff
 - **Numbering**: accumulates across rounds within a reviewer type and never resets; **design (D) and implementation (I) accumulate independently** (always cite with the Round prefix: `D2 Smell C` / `I1 Bug A`)
-- **Convergence**: the loop exits only when the reviewer outputs `0 issues` and there's no accumulated pending Medium/Low; it can't exit early with Critical/High present; **the fuse** — new Critical/High still present at Round 5 stops the loop and reports a structural problem to the user (not counted as convergence)
+- **Convergence**: the loop exits only when the reviewer outputs `0 issues` and there's no accumulated pending Medium/Low; it can't exit early with Critical/High present; **the fuse** — new Critical/High still present at Round 5 stops the loop; before reporting, spawn **one fresh reviewer instance for a single fresh-eyes round** (confirms structural problem vs. persistent-session churn), then report the structural problem + fresh-eyes verdict to the user (not counted as convergence)
 - **Medium/Low defer-and-batch**: don't ask the user every round — accumulate to the round where Critical/High hits zero and ask once in a batch
 - **Architecture Decision**: a design choice the reviewer has no consensus on → the main agent hands it to the user via AskUserQuestion, **doesn't decide it itself**
 - **Steering Candidates**: the reviewer finds a project-level principle not recorded in steering → a non-blocking `SC` section (doesn't count against convergence); the main agent batch-processes it per the "Steering Evolution Mechanism"
-- **Review/Fix split**: the reviewer doesn't touch code, doesn't write the review log; in the design phase the main agent edits design.md / the plan file, in the implementation phase Spec Mode dispatches `spec-implementer (Mode 2)` while Quick Fix Mode has the main agent fix directly
+- **Review/Fix split**: the reviewer doesn't touch code, doesn't write the review log; in the design phase the main agent resumes `spec-author (Mode 2)` to fix design.md / the plan file, in the implementation phase Spec Mode dispatches `spec-implementer (Mode 2)` while Quick Fix Mode has the main agent fix directly
 - **Review Log maintenance**: after each review round the main agent folds the issue list into the review log (see the "Review Log Mechanism" below + `references/review-log-guide.md`)
 
 ---
@@ -463,7 +472,7 @@ In the old review/resolve process, the agent would leave the review-process audi
 1. **Formal docs contain no review-log content or reference at all** — forbidden: ADR / Decisions sections, reviewer letter tags (`per Decision X`), round-process narration, review-log citations, footnote pointers, waiver blocks. `spec-verifier`'s "cross-file Review-Residue check" auto-detects the full pattern list
 2. **No review-residue comments in production code** — forbidden: `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log`. Violations are opened by `implementation-reviewer` as a new Medium Smell. Exception: pure code semantic comments (system invariant / precondition / dependency pointer) are allowed
 3. **Formal docs explain design rationale with neutral prose** — weave technical constraints / codebase conventions / adverse consequences into the relevant section, without revealing the reviewer / Decision letter / Round / user-decision process (❌ "Synchronous per Decision AL accepted in Round 3" → ✅ "Synchronous for atomicity — async would leave intermediate states violating schema invariants")
-4. **The reviewer doesn't write the log; the main agent integrates it** — the reviewer only produces the issue list; each round the main agent appends §1, updates Status once handled, and fills the corresponding subsection; after a Decision is resolved it writes §2 **and** weaves the resulting content into design.md as neutral prose
+4. **The reviewer doesn't write the log; the main agent integrates it** — the reviewer only produces the issue list; each round the main agent appends §1, updates Status once handled, and fills the corresponding subsection; after a Decision is resolved it writes §2 **and** dispatches the `spec-author` session to weave the resulting content into design.md as neutral prose
 
 **Why even footnote pointers are forbidden**: in practice, once you allow any back door for "the formal doc just mentioning the review-log," the agent gradually degrades into writing whole ADR blocks, letter tags, round narration (the industry ADR pattern is deeply trained in). 100% zero-citation + neutral design rationale is the only reliable discipline boundary.
 
@@ -514,7 +523,7 @@ Three hook points:
 | Design change affects completed tasks | Run the implementation-sync flow, mark affected tasks `[~]` |
 | Design change deletes a feature | Mark tasks `[-]`; the reviewer is responsible for removing the code |
 | Review finds design / implementation conflicts with steering | The reviewer opens an Architecture Decision; the user decides: fix the design or update steering (steering may be stale) |
-| Review still has new Critical/High after 5 straight rounds | Trip the convergence fuse: stop the loop, gather the cross-round pattern, report the structural problem to the user |
+| Review still has new Critical/High after 5 straight rounds | Trip the convergence fuse: stop the loop, spawn one fresh reviewer for a single fresh-eyes round, gather the cross-round pattern + fresh-eyes verdict, report the structural problem to the user |
 | Agent communication failure | Retry once; if it still fails, escalate the report |
 | Circular dependency detected | Stop execution and report the problem |
 | design.md missing or incomplete | Ask for clarification, then continue |
@@ -533,16 +542,17 @@ Three hook points:
 7. **Steering is Living (but restrained)** — a core principle that surfaces during development and truly runs through the whole project is promoted right away once the user confirms (see "Steering Evolution Mechanism"), without waiting for a big review; but **the bar is high and the default is not to promote** — spec-specific / implementation detail / one-off decisions / project memory all stay out of steering; when in doubt, leave it out
 8. **Brief Before Build** — before implementation starts, output a conversational summary of the spec / plan's key points (`briefing-guide.md`), so the user gets up to speed cheaply and the discussion is triggered at the cheapest moment
 9. **Calibrate for Cognitive Load** — the main agent digests and abstracts **any output** to the user before presenting it, narrating with an actual use case riding the execution flow, not assuming the user remembers the data structures / flows / concepts raised a few turns back. This is the shared root of #8 Brief Before Build and the "Architecture Decision Presentation Discipline" (see the "Calibrate for Cognitive Load" section)
+10. **Generation in Subagents, Arbitration in the Main Agent** — the main agent (top-tier model) converses, distills briefs, challenges, escalates, and keeps the review log; long-form generation (plans, spec docs, code, reviews) runs in **persistent subagent sessions** on a cheaper tier, resumed across rounds via SendMessage. The mandatory challenge exchange is what keeps the cheaper generation trustworthy (see `review-protocol.md`). Quick Fix code is the one deliberate exception (#15)
 
 **Spec Mode specific**:
-10. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
-11. **Design is Truth** — design.md is the single source of truth
-12. **Implementation by Agent Only** — the main agent is forbidden from working directly; it must dispatch `spec-implementer`
+11. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
+12. **Design is Truth** — design.md is the single source of truth
+13. **Implementation by Agent Only** — the main agent is forbidden from working directly; it must dispatch `spec-implementer`
 
 **Quick Fix Mode specific**:
-13. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode)
-14. **Main Agent May Implement** — the main agent is allowed to work directly (a special case, but the review loop is still mandatory)
-15. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode
+14. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode, and the file lives outside the repo)
+15. **Main Agent May Implement Code** — the main agent writes and fixes the code itself (a special case; plan authoring still goes through `spec-author`, and the review loop is still mandatory)
+16. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode
 
 ---
 

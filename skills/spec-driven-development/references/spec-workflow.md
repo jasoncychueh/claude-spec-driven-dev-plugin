@@ -71,26 +71,31 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── EnterPlanMode
     │     │
     │     ├── Confirm the plan file's actual path (usually auto-created by Claude Code;
-    │     │   if the environment doesn't provide one, create .spec/quickfix/<slug>.md)
-    │     ├── Main agent uses the Edit tool to write the plan draft (context / plan / risks / verification)
+    │     │   if the environment doesn't provide one, spec-author creates ~/.claude/plans/<slug>.md —
+    │     │   plan files never live inside the repo)
+    │     ├── Main agent distills the discussion into a brief → dispatches spec-author (Mode 1)
+    │     │   to write the plan draft (context / plan / risks / verification) at that path
+    │     ├── Main agent reads the draft → fidelity challenge in the author session (drift vs the brief)
     │     │
-    │     └── design-reviewer multi-round review loop (mandatory)
-    │           ├── Main agent tells the reviewer the plan file path
+    │     └── design-reviewer multi-round review loop (mandatory; one persistent reviewer session)
+    │           ├── Main agent tells the reviewer the plan file path (Round 1; later rounds resume via SendMessage)
     │           ├── Reviewer uses Read to read the plan file, produces an issue list
+    │           ├── Challenge exchange → final post-challenge list is the round's record
     │           ├── Architecture Decision → AskUserQuestion, handed to the user
-    │           ├── Bugs/Smells → main agent uses Edit to fix the plan file
+    │           ├── Bugs/Smells → resume spec-author (Mode 2) to fix the plan file
     │           ├── Steering Candidate (if the project has steering) → accumulate for batch handling
     │           └── Exit only when the round reaches 0 issues
     │
-    ├── Plan Briefing (output summary → AskUserQuestion stop point; proceed only after user confirms)
+    ├── Plan Briefing (turn-final message → end the turn; proceed only after the user replies with no objection)
     │
     ├── ExitPlanMode (submit the reviewed version for the user to approve)
     │
     ├── Main agent implements directly (per the plan file content)
     │     ↳ Note: Quick Fix Mode allows the main agent to write code directly (unlike Spec Mode)
     │
-    └── implementation-reviewer multi-round review loop (mandatory)
+    └── implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
           ├── Reviewer produces an issue list
+          ├── Challenge exchange → final post-challenge list is the round's record
           ├── Architecture Decision → AskUserQuestion, handed to the user
           ├── Bugs/Smells → main agent fixes the code itself
           └── Exit only when the round reaches 0 issues
@@ -106,40 +111,46 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── Load steering
     ├── Plan Mode
     │     ├── spec-researcher (background research)
+    │     ├── Main agent discusses with the user → distills a brief → spec-author (Mode 1) drafts the plan file
     │     └── (optional) design-reviewer Mode A — conversational partner challenging the design draft
+    │         (the sparring session continues into Mode B below — same session)
     │
-    ├── Write requirements.md
-    ├── Write design.md (draft)
+    ├── spec-author (same session) writes requirements.md + design.md (draft) + review-log.md skeleton
+    ├── Main agent reads them in full once → fidelity challenge vs the brief + plan
     │
-    ├── design-reviewer Mode B multi-round review loop (mandatory)
+    ├── design-reviewer Mode B multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (Bugs / Smells / Decisions / Steering Candidates)
+    │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
-    │     ├── Bugs/Smells → main agent fixes design.md (Medium/Low defer-and-batch)
+    │     ├── Bugs/Smells → resume spec-author (Mode 2) to fix design.md (Medium/Low defer-and-batch)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
-    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse)
+    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
+    │         → one fresh-eyes reviewer round before reporting)
     │
-    ├── Write tasks.md
+    ├── spec-author (same session) writes tasks.md
     ├── spec-verifier (Stage 1: completeness)
     ├── tasks-design-verifier (Stage 2: alignment)
-    └── Spec Briefing (output a summary of key points + resolved Decisions / Waivers → AskUserQuestion stop point)
+    └── Spec Briefing (turn-final message with key points + resolved Decisions / Waivers → end the turn, wait for the user's reply)
 
 
 [/implement]
     │
-    ├── (If this session hasn't briefed yet → condensed briefing + AskUserQuestion confirmation)
+    ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms)
     ├── Stage 1: spec-implementer (Mode 1) writes the initial version in parallel / sequentially + self-verify + build
     │
-    ├── Stage 2: implementation-reviewer multi-round review loop (mandatory)
+    ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
+    │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
-    │     ├── Bugs/Smells → dispatch to spec-implementer (Mode 2) to fix (Medium/Low defer-and-batch)
+    │     ├── Bugs/Smells → spec-implementer (Mode 2), preferring to resume the owning group's session (Medium/Low defer-and-batch)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
-    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse)
+    │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
+    │         → one fresh-eyes reviewer round before reporting)
     │
     └── Stage 3: Summary
 ```
 
-The two modes differ only in "the document layer (plan file vs steering+spec docs)" and "who does the writing (main agent vs spec-implementer)" — the review loop mechanism is fully shared (the same `review-protocol.md`).
+The two modes differ only in "the document layer (plan file vs steering+spec docs)" and "who writes the code (main agent vs spec-implementer)" — document authoring (`spec-author`) and the review loop mechanism are fully shared (the same `review-protocol.md`, including persistent sessions and the challenge exchange).
 
 ---
 

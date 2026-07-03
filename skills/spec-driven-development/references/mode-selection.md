@@ -4,8 +4,9 @@ This skill supports two development paths. **Any** work that writes / modifies c
 
 | | Quick Fix Mode | Spec Mode |
 |---|---|---|
-| Document output | None (replaced by plan mode conversation) | requirements.md + design.md + tasks.md |
-| Who writes | main agent writes directly | `spec-implementer` agents |
+| Document output | plan file only (outside the repo) | requirements.md + design.md + tasks.md |
+| Who writes docs | `spec-author` (plan file, per the main agent's brief) | `spec-author` (plan + spec docs, per the main agent's brief) |
+| Who writes code | main agent directly | `spec-implementer` agents |
 | design-reviewer loop | **mandatory** (multi-round review of the plan content to 0 issues) | **mandatory** (multi-round review of design.md to 0 issues) |
 | implementation-reviewer loop | **mandatory** (multi-round review to 0 issues) | **mandatory** (multi-round review to 0 issues) |
 | Applicable situations | bug fix / refactor / small extension | new feature / large refactor / cross-component |
@@ -97,9 +98,9 @@ Both paths run the design-reviewer + implementation-reviewer multi-round loop. *
 | Spec mode | `.spec/specs/{feature}/design.md` | the code written by spec-implementer |
 | Quick fix mode | the plan file path specified by the main agent | the code written by the main agent |
 
-**Plan file path**: Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode); if the environment provides no plan file, the main agent creates `.spec/quickfix/<slug>.md` itself instead. Don't hard-code a specific path — this is version-dependent internal behavior.
+**Plan file path**: Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode and hands to `spec-author` in the dispatch); if the environment provides no plan file, `spec-author` creates `~/.claude/plans/<slug>.md` instead — **plan files never live inside the repo**. Don't hard-code a specific harness path — this is version-dependent internal behavior.
 
-The plan file is a real file and, like design.md, can be Read. The main agent uses Edit to modify the plan file incrementally during Plan Mode, and after each round of review it also uses Edit to modify this file. **The reviewer's core mechanism is shared by both modes** — both are "read the file at the path the main agent specifies → produce an issue list", differing only in the path the main agent gives.
+The plan file is a real file and, like design.md, can be Read. `spec-author` writes the draft and applies each round's fixes (Mode 2, resumed session); the main agent Edits only the plan's `## Review Log` section. **The reviewer's core mechanism is shared by both modes** — both are "read the file at the path the main agent specifies → produce an issue list", differing only in the path the main agent gives.
 
 Key characteristics of quick fix mode:
 - design-reviewer's multi-round review is completed **within Plan Mode** (it is verified that a sub-agent can be invoked during Plan Mode)

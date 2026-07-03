@@ -101,7 +101,7 @@ The value of the briefing lies in triggering discussion — after the user respo
 - **Misunderstanding** → a verbal clarification suffices; where necessary, review where the briefing caused the misdirection
 - **The spec / plan really has a problem** →
   - Spec Mode: go back to `/update-spec` to fix it (triggers the corresponding verifier to rerun); if still within the `/create-spec` flow, fix it directly + add a round of design-reviewer
-  - Quick Fix Mode: Edit the plan file directly; if the change involves design substance, add a round of design-reviewer before ExitPlanMode
+  - Quick Fix Mode: resume the `spec-author` session (Mode 2) to fix the plan file; if the change involves design substance, add a round of design-reviewer before ExitPlanMode
 - **A new preference / principle surfaces** → evaluate per the "Steering Evolution Mechanism" whether to promote it into steering
 
 ## Condensed briefing (/implement starting in a later session, or re-entering plan mode after a restart)
