@@ -530,6 +530,25 @@ Three hook points:
 
 ---
 
+## Model Economy for Exploration
+
+The generator/arbiter split (Principle #10) moves long-form **generation** off the premium session model onto a deliberate cheaper tier. The same reasoning applies to **reading**: broad codebase exploration — sweeping many files to locate something, map a subsystem, or trace callers before distilling a brief — is bulk work whose cost is driven by how much gets read, not by how much judgment it needs. When the main agent (or any subagent) fans that out to a built-in `Explore` / `general-purpose` agent, that agent **inherits the session model by default** — which may be the session's top tier (e.g. Fable). A broad sweep on the top tier burns tokens out of all proportion to the judgment it actually requires.
+
+So whenever you delegate a broad search to a built-in exploration agent, **pin its model explicitly instead of letting it inherit**:
+
+| Search shape | Pin | Examples |
+|---|---|---|
+| Simple / mechanical | `model: sonnet` | locate a file, find a symbol's definition, enumerate callers, grep-style pattern hunts across the tree |
+| Needs reasoning / synthesis | `model: opus` | understand how a subsystem fits together, judge which of several candidates is the real one, summarize a design spanning many files |
+
+The ceiling is **opus** — never let a broad sweep ride the session's top tier by default. Simple searches drop to sonnet; searches that must reason cap at opus.
+
+**A known target needs no subagent at all.** When you already know the file or symbol, read it directly (codebase-memory MCP graph tools / a targeted `Grep` + `Read`). Spawning an agent to fetch one known thing pays the agent's fixed startup overhead for nothing.
+
+**Why a cheaper sweep is safe here**: the initial exploration is for orientation, not the last word. The downstream review loop re-reads the code on opus and the per-round challenge backstops it, so a slightly shallower cheap-tier sweep gets caught long before it can mislead the design.
+
+---
+
 ## Core Principles
 
 **Shared**:
@@ -542,7 +561,7 @@ Three hook points:
 7. **Steering is Living (but restrained)** — a core principle that surfaces during development and truly runs through the whole project is promoted right away once the user confirms (see "Steering Evolution Mechanism"), without waiting for a big review; but **the bar is high and the default is not to promote** — spec-specific / implementation detail / one-off decisions / project memory all stay out of steering; when in doubt, leave it out
 8. **Brief Before Build** — before implementation starts, output a conversational summary of the spec / plan's key points (`briefing-guide.md`), so the user gets up to speed cheaply and the discussion is triggered at the cheapest moment
 9. **Calibrate for Cognitive Load** — the main agent digests and abstracts **any output** to the user before presenting it, narrating with an actual use case riding the execution flow, not assuming the user remembers the data structures / flows / concepts raised a few turns back. This is the shared root of #8 Brief Before Build and the "Architecture Decision Presentation Discipline" (see the "Calibrate for Cognitive Load" section)
-10. **Generation in Subagents, Arbitration in the Main Agent** — the main agent (top-tier model) converses, distills briefs, challenges, escalates, and keeps the review log; long-form generation (plans, spec docs, code, reviews) runs in **persistent subagent sessions** on a cheaper tier, resumed across rounds via SendMessage. The mandatory challenge exchange is what keeps the cheaper generation trustworthy (see `review-protocol.md`)
+10. **Generation in Subagents, Arbitration in the Main Agent** — the main agent (top-tier model) converses, distills briefs, challenges, escalates, and keeps the review log; long-form generation (plans, spec docs, code, reviews) runs in **persistent subagent sessions** on a cheaper tier, resumed across rounds via SendMessage. The mandatory challenge exchange is what keeps the cheaper generation trustworthy (see `review-protocol.md`). The same tier discipline extends to **reading**: broad codebase exploration is delegated to a built-in agent on a **pinned** cheaper tier (sonnet for mechanical search, opus at most), never left to inherit the session's top model — see "Model Economy for Exploration"
 11. **Implementation by Agent Only** — the main agent is forbidden from writing production code in either mode; it must dispatch `spec-implementer` (Spec Mode: tasks.md-driven; Quick Fix Mode: plan-file-driven)
 
 **Spec Mode specific**:

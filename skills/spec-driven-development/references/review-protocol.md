@@ -228,6 +228,7 @@ Whether design-reviewer or implementation-reviewer, these apply:
 3. **Severity honesty**: grading isn't a social tool. Why? Distorted grading throws off the main agent's dispatch
 4. **Production lens**: "would this wake up oncall at 3am" is the north star
 5. **Avoid review-scope shrinkage**: round N can't only look at what the previous round fixed; it must also spot-check untouched files. Why? The main agent may (unconsciously) narrow the scope to only the fixed parts, causing false convergence
+6. **Pin the tier when you fan out a search**: if a spot-check makes you delegate a broad codebase sweep to a built-in `Explore` / `general-purpose` agent, pin its model instead of inheriting yours — `model: sonnet` for mechanical search (locate a file, find a symbol, enumerate callers), `model: opus` when the search must reason across files; cap at opus, never leave it to inherit. For a known target, read it directly (`Grep` / `Read`) rather than spawning an agent. Why? A broad read is bulk work priced by volume, not judgment — running it on the top tier by default burns tokens the review doesn't need
 
 ## The main agent's responsibilities
 

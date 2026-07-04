@@ -2,6 +2,14 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.10.0 (2026-07-05)
+
+Extend the generator/arbiter economy from **writes to reads**: broad codebase exploration delegated to a built-in `Explore` / `general-purpose` agent no longer inherits the session's top-tier model (which may be Fable — the most premium tier), it gets a **deliberately pinned cheaper tier**. Motivation: the split already kept long-form *generation* off the premium model, but *exploration* — sweeping many files to locate something, map a subsystem, or trace callers before a brief — is equally bulk work, and a broad sweep left to inherit Fable/Opus burned tokens out of all proportion to the judgment it needed. Generation was capped; reading wasn't.
+
+- **New SKILL.md section "Model Economy for Exploration"** — the tier table for the main agent: simple / mechanical search (locate a file, find a symbol, enumerate callers, grep-style hunts) → `model: sonnet`; search that must reason / synthesize across files → `model: opus`; the ceiling is opus, never the session default. A **known target needs no subagent at all** — read it directly via codebase-memory MCP / a targeted `Grep` + `Read`, paying no agent startup overhead to fetch one known thing. Safe because the initial sweep is for orientation and the downstream opus review loop + per-round challenge backstop any cheap-tier shallowness.
+- **Principle #10 extended** — "Generation in Subagents" now states the tier discipline covers reading too, pointing at the new section.
+- **Rule written where each spawn-capable agent actually reads it** (subagents don't load SKILL.md): `review-protocol.md` gains a sixth "Reviewer shared discipline" (covers both reviewers when a spot-check fans out); `spec-implementer` gains a "pin the tier" key principle (it reads existing code to implement); `spec-author` gains the same note beside its economy paragraph (it may sweep the codebase to write design accurately). Left untouched on purpose: `spec-researcher` (external web research, already sonnet) and the two verifiers (they read small known spec files, no broad sweep).
+
 ## 1.9.1 (2026-07-03)
 
 README-only release: bilingual README + the generator/arbiter split surfaces in the project's front door.
