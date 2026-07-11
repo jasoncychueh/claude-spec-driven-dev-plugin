@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.11.1 (2026-07-12)
+
+Pin `spec-implementer` to `model: sonnet`. It is a pure executor — it implements code strictly against a fixed design basis (design.md + tasks.md, or the plan file) and applies reviewer-supplied issue fixes; the judgment work (design arbitration, review loops) lives in the main agent and the reviewer agents. Consistent with the generator/arbiter economy: keep bulk generation off the premium tier, spend premium tokens on judging what it returns.
+
 ## 1.11.0 (2026-07-11)
 
 Add a **project backlog** (`.spec/backlog/`): a durable parking lot for anything discovered mid-flow that can't be resolved now or needs deeper discussion later. Motivation: deferred discoveries were dying in three graves — a review waiver buried in one spec's review-log, an out-of-scope finding that existed only in an implementer's completion report, a "worth rethinking later" remark that evaporated with the session. The backlog gives all three one durable home the next session can scan in a single read.
