@@ -92,6 +92,7 @@ The report must clearly indicate:
 - Self-verification results
 - Build results
 - **Steering candidate findings** (rare, default none): only when you had no choice but to establish a core convention yourself that **runs across the whole project and that other features must also follow in the future** (and design.md doesn't cover it) do you report it for the main agent to evaluate — **the threshold is high**; do not report spec-specific choices / implementation details / one-off decisions. **Do not modify the steering docs yourself**; just report
+- **Out-of-scope findings** (default none): problems you noticed but that lie outside your task scope — a pre-existing bug in adjacent code, tech debt worth revisiting. Report them with enough context to act on later (file, symptom, why it's out of scope); **do not fix them** (No Scope Creep) and **do not write to `.spec/backlog/` yourself** — the main agent records them in the project backlog
 
 ---
 

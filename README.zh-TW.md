@@ -26,6 +26,7 @@
 - **生成/仲裁分工**:高級模型的主 agent 負責仲裁 —— 組織任務、提煉 brief、挑戰每一個 subagent 的結論 —— 所有長文生成(plan、文件、程式碼、review)由較便宜模型的 persistent subagent session 承擔:品質靠對抗式挑戰把關,token 省在大量寫作上
 - **Review Log 紀律**:Waivers / Decisions / 逐輪稽核軌跡住在 `review-log.md`;正式文件(requirements / design / tasks / code)保持乾淨
 - **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件
+- **專案 Backlog**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 默默記錄到 `.spec/backlog/`(索引 + 每項一檔,結案歸檔),不隨 session 結束蒸發;`/backlog` 負責列出、撿起與結案
 - **Brief Before Build**:實作開始前,以對話式摘要呈現重點、已決策事項與 waivers,讓使用者不必讀完整份 spec 就能進入狀況 —— 這是抓出誤解最便宜的時刻
 - **認知負荷校準**:全域紀律 —— 主 agent 在每則訊息前先消化與抽象,用真實使用情境 + 執行流程 + 資料結構敘事,並主動重述前幾輪的脈絡;review 與 briefing 用同一副透鏡找出並解釋核心設計概念
 
@@ -40,6 +41,7 @@
 | `/update-spec <feature>` | 更新 feature spec |
 | `/verify-spec <feature>` | 驗證 spec 完整性 + tasks 與 design 對齊 |
 | `/implement <feature>` | 透過 agents 開始實作 |
+| `/backlog [args]` | 列出 / 撿起 / 結案專案 backlog 項目 |
 
 ## Agents
 

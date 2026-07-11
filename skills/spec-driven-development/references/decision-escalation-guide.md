@@ -49,7 +49,7 @@ Delivery is a fixed two beats (= two turns):
    - fixed ending: "Reply when you've read it and I'll send the options; you can also state your position directly in your reply"
 2. **Second beat (asking turn)**: after the user replies, send the AskUserQuestion — the question stem is short (a 1-3 line proposition, can say "background see the explanation above"), options keep label + multi-dimensional description + `preview`. **If the user already stated a position directly in their reply, skip the asking** and handle it via the "write into Review Log after resolving a Decision" flow.
 
-**This rule applies to all AskUserQuestion interactions in this skill** — Architecture Decision resolution, Medium/Low waiver batch asking, Steering Candidates batch confirmation: **the user always understands the problem in the conversation first (briefing turn), then makes the choice in the dialog box (asking turn)**.
+**This rule applies to all AskUserQuestion interactions in this skill** — Architecture Decision resolution, Medium/Low defer-and-batch asking (fix / waive / backlog), Steering Candidates batch confirmation: **the user always understands the problem in the conversation first (briefing turn), then makes the choice in the dialog box (asking turn)**.
 
 ---
 

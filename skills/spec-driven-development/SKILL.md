@@ -1,6 +1,6 @@
 ---
 name: spec-driven-development
-description: "Disciplined development workflow with multi-round architecture review loops. MUST use for any task that writes or modifies code — bug fixes, refactors, config tweaks, new features, anything (sole exception: trivial pure-text edits like a README typo). Auto-routes: (a) Quick Fix Mode for bug fixes / refactors / small extensions — Plan Mode + mandatory review loops, no spec docs; (b) Spec Mode for new features / large refactors / cross-component work — full steering + requirements + design + tasks docs before implementation. Both modes run design-reviewer and implementation-reviewer loops until 0 issues — non-negotiable regardless of task size. Steering docs are living: review loops surface unrecorded project principles for user-confirmed promotion into steering. Triggers: fix bug / refactor / add feature / change behavior / modify config / create or edit spec / implement feature. Also use when asked about steering / requirements / design / tasks docs, /create-spec, /implement, /load-spec, /verify-spec."
+description: "Disciplined development workflow with multi-round architecture review loops. MUST use for any task that writes or modifies code — bug fixes, refactors, config tweaks, new features, anything (sole exception: trivial pure-text edits like a README typo). Auto-routes: (a) Quick Fix Mode for bug fixes / refactors / small extensions — Plan Mode + mandatory review loops, no spec docs; (b) Spec Mode for new features / large refactors / cross-component work — full steering + requirements + design + tasks docs before implementation. Both modes run design-reviewer and implementation-reviewer loops until 0 issues — non-negotiable regardless of task size. Steering docs are living: review loops surface unrecorded project principles for user-confirmed promotion into steering. Triggers: fix bug / refactor / add feature / change behavior / modify config / create or edit spec / implement feature. Deferred discoveries — issues found mid-flow that can't be resolved now — are recorded silently to the project backlog (.spec/backlog/) so nothing is lost to session end. Also use when asked about steering / requirements / design / tasks docs, the backlog / recording something for later, /create-spec, /implement, /load-spec, /verify-spec, /backlog."
 ---
 
 # Spec-Driven Development
@@ -30,7 +30,7 @@ When the main agent receives any request to write / modify code, the first step 
 
 After deciding, **tell the user explicitly which route you're taking**, e.g.: "I'm planning to run this as a quick fix — scope is a single-component bug fix. Tell me if you'd rather go through the spec-level flow."
 
-### Spec Mode commands
+### Commands (Spec Mode + shared)
 
 | Command | Description |
 |------|------|
@@ -41,6 +41,7 @@ After deciding, **tell the user explicitly which route you're taking**, e.g.: "I
 | `/update-spec <feature>` | Update a feature spec |
 | `/verify-spec <feature>` | Verify spec completeness + tasks vs design alignment |
 | `/implement <feature>` | Start implementation |
+| `/backlog [args]` | List / pick up / close backlog items (works in both modes) |
 
 ### Quick Fix Mode has no slash command
 
@@ -70,6 +71,17 @@ The main agent enters Plan Mode and runs the full flow directly — no slash com
 ```
 
 > **The role of review-log.md**: the formal docs (r/d/t/code) describe "the world after decisions"; review-log.md describes "why it's this world, what was rejected along the way, which principles were deliberately waived." See the "Review Log Mechanism" section below and `references/review-log-guide.md`.
+
+### Backlog (project level)
+
+```
+.spec/backlog/
+├── BACKLOG.md              # index — open / in-progress items only
+├── bl-0001-{slug}.md       # one item per file, thick context
+└── archive/                # closed items (done / dropped)
+```
+
+> **The role of the backlog**: the durable parking lot for anything discovered mid-flow that can't be resolved now or needs deeper discussion later — deferred review issues the user intends to repay (as opposed to waivers), out-of-scope findings from implementation, unresolved threads from conversation. See the "Backlog Mechanism" section below and `references/backlog-guide.md`.
 
 ---
 
@@ -127,7 +139,7 @@ When a task meets the Quick Fix Mode bar (see `mode-selection.md`) — bug fix /
 5. **ExitPlanMode** — submit the converged plan for the user to approve.
 6. **Dispatch the implementation to `spec-implementer` (Mode 1)** — after exiting Plan Mode, hand it the plan file's absolute path as the design basis (the plan's change list is its task list; it ignores the `## Review Log` section) plus steering pointers if the project has steering. It implements, self-verifies, and confirms the build before reporting. **Keep the session resumable** — the review loop's fix dispatches resume it.
 7. **implementation-reviewer multi-round loop (mandatory)** — run to 0 issues per `review-protocol.md`, with the same persistent reviewer session + per-round challenge exchange. Bugs/Smells → resume the `spec-implementer` session (Mode 2) to fix the code. **After each round, update the plan file's `## Review Log` section the same way.**
-8. **Summary** — before reporting, batch-process the accumulated Steering Candidates per the "Steering Evolution Mechanism." Report changed files, review history (pointing at the plan file's `## Review Log`), user-decided Decisions, steering updates, and build status.
+8. **Summary** — before reporting, batch-process the accumulated Steering Candidates per the "Steering Evolution Mechanism." Report changed files, review history (pointing at the plan file's `## Review Log`), user-decided Decisions, steering updates, new backlog items recorded this run (backlog writes are silent — the summary is where the user sees what accumulated), and build status.
 
 **Key constraint**: the main agent never writes production code in either mode — Quick Fix Mode differs from Spec Mode only in the document layer (a plan file instead of spec docs), not in who implements. Plan authoring and plan fixes go through `spec-author`; code goes through `spec-implementer`.
 
@@ -145,7 +157,8 @@ Load a feature spec and show progress.
 2. Load requirements.md, design.md, tasks.md, review-log.md (if review-log.md is missing, mark it as missing but do not abort)
 3. Parse tasks.md to tally task status
 4. Parse review-log.md to tally: counts of §2 Decisions, §3 Waivers, §4 False Positives, §5 Steering Updates
-5. Show a status summary and a recommended next step
+5. Read `.spec/backlog/BACKLOG.md` (if it exists) and count open items, noting any related to this feature
+6. Show a status summary and a recommended next step
 
 > **Note**: loading does not run verification. Verification runs only when `/create-spec` or `/update-spec` completes.
 > For standalone verification, use `/verify-spec`.
@@ -160,6 +173,7 @@ Load a feature spec and show progress.
 
 📊 Progress: ✅ {n} completed | 🔄 {current} in progress | ⏳ {m} pending
 📒 Review Log: {n} Decisions resolved | {m} Waivers | {k} False Positives | {s} Steering Updates
+📥 Backlog: {n} open ({m} related to this feature) — /backlog to review
 
 🎯 Suggestion: continue with task #{next}: {description}
 ```
@@ -229,7 +243,7 @@ Create the spec documents for a feature.
       - **Append the final post-challenge list to `review-log.md` §1 Audit Trail, Status initially `pending`** (per `review-log-guide.md`)
       - **If there are Architecture Decisions**: use AskUserQuestion to hand each Decision to the user (presentation format per the "Architecture Decision Presentation Discipline" section below / decision-escalation-guide.md). After it's decided, **write it to `review-log.md` §2** + update the corresponding §1 row + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
       - **If there are Bugs/Smells (Critical/High)**: resume the `spec-author` session (Mode 2) to fix design.md (the main agent may also invoke the researcher for supplementary research and fold the findings into the fix dispatch); once done, update that §1 row's Status to `fixed`
-      - Medium/Low: **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion (per `review-protocol.md`'s "Loop convergence rules"); if the user decides to keep it, that's a waiver → **write it to `review-log.md` §3** + update §1
+      - Medium/Low: **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion (per `review-protocol.md`'s "Loop convergence rules"); the batch offers three outcomes per issue — fix now / accept as-is (waiver → **write it to `review-log.md` §3** + update §1) / handle later (→ backlog item per the "Backlog Mechanism", §1 marked `backlogged`)
       - If an issue is judged a false positive after discussion → **write it to `review-log.md` §4** + update §1
       - **If there are Steering Candidates**: accumulate them (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
       - Enter Round D{N+1} by resuming the reviewer session
@@ -344,7 +358,7 @@ Start implementing the feature.
 3. Process the issue list (update that §1 row's Status + Resolution as soon as each issue is handled):
    - **Architecture Decisions** → AskUserQuestion to the user (presentation format per the "Architecture Decision Presentation Discipline" section / decision-escalation-guide.md; may trigger /update-spec) → after it's decided, **write it to `review-log.md` §2** + update §1 + make a promotion judgment (hook point 2 of the "Steering Evolution Mechanism")
    - **Critical/High Bugs/Smells** → dispatch `spec-implementer (Mode 2)` to fix, preferring to **resume the Mode 1 session whose group owns the affected files** (it remembers why the code is shaped the way it is); spawn fresh only when ownership is unclear or the session is gone (the main agent does not touch code directly) → once fixed, change that §1 row to `fixed`
-   - **Medium/Low** → **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion; if the user decides to keep it → **write it to `review-log.md` §3 Waivers** + update §1
+   - **Medium/Low** → **defer-and-batch** — don't ask every round; accumulate to the round where Critical/High hits zero and ask once via AskUserQuestion; three outcomes per issue — fix now / accept as-is (waiver → **write it to `review-log.md` §3 Waivers** + update §1) / handle later (→ backlog item per the "Backlog Mechanism", §1 marked `backlogged`)
    - **False positive** → confirmed a false positive after discussion → **write it to `review-log.md` §4** + update §1
    - **Steering Candidates** → accumulate (they don't count against convergence) and batch-process per the "Steering Evolution Mechanism"
 4. After fixes, enter Round I{N+1}, until a round has 0 issues (and no accumulated pending Medium/Low); new Critical/High still present at Round 5 → trips the `review-protocol.md` convergence fuse — stop, run one fresh-eyes reviewer round, and report to the user
@@ -357,7 +371,19 @@ Start implementing the feature.
 
 #### Stage 3: Summary
 
-Before reporting, batch-process the accumulated Steering Candidates / findings from implementation per the "Steering Evolution Mechanism." Report: completed tasks, the implementation-reviewer multi-round history, Mode 2 fixes, user-decided Decisions, steering updates, and build status. Let the user decide the next step (diff / commit / next phase / something else).
+Before reporting, batch-process the accumulated Steering Candidates / findings from implementation per the "Steering Evolution Mechanism." Report: completed tasks, the implementation-reviewer multi-round history, Mode 2 fixes, user-decided Decisions, steering updates, new backlog items recorded this run (backlog writes are silent — the summary is where the user sees what accumulated), and build status. Let the user decide the next step (diff / commit / next phase / something else).
+
+---
+
+### /backlog [list | pick \<id\> | close \<id\> | drop \<id\>]
+
+Manage the project backlog (`.spec/backlog/` — structure and formats per `references/backlog-guide.md`). Works in both modes; needs no steering or spec to exist.
+
+**Steps**:
+
+- **No argument / `list`**: read `BACKLOG.md` (the index alone answers "what's outstanding" — item files are opened only on pick). Show the open items digested per "Calibrate for Cognitive Load" (group by type; flag likely-stale items — e.g. older than a month, or whose related feature has since shipped — as prune candidates), and suggest 1–2 pickup candidates. If the directory doesn't exist or the index is empty, say so — don't create anything.
+- **`pick <id>`**: open the item file, brief the user on Problem / Context / Suggested next step (use-case-driven, per `briefing-guide.md` — assume they've forgotten the original discussion). After the user confirms, mark the item `in-progress` (frontmatter + index `[~]`), then **route it like any incoming task**: decide Quick Fix Mode vs Spec Mode per `mode-selection.md` and run the normal flow — the item file's content seeds the brief. When the work completes, close the item as `done`.
+- **`close <id>` / `drop <id>`**: run the three-step close rule from `backlog-guide.md` — frontmatter `status` + `resolution:` line → move the file to `archive/` → remove the index line. For `drop`, capture the user's one-sentence reason in `resolution:` (that sentence is what prevents the same idea from being re-litigated months later).
 
 ---
 
@@ -442,7 +468,7 @@ Detailed guide + full has_related example: `${CLAUDE_PLUGIN_ROOT}/skills/spec-dr
 - **Challenge exchange**: after every round's issue list (including `0 issues` rounds), the main agent sends exactly one substantive challenge in the reviewer session — dispute false positives, probe misses, question severity; the **final post-challenge list** is the round's official record; surviving disagreements escalate as Architecture Decisions. The **fidelity challenge** (brief-vs-document drift) guards each `spec-author` handoff
 - **Numbering**: accumulates across rounds within a reviewer type and never resets; **design (D) and implementation (I) accumulate independently** (always cite with the Round prefix: `D2 Smell C` / `I1 Bug A`)
 - **Convergence**: the loop exits only when the reviewer outputs `0 issues` and there's no accumulated pending Medium/Low; it can't exit early with Critical/High present; **the fuse** — new Critical/High still present at Round 5 stops the loop; before reporting, spawn **one fresh reviewer instance for a single fresh-eyes round** (confirms structural problem vs. persistent-session churn), then report the structural problem + fresh-eyes verdict to the user (not counted as convergence)
-- **Medium/Low defer-and-batch**: don't ask the user every round — accumulate to the round where Critical/High hits zero and ask once in a batch
+- **Medium/Low defer-and-batch**: don't ask the user every round — accumulate to the round where Critical/High hits zero and ask once in a batch; each issue's outcomes are fix now / waive (review-log §3) / handle later (backlog item — waiver means "accepted, not a debt", backlog means "a debt we intend to repay")
 - **Architecture Decision**: a design choice the reviewer has no consensus on → the main agent hands it to the user via AskUserQuestion, **doesn't decide it itself**
 - **Steering Candidates**: the reviewer finds a project-level principle not recorded in steering → a non-blocking `SC` section (doesn't count against convergence); the main agent batch-processes it per the "Steering Evolution Mechanism"
 - **Review/Fix split**: the reviewer doesn't touch code, doesn't write the review log; in the design phase the main agent resumes `spec-author (Mode 2)` to fix design.md / the plan file, in the implementation phase both modes dispatch `spec-implementer (Mode 2)` — Spec Mode prefers resuming the owning group's session, Quick Fix Mode resumes its single implementer session
@@ -507,7 +533,35 @@ Three hook points:
 
 **Boundary**: this mechanism handles "add a principle / convention entry"-level increments; directional overhauls (swapping architecture patterns, changing the tech stack) still go through `/update-steering`. Quick Fix Mode applies the same way if the project already has steering.
 
+**Backlog vs steering**: a discovery that is *a principle to follow* is a steering candidate; a discovery that is *work to do later* is a backlog item (see "Backlog Mechanism"). The two channels have opposite defaults — steering promotion is restrained and user-confirmed; backlog recording is liberal and silent — because a wrong steering entry misleads every future feature, while a wrong backlog item costs one line in a cleanup pass.
+
 **Why immediate, but restrained**: steering goes stale gradually — if a genuinely cross-feature core convention goes unrecorded, six months later steering and the codebase have drifted apart and the alignment check is toothless, so what should be promoted should be promoted on the spot. But conversely, **over-promotion (cramming spec-specific / detail / one-off decisions into steering) is the more common failure in practice** — it dilutes the guardrails, buries the truly important clauses, and wastes the user's attention every round. Both directions must be avoided, and **the default leans restrained**: promote the few that truly run through the whole project, not something every round.
+
+---
+
+## Backlog Mechanism
+
+Anything discovered mid-flow that **can't be resolved now or needs deeper discussion later** — in either mode, or in plain conversation — is recorded to the project backlog (`.spec/backlog/`) instead of dying with the session. Formats, lifecycle, and full rationale: `references/backlog-guide.md`.
+
+**The semantic line vs waivers**: a waiver (review-log §3) means "we accept the current state — not a debt"; a backlog item means "this is a debt we intend to repay." When the user defers a Medium/Low issue, which of the two they mean decides where it's recorded (never both). A backlogged issue's review-log §1 row gets Status `backlogged` citing the item id.
+
+**Structure** (MEMORY.md-style progressive disclosure — scan the index cheaply, open an item only when picking it up): `BACKLOG.md` is the index listing **open / in-progress items only**; each item is its own `bl-{NNNN}-{slug}.md` file with frontmatter (id / title / type / status / date / source / feature) and a body thick enough for a reader two weeks later (Problem / Context / Suggested next step). Closed items live in `archive/`.
+
+**Write discipline — the main agent writes, silently**:
+
+- Recording is arbiter bookkeeping (like review-log maintenance) — the main agent writes the item file + index line directly, no subagent, **no per-item confirmation** (recording is cheap and reversible; a later cleanup pass prunes noise — asking every time kills the habit). New items are surfaced in the end-of-flow Summary so the user always sees what accumulated.
+
+| Hook point | When | What goes in |
+|---|---|---|
+| 1. Review Medium/Low batch | the defer-and-batch AskUserQuestion | the "handle later" outcome (vs fix-now / waive) |
+| 2. Implementer report | `spec-implementer`'s completion report (both modes) | out-of-scope findings — pre-existing bugs, adjacent tech debt; the implementer reports, the main agent records |
+| 3. Conversation | any moment in any flow | the user says "note this for later" / "don't block on this now", or the main agent itself spots an unresolvable-now issue worth keeping |
+
+**Not backlog material**: things fixed on the spot; accepted-as-is decisions (→ review-log §3); project-level principles (→ Steering Evolution Mechanism).
+
+**Close rule (one rule for done and dropped)**: update frontmatter `status` + add a `resolution:` line → move the file to `archive/` → remove the index line. Archive, don't delete — a `dropped` item's resolution ("considered X, decided no, because Y") is a lightweight ADR that stops the same idea from being re-discovered and re-litigated months later. The invariant: **`BACKLOG.md` always equals the exact set of unresolved items.**
+
+**Consumption**: `/load-spec` shows the open count; `/backlog` lists, picks up (routing the item through normal mode selection), and closes items.
 
 ---
 
@@ -563,14 +617,15 @@ The ceiling is **opus** — never let a broad sweep ride the session's top tier 
 9. **Calibrate for Cognitive Load** — the main agent digests and abstracts **any output** to the user before presenting it, narrating with an actual use case riding the execution flow, not assuming the user remembers the data structures / flows / concepts raised a few turns back. This is the shared root of #8 Brief Before Build and the "Architecture Decision Presentation Discipline" (see the "Calibrate for Cognitive Load" section)
 10. **Generation in Subagents, Arbitration in the Main Agent** — the main agent (top-tier model) converses, distills briefs, challenges, escalates, and keeps the review log; long-form generation (plans, spec docs, code, reviews) runs in **persistent subagent sessions** on a cheaper tier, resumed across rounds via SendMessage. The mandatory challenge exchange is what keeps the cheaper generation trustworthy (see `review-protocol.md`). The same tier discipline extends to **reading**: broad codebase exploration is delegated to a built-in agent on a **pinned** cheaper tier (sonnet for mechanical search, opus at most), never left to inherit the session's top model — see "Model Economy for Exploration"
 11. **Implementation by Agent Only** — the main agent is forbidden from writing production code in either mode; it must dispatch `spec-implementer` (Spec Mode: tasks.md-driven; Quick Fix Mode: plan-file-driven)
+12. **Backlog the Unresolved** — anything discovered mid-flow that can't be handled now or needs deeper discussion later is recorded to `.spec/backlog/` by the main agent, silently (recording is cheap and reversible; the Summary surfaces what accumulated). A deferred issue is a debt to repay — distinct from a waiver, which accepts the current state (see "Backlog Mechanism")
 
 **Spec Mode specific**:
-12. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
-13. **Design is Truth** — design.md is the single source of truth
+13. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
+14. **Design is Truth** — design.md is the single source of truth
 
 **Quick Fix Mode specific**:
-14. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode, and the file lives outside the repo)
-15. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode
+15. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode, and the file lives outside the repo)
+16. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode
 
 ---
 
@@ -588,6 +643,7 @@ The ceiling is **opus** — never let a broad sweep ride the session's top tier 
 | `references/review-log-bad-examples.md` | Bad / Good comparisons of the 6 review-residue patterns + a general rewrite formula |
 | `references/decision-escalation-guide.md` | Architecture Decision Presentation Discipline (including writing to review log §2 after a decision + neutralized reflection in design.md) |
 | `references/briefing-guide.md` | Spec / Plan Briefing guide (conversational summary before implementation — trigger timing / content structure / cognitive calibration) |
+| `references/backlog-guide.md` | Backlog formats and lifecycle (index + item files / write hook points / close rule / backlog-vs-waiver semantics) |
 | `templates/review-log-template.md` | The minimal review-log.md skeleton (used by /create-spec and Quick Fix Mode) |
 
 All paths are prefixed with: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`

@@ -260,7 +260,8 @@ After each review round ends, the main agent must integrate the reviewer's issue
 2. After handling each issue, immediately update that row's Status + Resolution:
    - fixed → `fixed`, Resolution writes "what was changed + location" (1 line)
    - Architecture Decision resolved → `decision-resolved`, §2 adds the full Decision block, Resolution writes `→ §2 Decision <letter>`
-   - kept unfixed → `waived`, §3 adds the full Waiver block, Resolution writes `→ §3 W{N}`
+   - kept unfixed (current state accepted) → `waived`, §3 adds the full Waiver block, Resolution writes `→ §3 W{N}`
+   - deferred as a debt to repay later → `backlogged`, a backlog item is recorded under `.spec/backlog/` (main agent's job), Resolution cites the item id (e.g. `→ bl-0007`)
    - confirmed false positive → `false-positive`, §4 adds the FP block, Resolution writes `→ §4 FP{N}`
 
 ### When the reviewer references the Review Log
@@ -280,7 +281,9 @@ Reviewer output contains Critical/High → this round fixes only Critical/High;
                                 Medium/Low marked pending and accumulated (don't ask the user yet)
 Reviewer output is all Medium/Low (or 0 issues but with open Medium/Low accumulated from prior rounds)
     → ask the user about this round's + prior rounds' accumulated open Medium/Low all at once via AskUserQuestion
-       user says don't fix → write into waiver; if this round also had no new Critical/High → treat as converged
+       user says don't fix (accepts current state) → write into waiver
+       user says handle later (a debt, not accepted) → record a backlog item, §1 status `backlogged`
+       either way: if this round also had no new Critical/High → treat as converged
        user says fix → fix then proceed to the next round
 Reviewer output is "0 issues" with no accumulated open Medium/Low → converged, exit the loop
 Round 5 still has new Critical/High → convergence fuse: stop the loop, run one fresh-eyes reviewer round (see "Core model"), report the structural problem to the user

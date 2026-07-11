@@ -20,7 +20,7 @@ The issues each reviewer round found + final status + a one-line resolution.
 | _(none)_ |     |          |        |            |
 
 **Round naming**: `D{N}` = design review round N; `I{N}` = implementation review round N
-**Status values**: `pending` / `fixed` / `waived` / `decision-resolved` / `false-positive`
+**Status values**: `pending` / `fixed` / `waived` / `backlogged` / `decision-resolved` / `false-positive`
 
 ---
 

@@ -123,7 +123,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     ├── Reviewer produces an issue list (Bugs / Smells / Decisions / Steering Candidates)
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
-    │     ├── Bugs/Smells → resume spec-author (Mode 2) to fix design.md (Medium/Low defer-and-batch)
+    │     ├── Bugs/Smells → resume spec-author (Mode 2) to fix design.md (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
@@ -143,12 +143,12 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
-    │     ├── Bugs/Smells → spec-implementer (Mode 2), preferring to resume the owning group's session (Medium/Low defer-and-batch)
+    │     ├── Bugs/Smells → spec-implementer (Mode 2), preferring to resume the owning group's session (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
     │
-    └── Stage 3: Summary
+    └── Stage 3: Summary (incl. steering updates + new backlog items recorded this run)
 ```
 
 The two modes differ only in **the document layer** (plan file vs steering+spec docs) — document authoring (`spec-author`), implementation (`spec-implementer`), and the review loop mechanism are fully shared (the same `review-protocol.md`, including persistent sessions and the challenge exchange).
