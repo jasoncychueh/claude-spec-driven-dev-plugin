@@ -35,6 +35,8 @@ So the delivery rule: **the full briefing text must be the final message of that
 - After the user replies with no objection, the next turn proceeds to the next step (ExitPlanMode / ending /create-spec / Stage 1); if there are concerns, follow "Handling user concerns" below
 - Note that although ExitPlanMode itself also stops (presenting the full plan text = the document layer), the briefing is the **comprehension layer** stop point — **ExitPlanMode must not replace the briefing turn**; the briefing must be delivered **before** ExitPlanMode, as the turn-final message (the hook will block "ExitPlanMode without a prior briefing")
 
+> **The advisor gate never stands in for the briefing.** The advisor absorbs *decisions taken along the way* (SKILL.md "Advisor Gate Mechanism"), but the briefing and the ExitPlanMode approval are the user's sign-off on *what gets built* — the advisor is a technical reviewer, not the product owner, and can't approve the plan on the user's behalf. So the briefing is always delivered to the user and waits for the user, regardless of the advisor. Its content merely *grows*: the advisor's decisions are folded in as the "confirm or override" block (item 4 above).
+
 ### Three-layer reminder architecture (why not rely solely on SKILL.md's step list)
 
 SKILL.md is loaded at the start of the task; the briefing's decision point comes dozens of tool-call rounds later, by which time the step instructions are long gone from the focus of attention (and may even have been summarized away by context compaction). So the briefing is jointly guaranteed by a three-layer mechanism, each layer placing the reminder in **the freshest context at the transition moment**:
@@ -78,9 +80,10 @@ How to do it:
 1. **One-sentence positioning** — what this feature / fix does, and why now
 2. **Use-case walkthrough** — the 1-2 scenario narratives above. **This is the body of the briefing** — architecture highlights, new concepts, and data flow are all brought out within the scenario, with no separate concept list
 3. **Key design decisions** — the resolved Decisions not covered by the walkthrough, each as a one-line scenario-grounded consequence
-4. **Deliberately accepted limitations** — Waivers + the cost each one pays (the user should know "what we gave up")
-5. **Implementation outlook** — Phase structure, which areas will be touched, rough scope (Quick Fix: list of changed files + verification method)
-6. **Explicit invitation to discuss** — a fixed closing invitation: "If anything doesn't match your expectations, raise it now — it's far cheaper than changing it after implementation"
+4. **Decisions I resolved via the advisor — confirm or override** — the Decisions the advisor gate settled on the user's behalf (review-log §2 `advisor-resolved`), each as a one-line scenario-grounded consequence citing its §2 letter, plus any tier-2 deferred defaults. This is the user's single consolidated review point for everything decided in their absence — the safety valve that makes autonomous resolution acceptable, so it's never omitted when the run has any advisor-resolved decisions. An override is handled like a fresh user Decision (see `advisor-gate-guide.md`). Omit the heading entirely when there were none
+5. **Deliberately accepted limitations** — Waivers + the cost each one pays (the user should know "what we gave up")
+6. **Implementation outlook** — Phase structure, which areas will be touched, rough scope (Quick Fix: list of changed files + verification method)
+7. **Explicit invitation to discuss** — a fixed closing invitation: "If anything doesn't match your expectations, raise it now — it's far cheaper than changing it after implementation"
 
 ## Calibration (designed for human cognitive limits — same philosophy as decision-escalation-guide)
 

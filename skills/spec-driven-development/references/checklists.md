@@ -344,7 +344,7 @@ For every choice where "both paths are valid, each with its own trade-off":
 
 - [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
 - [ ] Does it explain "why there is no industry consensus"?
-- [ ] Does the main agent use AskUserQuestion to hand the choice to the user to resolve?
+- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
 
 ---
 
@@ -411,7 +411,7 @@ For every implementation choice where "both paths are valid, each with its own t
 
 - [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
 - [ ] Does it explain "why there is no industry consensus"?
-- [ ] Does the main agent use AskUserQuestion to hand the choice to the user to resolve?
+- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
 
 ### Severity grading and convergence rules
 

@@ -4,6 +4,10 @@ The "translation work" the main agent must do when, having received an Architect
 
 > This file only needs to be read when the main agent needs to hand a Decision to the user. Reviewer agents **need not** read this file — they still output a mechanically parseable issue list per `review-protocol.md`; what this file governs is how the main agent **translates** that list into a conversation a human can digest.
 
+> **Architecture Decisions are reached here only after the advisor gate.** Every Architecture Decision first passes through the advisor (SKILL.md "Advisor Gate Mechanism" / `advisor-gate-guide.md`). The advisor settles the ones with a defensible technical answer — those are **not** delivered as an AskUserQuestion; they're recorded `advisor-resolved` and surfaced in the briefing / Summary for the user to confirm or override. The two-beat delivery below is for the Architecture Decisions the advisor **passed through** as genuine user calls (and for every Decision when the advisor is unavailable).
+>
+> The other two AskUserQuestion interactions this guide governs are **not** advisor-resolved and keep their existing handling: **Steering Candidate promotion** is a genuine preference / guardrail call that passes straight through to the user (Core Principle #7 keeps it deliberately restrained and user-confirmed — the advisor may inform the recommendation but doesn't resolve it), and the **Medium/Low defer-and-batch** already embodies the gate's "don't interrupt, keep going, surface later" instinct (its outcomes use the existing fix / waiver §3 / backlog homes). So the advisor's *autonomous resolution* is scoped to Architecture Decisions; the two-beat delivery discipline still applies to all three whenever they do reach the user.
+
 ## Table of Contents
 
 1. [Core principle: calibrate for the human cognitive limit](#core-principle-calibrate-for-the-human-cognitive-limit)
@@ -353,6 +357,16 @@ After the user answers a Decision via `AskUserQuestion`, the main agent must imm
 - Sync-update the §1 Audit Trail table: that Decision's row Status changes to `decision-resolved`, Resolution changes to `→ §2 Decision <letter>`
 
 **Why write in immediately rather than batch**: right after the user answers the AskUserQuestion, the rationale is still in their own words; if you wait until all Decisions are resolved and then batch-backfill, the details are already distorted and easily lost.
+
+### When the advisor resolved it (not the user)
+
+A Decision the **advisor** settled (per the advisor gate) is written into §2 the same way, with three differences that keep its provenance honest and its status reversible:
+
+- the entry is tagged **`[advisor-resolved · pending your review]`**
+- the `Rationale` is attributed **`(advisor, YYYY-MM-DD)`** and carries the advisor's reasoning (not "advisor picked Option 2" — *why*)
+- the §1 Audit Trail Status is **`advisor-resolved`**, Resolution `→ §2 Decision <letter> (advisor)`
+
+It is **not** delivered via AskUserQuestion at resolution time (recording is silent, like backlog bookkeeping — asking each time would reintroduce the interruption the gate exists to remove). Instead it is surfaced **in the next briefing / Summary** as a "confirm or override" line. If the user **overrides** it there, re-record §2 with their choice + `Rationale (user, YYYY-MM-DD)`, drop the `pending your review` tag, flip §1 to `decision-resolved`, and reflect the new content into design.md as neutral prose via the `spec-author` session — exactly as a freshly user-resolved Decision. If the user lets it stand, drop the `pending` tag (keeping the advisor attribution); the briefing was their chance to object. Full mechanics: `advisor-gate-guide.md`.
 
 ### The promotion judgment after resolving (Steering Evolution hook point)
 

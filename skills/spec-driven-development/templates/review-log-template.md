@@ -20,13 +20,13 @@ The issues each reviewer round found + final status + a one-line resolution.
 | _(none)_ |     |          |        |            |
 
 **Round naming**: `D{N}` = design review round N; `I{N}` = implementation review round N
-**Status values**: `pending` / `fixed` / `waived` / `backlogged` / `decision-resolved` / `false-positive`
+**Status values**: `pending` / `fixed` / `waived` / `backlogged` / `decision-resolved` / `advisor-resolved` / `false-positive`
 
 ---
 
 ## 2. Architecture Decisions
 
-Each choice escalated to the user to resolve. The reviewer does not resolve on the user's behalf; after the user answers via `AskUserQuestion`, the main agent writes the outcome into this section.
+Each choice escalated for resolution. The reviewer does not resolve on the user's behalf; the main agent routes it through the advisor gate. A Decision the **user** answers via `AskUserQuestion` is written here on the spot; a Decision the **advisor** settles is written here tagged `[advisor-resolved · pending your review]` with `Rationale (advisor, YYYY-MM-DD)`, then surfaced at the briefing for the user to confirm or override (see the plugin's `references/advisor-gate-guide.md`).
 
 _(none)_
 

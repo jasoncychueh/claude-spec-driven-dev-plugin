@@ -61,7 +61,8 @@ Detailed bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-developm
 | `fixed` | Already fixed (design.md / code / tasks.md changed) |
 | `waived` | Deliberately kept — the Resolution field must point to the corresponding Waiver in §3 |
 | `backlogged` | Deferred as a debt to repay later — the Resolution field must cite the backlog item id (e.g. `bl-0007`); unlike `waived`, the current state is NOT accepted |
-| `decision-resolved` | An Architecture Decision has been resolved — the Resolution field must point to §2 |
+| `decision-resolved` | An Architecture Decision the **user** resolved — the Resolution field must point to §2 |
+| `advisor-resolved` | An Architecture Decision the **advisor** settled (per the advisor gate), pending the user's review at the briefing — the Resolution field points to §2 with an `(advisor)` note. Becomes `decision-resolved` if the user later overrides it (see `advisor-gate-guide.md`) |
 | `false-positive` | Confirmed a false positive — the Resolution field must point to §4 |
 
 ---
@@ -94,6 +95,19 @@ Each Decision uses a level-3 heading plus a letter ID:
 ```
 
 **Why there's an `Affects` field**: when a related component is changed in the future, you can look back to "will this change overturn a past user decision".
+
+**Advisor-resolved Decisions** use the same skeleton with the heading tagged `[advisor-resolved · pending your review]` and the rationale attributed to the advisor:
+
+```markdown
+### Decision D (raised at D2)  [advisor-resolved · pending your review]
+**Problem**: <one-sentence statement of the contention>
+**Options considered**: <as above>
+**Chosen**: Option N
+**Rationale (advisor, YYYY-MM-DD)**: <the advisor's reasoning + the main agent's tidy-up>
+**Affects**: <as above>
+```
+
+It is surfaced at the next briefing / Summary for the user to confirm or override (never asked at resolution time). On override, re-record with `**Chosen**` + `**Rationale (user, YYYY-MM-DD)**` and drop the tag; if left to stand, just drop the `[advisor-resolved · pending your review]` tag. Full lifecycle: the plugin's `references/advisor-gate-guide.md`.
 
 ### §3 Waivers
 

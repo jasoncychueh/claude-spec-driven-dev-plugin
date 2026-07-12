@@ -81,7 +81,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │           ├── Main agent tells the reviewer the plan file path (Round 1; later rounds resume via SendMessage)
     │           ├── Reviewer uses Read to read the plan file, produces an issue list
     │           ├── Challenge exchange → final post-challenge list is the round's record
-    │           ├── Architecture Decision → AskUserQuestion, handed to the user
+    │           ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
     │           ├── Bugs/Smells → resume spec-author (Mode 2) to fix the plan file
     │           ├── Steering Candidate (if the project has steering) → accumulate for batch handling
     │           └── Exit only when the round reaches 0 issues
@@ -97,7 +97,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     └── implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
           ├── Reviewer produces an issue list
           ├── Challenge exchange → final post-challenge list is the round's record
-          ├── Architecture Decision → AskUserQuestion, handed to the user
+          ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
           ├── Bugs/Smells → resume spec-implementer (Mode 2) to fix the code
           └── Exit only when the round reaches 0 issues
 ```
@@ -122,7 +122,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── design-reviewer Mode B multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (Bugs / Smells / Decisions / Steering Candidates)
     │     ├── Challenge exchange → final post-challenge list is the round's record
-    │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
+    │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
     │     ├── Bugs/Smells → resume spec-author (Mode 2) to fix design.md (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
@@ -142,7 +142,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
     │     ├── Challenge exchange → final post-challenge list is the round's record
-    │     ├── Architecture Decision → main agent uses AskUserQuestion to hand it to the user to resolve
+    │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
     │     ├── Bugs/Smells → spec-implementer (Mode 2), preferring to resume the owning group's session (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse

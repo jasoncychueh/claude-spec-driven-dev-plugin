@@ -116,7 +116,7 @@ The three questions:
 2. Does this choice depend on **team preference or organizational context** (which the reviewer agent can't see)?
 3. Can I assert "this path is definitely wrong"?
 
-All three yes → it's an Architecture Decision, and the main agent must use AskUserQuestion to hand the choice to the user to resolve.
+All three yes → it's an Architecture Decision. The reviewer's job ends at listing it with the four-point raw material below; what the main agent does with it (route through the advisor gate, which resolves the clear-cut technical ones and passes genuine user calls to AskUserQuestion — SKILL.md "Advisor Gate Mechanism") is not the reviewer's concern. The reviewer never resolves it either way.
 
 ### Example comparison
 
@@ -140,7 +140,7 @@ Every Architecture Decision must list at least:
 - **Why no consensus**: why the industry is split
 - **Suggested user considerations**: the key dimensions of the decision (which organizational context would influence the choice)
 
-After receiving these, the main agent uses AskUserQuestion to hand these options to the user, and waits for the decision before proceeding to the next round.
+After receiving these, the main agent routes them through the advisor gate (SKILL.md "Advisor Gate Mechanism") — the advisor resolves the clear-cut technical ones, the rest go to the user via AskUserQuestion — before proceeding to the next round.
 
 ## Steering Candidates (steering promotion candidates)
 
@@ -237,7 +237,7 @@ When the main agent drives the review loop:
 1. **Challenge, then dispatch**: after each round's issue list, run the challenge exchange (see "Persistent sessions and the challenge exchange"), then hand the **final post-challenge list** to the corresponding fixer
    - design stage: resume the `spec-author` session (Mode 2) to fix design.md / the plan file — the main agent doesn't author or fix long-form documents itself (exception: the review log, which the main agent always maintains)
    - implementation stage (both modes): dispatch to `spec-implementer (Mode 2)` — Spec Mode prefers resuming the session whose group owns the affected files; Quick Fix Mode resumes its single implementer session; the main agent doesn't write code directly
-2. **Decision escalation**: hand all Architecture Decisions to the user via AskUserQuestion (the main agent does a human-friendly translation per SKILL.md "Architecture Decision Presentation Discipline" / `decision-escalation-guide.md` — the reviewer itself only produces the four-point raw material). Challenge-exchange deadlocks escalate through the same channel
+2. **Decision escalation**: route all Architecture Decisions through the **advisor gate** (SKILL.md "Advisor Gate Mechanism" / `advisor-gate-guide.md`) — the advisor settles the ones with a defensible technical answer (recorded to review-log §2 as `advisor-resolved`, pending the user's review, surfaced at the briefing), and only the genuine preference / product / irreversible calls reach the user via AskUserQuestion with the human-friendly translation (SKILL.md "Architecture Decision Presentation Discipline" / `decision-escalation-guide.md`). The reviewer itself is unchanged — it only produces the four-point raw material and never resolves. When the advisor is unavailable the gate collapses to today's behavior (straight to AskUserQuestion). Challenge-exchange deadlocks escalate through the same gate
 3. **Track rounds**: after each review round, record the issue numbers. The persistent reviewer session remembers its own history; the explicit trail matters as the rebuild source when a session dies (see "Resume-failure fallback")
 4. **Update Review Log**: after each review round, maintain `review-log.md` (Spec Mode) or the plan file's `## Review Log` section (Quick Fix Mode) — see the next section "Review Log integration"
 5. **Avoid scope creep**: when dispatching fixes, strictly limit to the issue scope, no incidental refactoring (if refactoring is needed, treat it as a new issue in the next round)
@@ -259,7 +259,8 @@ After each review round ends, the main agent must integrate the reviewer's issue
 1. Batch-append the reviewer's output issue list to review log §1 Audit Trail, marking Status `pending`
 2. After handling each issue, immediately update that row's Status + Resolution:
    - fixed → `fixed`, Resolution writes "what was changed + location" (1 line)
-   - Architecture Decision resolved → `decision-resolved`, §2 adds the full Decision block, Resolution writes `→ §2 Decision <letter>`
+   - Architecture Decision resolved by the user → `decision-resolved`, §2 adds the full Decision block, Resolution writes `→ §2 Decision <letter>`
+   - Architecture Decision settled by the advisor (per the advisor gate) → `advisor-resolved`, §2 adds the Decision block tagged `[advisor-resolved · pending your review]` with `Rationale (advisor, DATE)`, Resolution writes `→ §2 Decision <letter> (advisor)`; surfaced at the briefing / Summary to confirm or override (see `advisor-gate-guide.md`)
    - kept unfixed (current state accepted) → `waived`, §3 adds the full Waiver block, Resolution writes `→ §3 W{N}`
    - deferred as a debt to repay later → `backlogged`, a backlog item is recorded under `.spec/backlog/` (main agent's job), Resolution cites the item id (e.g. `→ bl-0007`)
    - confirmed false positive → `false-positive`, §4 adds the FP block, Resolution writes `→ §4 FP{N}`
