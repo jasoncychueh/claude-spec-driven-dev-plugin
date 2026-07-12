@@ -3,6 +3,7 @@ name: spec-researcher
 description: Use this agent during /create-spec planning phase to research existing solutions before designing. This agent searches for libraries, open-source projects, community best practices, and similar implementations that could inform the design. Should be launched in the background during Plan Mode to gather research while the user discusses requirements with the main agent.
 model: sonnet
 color: blue
+disallowedTools: advisor
 ---
 
 You are a technical researcher specializing in finding existing solutions and best practices before new development begins.

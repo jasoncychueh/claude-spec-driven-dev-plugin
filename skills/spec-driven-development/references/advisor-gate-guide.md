@@ -1,6 +1,16 @@
 # Advisor Gate
 
-Before the main agent stops to ask the user a decision, it consults the **advisor** first — a stronger reviewer model that sees the full conversation transcript. The advisor resolves the calls that have a defensible technical answer, so the user is interrupted only for the choices that genuinely need a human.
+Before the main agent commits to a consequential call, it consults the **advisor** first — a stronger reviewer model that sees the full conversation transcript. This has **two applications**:
+
+1. **Escalation gate** — before the main agent stops to ask the *user* a decision, the advisor resolves the calls that have a defensible technical answer, so the user is interrupted only for the choices that genuinely need a human. (Sections 1–7 below.)
+2. **Co-arbitration** — before the main agent commits a consequential judgment of a *subagent's returned output* (dismissing/downgrading a reviewer's Critical/High, accepting an issue list wholesale, or declaring convergence), the advisor is a second pair of eyes on that call. (Section 8.)
+
+Both are the same instinct — *don't let the premium main agent commit a consequential call entirely on its own when a stronger model can weigh in first.* Application 1 is about not interrupting the user needlessly; application 2 is about not letting the main agent's solo arbitration of cheaper-tier subagent output go unchecked.
+
+> **The advisor is a main-agent-only tool — subagents never call it.** `spec-author`, `spec-implementer`, and the two reviewers do their bounded work and **escalate uncertainty up to the main agent** exactly as today (the reviewer hands its issue list up, `spec-author` flags an assumption rather than resolving it, `spec-implementer` reports a problem rather than assuming) — the main agent is the *single* point that consults the advisor and the user. Two reasons: (1) **economy** — the advisor is the most premium tier; letting cheaper-tier executors call it inverts the whole generator/arbiter cost model (the point of the split is that only the arbiter spends the top tier); (2) **the advisor's value is the whole picture** — it sees the *caller's* transcript, and only the main agent's transcript holds the full session; a subagent calling it would forward only its own narrow, bounded context. If a subagent finds itself wanting a stronger opinion, that is precisely the signal to escalate to the main agent, which then decides whether to consult the advisor. This is **enforced structurally, not by discipline** — via two prongs, because the plugin spawns two kinds of subagent:
+
+- **This plugin's own agents** (`spec-author`, `spec-implementer`, the reviewers, the verifiers, `spec-researcher`) each set `disallowedTools: advisor` in their frontmatter, so they inherit all their other tools (including environment-specific MCP servers) but the advisor is removed from their pool — they *can't* call it, even where the harness would otherwise expose it.
+- **Built-in `Explore` / `general-purpose` agents** the plugin fans searches out to are not ours to edit — we can't set their frontmatter, and the Task tool has no per-call tool-restriction parameter. So whoever spawns one (the main agent, or a reviewer fanning out a search) must add a line to the **spawn prompt** telling it not to use the advisor. This is the one case that rides on the prompt rather than frontmatter, purely because the agent is built-in (see SKILL.md "Model Economy for Exploration").
 
 > **Why this exists**: on a premium session model the main agent stops to ask the user far more often than the work warrants — many of those stops are "which of these two technically-equivalent paths" questions that a competent engineer would just decide. Each stop costs the user a context-switch, and on an expensive tier the reluctance to decide is itself expensive. The advisor is a cheaper second opinion that absorbs those stops, keeping the user's attention for the decisions that are actually theirs to make.
 
@@ -13,7 +23,8 @@ Before the main agent stops to ask the user a decision, it consults the **adviso
 5. [How to consult the advisor](#how-to-consult-the-advisor)
 6. [Recording an advisor-resolved decision](#recording-an-advisor-resolved-decision)
 7. [Surfacing at the briefing / Summary](#surfacing-at-the-briefing--summary)
-8. [Worked example](#worked-example)
+8. [Second application: co-arbitrating reviewer output](#second-application-co-arbitrating-reviewer-output)
+9. [Worked example](#worked-example)
 
 ---
 
@@ -124,6 +135,30 @@ The user gets **one consolidated review point** for everything the advisor decid
 - Tier-2 deferred defaults (the "picked a reasonable default and kept going" assumptions) are surfaced in the same spirit, so the user can correct an assumption as cheaply as an advisor call.
 
 The reason the briefing is the right venue: it's already the moment the user builds their mental model of the work and is invited to push back at the cheapest point. Folding the advisor's decisions into that same moment means the user reviews them with full context, in one pass, instead of N interruptions scattered through the work.
+
+---
+
+## Second application: co-arbitrating reviewer output
+
+The same "consult the stronger model before committing a consequential call" applies **inside the review loop**, where the main agent judges the reviewer's returned output alone. The generator/arbiter split already has the main agent challenge the reviewer every round (`review-protocol.md`, "The challenge exchange") — but the *outcome* of that challenge is still the main agent's solo call, and it's the call that decides what gets fixed versus dropped. At the consequential points, the advisor co-arbitrates:
+
+- **When the main agent's arbitration would consequentially override the reviewer** — it's about to **dismiss a reviewer-graded Critical/High as a false positive**, **downgrade its severity** (e.g. Critical → Medium), or **accept the round's issue list essentially unchanged** (the challenge surfaced nothing to push back on) — consult the advisor.
+- **Before declaring convergence** — a `0 issues` round the main agent is about to accept as the loop exit — consult the advisor as a second pair of eyes against false convergence (this pairs with the existing "`0 issues` rounds are challenged too" discipline).
+
+**When in the round to consult**: *before* the main agent sends the round's single challenge to the reviewer, so the advisor's view shapes that challenge (the review loop allows exactly one challenge per round — `review-protocol.md` — so there's no budget to consult afterward and then re-probe). If the advisor's dissent implies the design needs deeper probing than one challenge can settle, that's a surviving disagreement → escalate it as an Architecture Decision, not a second challenge. For the convergence check, a dissent simply means run another round.
+
+**What the advisor sees here**: the reviewer's returned issue list, the artifact under review, and the whole session — exactly what the main agent sees. It does **not** see the reviewer's internal process (that never enters the main agent's transcript), so it's a *second strong judgment over the same evidence*, not new visibility. That's the point: the risk being covered is the main agent misjudging the evidence in front of it, and a stronger model re-judging the same evidence is what catches that.
+
+**Consequential-or-uncertain trigger, not every round.** Routine arbitration — confirming a Critical is real and dispatching the fix, accepting an obvious Smell — doesn't need the advisor. It fires only when the call is high-stakes (dropping/downgrading a Critical/High, wholesale acceptance, convergence) or the main agent is genuinely unsure. This keeps the advisor (the most premium tier) spent on the judgments that actually carry risk, across a loop that may run many rounds. There is **no "defer-and-continue" tier** here — unlike the escalation gate, this isn't a stop the main agent is trying to avoid; it's a judgment it's making anyway, and the advisor simply weighs in before it's committed.
+
+**Graceful degradation is identical**: advisor absent / disabled / error → the main agent arbitrates solo, exactly as today.
+
+**Recording**: when the advisor co-arbitrates a consequential call, annotate the outcome in the review log so the user sees it later — each outcome lands in its correct existing home, no new section:
+
+- **Dismissal concurred** (the issue isn't real) → §4 False Positives with `(advisor concurred, YYYY-MM-DD)` on the `Actual situation` line.
+- **Downgrade concurred** (the issue *is* real, just lower severity) → **not** §4 — it stays a genuine issue and flows through its new severity's normal path (Critical/High fix, or Medium/Low defer-and-batch to fix / waive §3 / backlog); the §1 row shows the severity change with a one-line `(advisor concurred on downgrade)` note.
+- **Advisor dissented and the call flipped** (an issue the main agent was about to drop or downgrade is kept at its original grade and fixed) → the §1 row records the kept outcome with a one-line note.
+- **Convergence confirmed** → a `0 issues` round produces no issue row, so note it in the **Summary** ("convergence confirmed by the advisor at round I{N}") rather than §1.
 
 ---
 

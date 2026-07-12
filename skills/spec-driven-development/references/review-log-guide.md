@@ -137,6 +137,8 @@ Written when an issue's resolution is "kept, not fixed" (whether the user active
 
 **Why this section is needed**: the reviewer is an independent invocation with no cross-round memory. Without an FP record, the same false positive recurs repeatedly, wasting review rounds.
 
+**Advisor co-arbitration annotation** (the advisor gate's second application): when the advisor was consulted before the main agent **dismissed** a reviewer-graded Critical/High as a false positive and **concurred**, append `(advisor concurred, YYYY-MM-DD)` to the `Actual situation` line. Note the boundary — §4 is for genuine dismissals only: a concurred *downgrade* (the issue is real, just lower severity) does **not** come here; it stays an issue at its new severity with a `(advisor concurred on downgrade)` note on its §1 row. And an advisor **dissent** that keeps the issue never becomes an FP either — it's fixed, with a one-line §1 note (e.g. `kept over main-agent's FP call — advisor dissented`). See `advisor-gate-guide.md` §8.
+
 ### §5 Steering Updates (Promotion Record)
 
 When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in SKILL.md), record a row here:
