@@ -263,7 +263,7 @@ After each review round ends, the main agent must integrate the reviewer's issue
    - Architecture Decision resolved by the user → `decision-resolved`, §2 adds the full Decision block, Resolution writes `→ §2 Decision <letter>`
    - Architecture Decision settled by the advisor (per the advisor gate) → `advisor-resolved`, §2 adds the Decision block tagged `[advisor-resolved · pending your review]` with `Rationale (advisor, DATE)`, Resolution writes `→ §2 Decision <letter> (advisor)`; surfaced at the briefing / Summary to confirm or override (see `advisor-gate-guide.md`)
    - kept unfixed (current state accepted) → `waived`, §3 adds the full Waiver block, Resolution writes `→ §3 W{N}`
-   - deferred as a debt to repay later → `backlogged`, a backlog item is recorded under `.spec/backlog/` (main agent's job), Resolution cites the item id (e.g. `→ bl-0007`)
+   - deferred as a debt to repay later → `backlogged`, a backlog item is recorded under `.spec/backlog/` (main agent's job), Resolution cites the item id (e.g. `→ bl-a3f9c1`)
    - confirmed false positive → `false-positive`, §4 adds the FP block, Resolution writes `→ §4 FP{N}`
 
 ### When the reviewer references the Review Log

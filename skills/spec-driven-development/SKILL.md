@@ -77,7 +77,7 @@ The main agent enters Plan Mode and runs the full flow directly — no slash com
 ```
 .spec/backlog/
 ├── BACKLOG.md              # index — open / in-progress items only
-├── bl-0001-{slug}.md       # one item per file, thick context
+├── bl-a3f9c1-{slug}.md     # one item per file, thick context
 └── archive/                # closed items (done / dropped)
 ```
 
@@ -382,7 +382,7 @@ Manage the project backlog (`.spec/backlog/` — structure and formats per `refe
 **Steps**:
 
 - **No argument / `list`**: read `BACKLOG.md` (the index alone answers "what's outstanding" — item files are opened only on pick). Show the open items digested per "Calibrate for Cognitive Load" (group by type; flag likely-stale items — e.g. older than a month, or whose related feature has since shipped — as prune candidates), and suggest 1–2 pickup candidates. If the directory doesn't exist or the index is empty, say so — don't create anything.
-- **`pick <id>`**: open the item file, brief the user on Problem / Context / Suggested next step (use-case-driven, per `briefing-guide.md` — assume they've forgotten the original discussion). After the user confirms, mark the item `in-progress` (frontmatter + index `[~]`), then **route it like any incoming task**: decide Quick Fix Mode vs Spec Mode per `mode-selection.md` and run the normal flow — the item file's content seeds the brief. When the work completes, close the item as `done`.
+- **`pick <id>`**: open the item file, brief the user on Problem / Context / Suggested next step (use-case-driven, per `briefing-guide.md` — assume they've forgotten the original discussion). If the item is already `[~]` (claimed), stop and report the claim — since when, which branch, what's being done — and let the user decide (pick something else / take it over / coordinate); never silently take it over. After the user confirms, **claim it before starting the work**: frontmatter `status: in-progress` + `picked_up: DATE (branch: X) — one sentence on what's being done`, and the index line flips to `[~]` carrying the same claim inline (`backlog-guide.md` → "Claiming an item"). Then **route it like any incoming task**: decide Quick Fix Mode vs Spec Mode per `mode-selection.md` and run the normal flow — the item file's content seeds the brief. When the work completes, close the item as `done`.
 - **`close <id>` / `drop <id>`**: run the three-step close rule from `backlog-guide.md` — frontmatter `status` + `resolution:` line → move the file to `archive/` → remove the index line. For `drop`, capture the user's one-sentence reason in `resolution:` (that sentence is what prevents the same idea from being re-litigated months later).
 
 ---
@@ -547,7 +547,11 @@ Anything discovered mid-flow that **can't be resolved now or needs deeper discus
 
 **The semantic line vs waivers**: a waiver (review-log §3) means "we accept the current state — not a debt"; a backlog item means "this is a debt we intend to repay." When the user defers a Medium/Low issue, which of the two they mean decides where it's recorded (never both). A backlogged issue's review-log §1 row gets Status `backlogged` citing the item id.
 
-**Structure** (MEMORY.md-style progressive disclosure — scan the index cheaply, open an item only when picking it up): `BACKLOG.md` is the index listing **open / in-progress items only**; each item is its own `bl-{NNNN}-{slug}.md` file with frontmatter (id / title / type / status / date / source / feature) and a body thick enough for a reader two weeks later (Problem / Context / Suggested next step). Closed items live in `archive/`.
+**Structure** (MEMORY.md-style progressive disclosure — scan the index cheaply, open an item only when picking it up): `BACKLOG.md` is the index listing **open / in-progress items only**; each item is its own `bl-{hash}-{slug}.md` file with frontmatter (id / title / type / status / date / source / feature) and a body thick enough for a reader two weeks later (Problem / Context / Suggested next step). Closed items live in `archive/`.
+
+**Ids are random, not sequential** — 6 hex characters from `[guid]::NewGuid().ToString('N').Substring(0,6)` (POSIX: `uuidgen | tr -d - | head -c 6`). **Run the command; never invent the characters** (model-picked "random" hex repeats and collides silently). If the id already exists in the root or `archive/`, generate another. A counter would force every writer to first scan for the highest existing id, and two sessions scanning concurrently both write the same next number — the id generation *is* the race, and a random id has nothing to race on. Ordering lives in `date`, which every index line already carries.
+
+**Claiming (the other race)**: unique ids stop two sessions recording the same id; they don't stop two sessions working the same item. On pick-up, **before the work starts**, the item is marked `status: in-progress` + `picked_up: DATE (branch: X) — what's being done`, and the index line flips to `[~]` carrying the same claim inline. On encountering a `[~]` item, never silently take it over or skip it — report the claim (since when / which branch / what) and let the user decide. No expiry rule: whether an old claim is dead or a live long-running branch isn't knowable from inside the repo.
 
 **Write discipline — the main agent writes, silently**:
 

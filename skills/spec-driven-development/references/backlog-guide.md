@@ -15,10 +15,10 @@ Format conventions and lifecycle rules for the project backlog — the durable p
 ```
 .spec/backlog/
 ├── BACKLOG.md                  # index — lists open / in-progress items ONLY
-├── bl-0001-{slug}.md           # one item per file, thick context
-├── bl-0002-{slug}.md
+├── bl-a3f9c1-{slug}.md         # one item per file, thick context
+├── bl-7d2e04-{slug}.md
 └── archive/
-    └── bl-0000-{slug}.md       # closed items (done / dropped), frontmatter updated
+    └── bl-91b0ff-{slug}.md     # closed items (done / dropped), frontmatter updated
 ```
 
 **The single invariant**: `BACKLOG.md` always equals the exact set of unresolved items. Scanning the index answers "what do we still owe" — no cross-checking item files, no git archaeology. Everything below serves this invariant. If index and item files are ever found to disagree (a listed id with no file, a root-level file with no index line), **the item files are authoritative — rebuild the index from them** and mention the repair to the user.
@@ -32,19 +32,33 @@ Format conventions and lifecycle rules for the project backlog — the durable p
 ```markdown
 # Backlog
 
-- [ ] bl-0007 (tech-debt, 2026-07-11) — payment module error handling should be unified; out of scope for the sync fix → [detail](bl-0007-unify-payment-error-handling.md)
-- [ ] bl-0008 (design-question, 2026-07-11) — revisit whether the export pipeline should go async → [detail](bl-0008-async-export-question.md)
+- [ ] bl-a3f9c1 (tech-debt, 2026-07-11) — payment module error handling should be unified; out of scope for the sync fix → [detail](bl-a3f9c1-unify-payment-error-handling.md)
+- [~] bl-7d2e04 (design-question, 2026-07-11) — revisit whether the export pipeline should go async — in progress since 2026-07-17, branch `feat/async-export` → [detail](bl-7d2e04-async-export-question.md)
 ```
 
-One line per item: checkbox, id, `(type, date)`, a one-sentence hook (enough to decide whether to open the file), link to the item file. `in-progress` items change `[ ]` to `[~]`. Closed items are **removed from the index**, not checked off — see the close rule.
+One line per item: checkbox, id, `(type, date)`, a one-sentence hook (enough to decide whether to open the file), link to the item file. `in-progress` items change `[ ]` to `[~]` and carry their claim inline (see "Claiming an item"). Closed items are **removed from the index**, not checked off — see the close rule.
+
+Ordering is **chronological by `date`**, which every line already carries — ids are unique, not ordered, and carry no sequence meaning.
 
 ## Item file format
 
-Filename: `bl-{NNNN}-{slug}.md`. IDs are zero-padded, sequential, never reused (scan both the root and `archive/` for the highest existing ID before assigning).
+Filename: `bl-{hash}-{slug}.md`, where `{hash}` is 6 hex characters.
+
+**Generating the id — run the command, never invent the characters:**
+
+```powershell
+[guid]::NewGuid().ToString('N').Substring(0,6)
+```
+
+This is **not optional and not a suggestion**. An id you produce by "picking six random-looking hex characters" is not random — model-generated strings repeat and cluster, which reintroduces exactly the collision this design removes, except silently. Run the command; use what it returns. (POSIX equivalent, if PowerShell is unavailable: `uuidgen | tr -d - | head -c 6`.)
+
+**Why a random hash instead of a sequential number**: a counter forces every writer to first read global state ("scan for the highest existing id"), and two sessions that scan concurrently — two branches, two worktrees, two terminals — both see `bl-0008` and both write `bl-0009`. The id generation is the race. A random id needs no coordination at all, so there is nothing to race on. Ids are never reused.
+
+**Cheap belt-and-suspenders**: if the generated id already exists in the root or `archive/`, generate another. This costs one glob and catches the within-branch freak case.
 
 ```markdown
 ---
-id: bl-0007
+id: bl-a3f9c1
 title: Unify payment module error handling
 type: tech-debt            # bug | tech-debt | design-question | idea
 status: open               # open | in-progress | done | dropped
@@ -87,6 +101,35 @@ looks like a quick fix or spec-level work.
 - Accepted-as-is decisions → review-log §3 Waivers
 - Project-level principles → Steering Evolution Mechanism
 - Facts about the user or session → project memory
+
+---
+
+## Claiming an item (picking it up)
+
+Unique ids stop two sessions from *recording* the same id. They do nothing to stop two sessions from *working on the same item* — that's a separate race, and the claim marker is what closes it.
+
+When an item is picked up (`/backlog pick <id>`, after the user confirms the briefing), mark it claimed **before starting the work**, in the same action, both places:
+
+```markdown
+--- item file frontmatter ---
+status: in-progress
+picked_up: 2026-07-17 (branch: feat/async-export) — reworking the export pipeline to async
+```
+
+```markdown
+--- BACKLOG.md ---
+- [~] bl-7d2e04 (design-question, 2026-07-11) — revisit whether the export pipeline should go async — in progress since 2026-07-17, branch `feat/async-export` → [detail](bl-7d2e04-async-export-question.md)
+```
+
+The claim carries three things, and each earns its place: **the date** (is this claim minutes old or a month stale?), **the branch** (where the work lives — the reader can go look at it), and **one sentence on what's being done** (whether it overlaps with what *this* session was about to do).
+
+**Mark first, work second.** A claim written after the work starts protects nothing during the window where the collision actually happens.
+
+**On encountering a `[~]` item**: do **not** silently take it over, and do **not** silently skip it. Report the claim to the user — id, since when, which branch, what's being done — and let them decide: pick something else, take it over (the other session was abandoned), or coordinate. This is a genuine user call with no safe default: whether an old claim is dead or is someone's live in-flight work is knowledge that only exists outside the repo.
+
+**No expiry rule on purpose.** "A claim older than N days is stale, take it over freely" is tempting and wrong — N has no defensible value, a two-week claim can be an active long-running branch, and a two-day one can be dead. The stale-looking claim still gets surfaced; the human resolves it in one sentence. A `/backlog list` already flags likely-stale items as prune candidates, which covers the cleanup need without a rule that guesses.
+
+**Releasing a claim** (the work was abandoned, not finished): drop `picked_up`, set `status: open`, revert the index line to `[ ]`. An item is only ever *closed* by the close rule below — abandoning is not closing.
 
 ---
 

@@ -60,7 +60,7 @@ Detailed bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-developm
 | `pending` | The main agent just appended it to §1, not yet processed |
 | `fixed` | Already fixed (design.md / code / tasks.md changed) |
 | `waived` | Deliberately kept — the Resolution field must point to the corresponding Waiver in §3 |
-| `backlogged` | Deferred as a debt to repay later — the Resolution field must cite the backlog item id (e.g. `bl-0007`); unlike `waived`, the current state is NOT accepted |
+| `backlogged` | Deferred as a debt to repay later — the Resolution field must cite the backlog item id (e.g. `bl-a3f9c1`); unlike `waived`, the current state is NOT accepted |
 | `decision-resolved` | An Architecture Decision the **user** resolved — the Resolution field must point to §2 |
 | `advisor-resolved` | An Architecture Decision the **advisor** settled (per the advisor gate), pending the user's review at the briefing — the Resolution field points to §2 with an `(advisor)` note. Becomes `decision-resolved` if the user later overrides it (see `advisor-gate-guide.md`) |
 | `false-positive` | Confirmed a false positive — the Resolution field must point to §4 |
