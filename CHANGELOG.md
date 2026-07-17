@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.14.1 (2026-07-17)
+
+Rebalance agent model defaults on the generator/arbiter economy. `implementation-reviewer` and `spec-author` drop from `opus` to `sonnet` — both produce/revise text under a fixed basis (design/tasks doc, or a challenge-validated issue list) rather than making the premium judgment calls themselves; that judgment stays with the main agent as arbiter. `spec-researcher` and `tasks-design-verifier` drop from `sonnet` to `haiku` — pure legwork (web/library research; mechanical tasks-vs-design alignment checks) with no design judgment to protect.
+
 ## 1.14.0 (2026-07-17)
 
 Make the backlog **safe for concurrent sessions**, on two independent axes. 1.11.0 gave deferred discoveries a durable home but assumed one writer: item ids came from a counter, and a picked-up item carried no claim. Both assumptions break the moment two branches / worktrees / terminals touch the backlog — and they break in different ways, so they get different fixes.
