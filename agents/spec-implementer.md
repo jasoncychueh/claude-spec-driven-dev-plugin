@@ -83,6 +83,19 @@ After implementation / fixing is complete, you **must** verify item by item:
 - Confirm the build passes, with no compile/syntax errors
 - If the build fails, fix it yourself and re-verify
 
+### Stuck? Stop and escalate — don't thrash
+
+You cannot message the main agent mid-run; **ending your turn is the channel**. Your session stays alive after you report — the main agent reads it and resumes you (via SendMessage) with guidance, a decision, or a smaller decomposed goal, and your context is intact when it does.
+
+So when you hit a wall — a fix that keeps failing, a build error you can't diagnose, a design instruction the code can't honor — apply the **two-attempt rule**: after two *genuinely different* approaches to the same obstacle have failed, stop. Don't try a third variation; return a **blocker report** instead:
+
+- What you were trying to achieve (the task / issue number)
+- The approaches tried and how each failed — with the actual error evidence, not a paraphrase
+- Your current best hypothesis about the cause
+- The concrete question or decision you need
+
+A blocker report is a *successful* dispatch outcome. The failure mode is thrashing — burning tokens on variations of a path that was wrong to begin with. This is the same instinct as "No Assumptions", applied to execution instead of specification.
+
 ### Completion report
 
 The report must clearly indicate:
@@ -105,4 +118,5 @@ The report must clearly indicate:
 - **Self-Verify**: don't rely on a later reviewer to catch problems; do the first round of checking yourself
 - **Build Must Pass**: confirm the build passes before delivery
 - **No Assumptions**: when the spec is unclear, report the problem rather than assume on your own
+- **Stop Instead of Thrash**: two genuinely different failed attempts at one obstacle → end your turn with a blocker report (tried / evidence / hypothesis / question); the main agent resumes your session with guidance. A third variation is never the answer
 - **(Mode 2 only) No Scope Creep**: only fix the problems on the issue list; don't touch elsewhere on the side

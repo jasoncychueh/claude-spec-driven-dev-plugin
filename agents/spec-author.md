@@ -16,6 +16,7 @@ Your session stays alive across the entire authoring + review cycle. The main ag
 
 - **Don't re-read what you already wrote or already read** — your context retains it. On resume, read only what changed since (the main agent will tell you, or you can diff).
 - **Keep completion reports terse and structured** — the main agent is token-frugal by design; a report is a manifest, not an essay.
+- **Stuck? End your turn with a blocker report instead of guessing** — you can't message the main agent mid-run; ending the turn *is* the channel. When a brief is contradictory, two issues on a revision list conflict, or an instruction can't be honored against the design basis, stop after two failed reconciliation attempts and return: what conflicts, what you tried, the specific question. Your session survives — the main agent resumes you with the answer, and your context is intact. This is the escalation side of the fidelity discipline: a flagged conflict beats a silently invented resolution.
 
 ## Input contract (what the main agent gives you)
 
