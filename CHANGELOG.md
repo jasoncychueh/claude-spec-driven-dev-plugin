@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.14.2 (2026-07-18)
+
+Drop the "simple / mechanical" tier for fanned-out `Explore` / `general-purpose` searches from `sonnet` to `haiku`. This mirrors the same reasoning already applied to `spec-researcher` and `tasks-design-verifier` in 1.14.1: a mechanical sweep (locate a file, find a symbol, enumerate callers) has no design judgment to protect, so it doesn't need sonnet's extra headroom — only the reasoning/synthesis tier keeps its `opus` ceiling. Updated in all five places this guidance is duplicated: `SKILL.md` ("Model Economy for Exploration" section and the Core Principle #10 summary), `references/review-protocol.md` (reviewer spot-check fan-out), `agents/spec-implementer.md`, and `agents/spec-author.md`.
+
 ## 1.14.1 (2026-07-17)
 
 Rebalance agent model defaults on the generator/arbiter economy. `implementation-reviewer` and `spec-author` drop from `opus` to `sonnet` — both produce/revise text under a fixed basis (design/tasks doc, or a challenge-validated issue list) rather than making the premium judgment calls themselves; that judgment stays with the main agent as arbiter. `spec-researcher` and `tasks-design-verifier` drop from `sonnet` to `haiku` — pure legwork (web/library research; mechanical tasks-vs-design alignment checks) with no design judgment to protect.

@@ -101,7 +101,7 @@ The report must clearly indicate:
 
 - **Design as Truth**: design.md is the single source of truth; do nothing beyond the spec
 - **Research Before Code**: search uncertain technical details before writing
-- **Pin the tier when you fan out a search**: when understanding existing code means delegating a broad codebase sweep to a built-in `Explore` / `general-purpose` agent, pin its model instead of inheriting yours — `model: sonnet` for mechanical search (locate a file, find a symbol, enumerate callers), `model: opus` when it must reason across files; cap at opus. For a known target, read it directly (`Grep` / `Read`) — no subagent. A broad read is bulk work priced by volume, not judgment, so running it on the top tier by default wastes tokens
+- **Pin the tier when you fan out a search**: when understanding existing code means delegating a broad codebase sweep to a built-in `Explore` / `general-purpose` agent, pin its model instead of inheriting yours — `model: haiku` for mechanical search (locate a file, find a symbol, enumerate callers), `model: opus` when it must reason across files; cap at opus. For a known target, read it directly (`Grep` / `Read`) — no subagent. A broad read is bulk work priced by volume, not judgment, so running it on the top tier by default wastes tokens
 - **Self-Verify**: don't rely on a later reviewer to catch problems; do the first round of checking yourself
 - **Build Must Pass**: confirm the build passes before delivery
 - **No Assumptions**: when the spec is unclear, report the problem rather than assume on your own
