@@ -2,6 +2,13 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.15.1 (2026-07-24)
+
+Close a blind spot in the persistent-session discipline: the docs stated the positive rule ("resume, don't respawn") but never the **boundary**, so "always resume" was being over-applied — sessions inherited across unrelated tasks, across specs, across quick fixes, and even for unrelated `Explore` searches. Two fixes, both stating the negative case explicitly:
+
+- **Session scope = one loop, resume never crosses it** — new bullet in `review-protocol.md` "Persistent sessions" (mirrored in SKILL.md's execution-architecture intro and Quick Summary): the test before every resume is *"does this dispatch continue the work this session already holds in context?"* A fix round / revision round / follow-on artifact of the same spec → resume; a new spec, new quick fix, or unrelated task → **always fresh spawn**. Rationale stated in place: another task's leftover context is a liability, not an asset — a stale design basis and issue history can silently steer the new work, and the accumulated window is paid for nothing.
+- **Exploration spawns are one-shot** — new paragraph in SKILL.md "Model Economy for Exploration": the resume discipline belongs to the persistent *worker* sessions whose accumulated context is the point; an `Explore` / `general-purpose` search has no such asset. Resume only a follow-up that digs deeper into the **same** question just answered; a different question — even a nearby one — spawns fresh, because the leftover reading list biases where the new search looks.
+
 ## 1.15.0 (2026-07-18)
 
 Add **Dispatch Granularity** — how much goal the main agent hands an executor per dispatch — plus the executor-side escalation contract. Motivation: two situations where the current "hand the big goal, challenge the result" flow underperforms were observed: an executor repeatedly failing at the same wall across fix rounds (thrashing), and ad-hoc user requests / mid-flight goal changes where no settled design basis is guiding the executor yet. In both, retrying the same large dispatch doesn't converge, because the missing ingredient is the *path*, not effort.
