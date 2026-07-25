@@ -371,7 +371,7 @@ Start implementing the feature.
 
 #### Stage 3: Summary
 
-Before reporting, batch-process the accumulated Steering Candidates / findings from implementation per the "Steering Evolution Mechanism." Report: completed tasks, the implementation-reviewer multi-round history, Mode 2 fixes, user-decided Decisions, **the decisions resolved via the advisor this run — as a "confirm or override" block (per "Advisor Gate Mechanism")**, steering updates, new backlog items recorded this run (backlog writes are silent — the summary is where the user sees what accumulated), and build status. Let the user decide the next step (diff / commit / next phase / something else).
+Before reporting, batch-process the accumulated Steering Candidates / findings from implementation per the "Steering Evolution Mechanism." Report: completed tasks, the implementation-reviewer multi-round history, Mode 2 fixes, user-decided Decisions, **the decisions resolved via the advisor this run — as a "confirm or override" block (per "Advisor Gate Mechanism")**, steering updates, new backlog items recorded this run (backlog writes are silent — the summary is where the user sees what accumulated), and build status. If the work ran in a dedicated worktree, its cleanup after merge (worktree removed, branch deleted) is part of Done — see "Worktree Lifecycle". Let the user decide the next step (diff / commit / next phase / something else).
 
 ---
 
@@ -666,6 +666,22 @@ Two boundaries keep this honest:
 - The main agent still never executes: even the smallest step goes to the executor session. Decomposing is judgment; implementing the fragment is still execution.
 
 **The executor's side of the contract — stop instead of thrash.** A subagent cannot message the main agent mid-run; its only channel back is ending its turn. So the executors (`spec-implementer`, `spec-author`) are instructed: after two genuinely different failed attempts at one obstacle, **stop and return a blocker report** (what was tried, the evidence, the hypotheses, the concrete question) instead of trying a third variation. The session stays alive — the main agent answers via SendMessage with guidance or a decomposed next step, and work continues in-context. A blocker report is a *successful* outcome of a dispatch, never a failure to paper over; receiving one **is** the thrashing trigger firing — respond by going stepwise, not by re-sending the same goal with encouragement.
+
+---
+
+## Worktree Lifecycle (one work cycle, one worktree)
+
+When the environment uses git worktrees (an isolation tool the harness may provide, or ones created manually), the same scoping instinct as persistent sessions applies: **a worktree belongs to exactly one work cycle** — one feature spec, one quick fix — created fresh at its start and **deleted after its branch merges**. Never reuse a previous task's worktree for new work.
+
+Why fresh-per-cycle wins:
+
+- **Leftover state is a liability, not an asset** — untracked files, build artifacts, and half-finished experiments from the last task sit invisible to git but fully visible to the executor, and silently steer the new work (the same reasoning as the session-resume boundary: what another task left behind is contamination, not context).
+- **A worktree is cheap** — its creation cost is one checkout. There is nothing worth salvaging from an old one that a fresh checkout doesn't already give you.
+- **Branch mapping stays legible** — one worktree ↔ one feature branch, created together, merged and deleted together. Reuse is how "which branch is this worktree even on" confusion starts.
+
+The one legitimate long-lived worktree is a **long-running cycle** (a large spec spanning many sessions): its worktree lives until that spec completes — still one cycle, one worktree, just a longer cycle. What is never legitimate is carrying a worktree *across* cycles.
+
+Cleanup is part of Done: the Summary stage's "completed" report assumes the merged branch's worktree has been removed (`git worktree remove` + branch delete after merge). A worktree whose branch is gone (`[gone]` upstream) is garbage to collect, not a resource to keep.
 
 ---
 

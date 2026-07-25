@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.15.2 (2026-07-25)
+
+Add **Worktree Lifecycle** — the plugin previously had no worktree guidance at all (the only mention was incidental, in backlog-guide's concurrency rationale). New SKILL.md section states the rule: **one work cycle, one worktree** — created fresh at a feature spec / quick fix's start, deleted after its branch merges, never reused across cycles. Same scoping instinct as the 1.15.1 session-resume boundary, stated with the same rationale: leftover state (untracked files, build artifacts, half-finished experiments) is invisible to git but fully visible to the executor, so it contaminates rather than helps; a worktree costs one checkout, so there is nothing worth salvaging; and one-worktree-one-branch keeps the mapping legible. A long-running spec keeps its worktree until the spec completes (a longer cycle is still one cycle); a worktree whose branch is `[gone]` is garbage to collect. Cleanup is wired into Stage 3 Summary as part of Done.
+
 ## 1.15.1 (2026-07-24)
 
 Close a blind spot in the persistent-session discipline: the docs stated the positive rule ("resume, don't respawn") but never the **boundary**, so "always resume" was being over-applied — sessions inherited across unrelated tasks, across specs, across quick fixes, and even for unrelated `Explore` searches. Two fixes, both stating the negative case explicitly:
