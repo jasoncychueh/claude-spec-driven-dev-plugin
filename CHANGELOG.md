@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.15.5 (2026-07-25)
+
+Restore `implementation-reviewer` and `spec-author` to `model: opus`, reversing half of 1.14.1. Both turned out to sit on the wrong side of the generator/arbiter line: the reviewer's output *is* judgment — the production-lens issue list the whole review loop converges on — and `spec-author`'s design/plan prose is the artifact every later round reasons against, so a thinner draft costs more in review rounds than the cheaper tier saves. The pure-legwork demotions from 1.14.1 stand: `spec-researcher` and `tasks-design-verifier` stay on `haiku`, and `spec-implementer` stays on `sonnet` (it executes against a fixed design basis, with the reviewer as its backstop).
+
 ## 1.15.4 (2026-07-25)
 
 Move the backlog claim earlier still — 1.15.3 landed it at pick *confirmation*, but the briefing and the debate before confirmation are themselves contention: while one session discusses an item, a second session sees `[ ]` and picks it too. Redefine the trigger and add the mirror obligation:
