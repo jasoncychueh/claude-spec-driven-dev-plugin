@@ -108,7 +108,7 @@ looks like a quick fix or spec-level work.
 
 Unique ids stop two sessions from *recording* the same id. They do nothing to stop two sessions from *working on the same item* — that's a separate race, and the claim marker is what closes it.
 
-When an item is picked up (`/backlog pick <id>`, after the user confirms the briefing), mark it claimed **before starting the work**, in the same action, both places:
+When an item is picked up (`/backlog pick <id>`, after the user confirms the briefing), mark it claimed **at pick confirmation — before any planning begins**, in the same action, both places:
 
 ```markdown
 --- item file frontmatter ---
@@ -123,7 +123,9 @@ picked_up: 2026-07-17 (branch: feat/async-export) — reworking the export pipel
 
 The claim carries three things, and each earns its place: **the date** (is this claim minutes old or a month stale?), **the branch** (where the work lives — the reader can go look at it), and **one sentence on what's being done** (whether it overlaps with what *this* session was about to do).
 
-**Mark first, work second.** A claim written after the work starts protects nothing during the window where the collision actually happens.
+**Mark first, work second — and "work" starts at planning, not implementation.** A claim written after the work starts protects nothing during the window where the collision actually happens. The work cycle begins the moment the user confirms the pick: Plan Mode, spec authoring, even the initial codebase exploration are all already "the work" — an item that stays `[ ]` through a half-hour planning phase is exactly the window where a second session picks the same item. The claim is written **at pick confirmation, before any planning begins**; the branch field may not exist yet at that moment — write the claim anyway with the intended branch name (or `branch: TBD`, updated once created). A cheap, slightly-early claim beats a precise, too-late one.
+
+**Every entry path claims, not just `/backlog pick`.** The pick command is not the only way an item's work starts: the user may simply say "let's do X" where X matches an open backlog item, or a new task's scope may turn out to subsume one. Whenever the main agent recognizes that the task being started covers an open item — however it arrived — the same claim is written at that same moment (and a `[~]` found this way is reported exactly like in the pick flow). The claim rule follows the *item*, not the command.
 
 **On encountering a `[~]` item**: do **not** silently take it over, and do **not** silently skip it. Report the claim to the user — id, since when, which branch, what's being done — and let them decide: pick something else, take it over (the other session was abandoned), or coordinate. This is a genuine user call with no safe default: whether an old claim is dead or is someone's live in-flight work is knowledge that only exists outside the repo.
 

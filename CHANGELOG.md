@@ -2,6 +2,13 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.15.3 (2026-07-25)
+
+Close two holes in the backlog claim timing, found in real multi-session use (two sessions picked the same item because the claim landed too late):
+
+- **"Work" starts at planning, not implementation** — the rule said "claim before starting the work", but "the work" was read as "the implementation", so a picked item stayed `[ ]` through the whole Plan Mode / spec-authoring phase — exactly the window where a parallel session picks it too. Now stated explicitly in all three places (backlog-guide "Claiming an item", SKILL.md /backlog pick step, SKILL.md Backlog Mechanism summary): the claim is written **at pick confirmation, before any planning begins**; planning, spec authoring, even initial exploration are already the work. The branch may not exist that early — write the intended name or `TBD` and update later; a cheap, slightly-early claim beats a precise, too-late one.
+- **Every entry path claims, not just `/backlog pick`** — the claim rule was wired only into the pick command, but an item's work can start other ways (the user says "let's do X" and X matches an open item; a new task's scope subsumes one). Whenever the main agent recognizes the task being started covers an open item, it claims at that same moment; the claim rule follows the *item*, not the command.
+
 ## 1.15.2 (2026-07-25)
 
 Add **Worktree Lifecycle** — the plugin previously had no worktree guidance at all (the only mention was incidental, in backlog-guide's concurrency rationale). New SKILL.md section states the rule: **one work cycle, one worktree** — created fresh at a feature spec / quick fix's start, deleted after its branch merges, never reused across cycles. Same scoping instinct as the 1.15.1 session-resume boundary, stated with the same rationale: leftover state (untracked files, build artifacts, half-finished experiments) is invisible to git but fully visible to the executor, so it contaminates rather than helps; a worktree costs one checkout, so there is nothing worth salvaging; and one-worktree-one-branch keeps the mapping legible. A long-running spec keeps its worktree until the spec completes (a longer cycle is still one cycle); a worktree whose branch is `[gone]` is garbage to collect. Cleanup is wired into Stage 3 Summary as part of Done.
