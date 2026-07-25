@@ -2,6 +2,14 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.15.4 (2026-07-25)
+
+Move the backlog claim earlier still — 1.15.3 landed it at pick *confirmation*, but the briefing and the debate before confirmation are themselves contention: while one session discusses an item, a second session sees `[ ]` and picks it too. Redefine the trigger and add the mirror obligation:
+
+- **Claim at focused-discussion start** — on `/backlog pick`, the claim is written when the item file is opened to brief, *before* the briefing. Nothing is decided at that point, and that's fine: `branch: TBD`, sentence "under discussion", both updated as the direction and branch materialize. The claim's whole job is making the second session stop and ask; a cheap, early, vague claim beats a precise, too-late one.
+- **Release on skip, same turn** — claiming before the user says yes creates the mirror duty: the user hears the briefing and skips ("not now"), or started work is abandoned → drop `picked_up`, `status: open`, index back to `[ ]`, immediately. A claim left behind by a skipped item is a phantom lock blocking every other session for nothing.
+- Entry-path rule extended to match: a *discussion* (not just a task) arriving outside `/backlog pick` that covers an open item claims at that moment, and releases the same way if it ends in "skip it". Threaded through backlog-guide "Claiming an item" / "Releasing a claim", SKILL.md `/backlog pick`, and the Backlog Mechanism summary.
+
 ## 1.15.3 (2026-07-25)
 
 Close two holes in the backlog claim timing, found in real multi-session use (two sessions picked the same item because the claim landed too late):
