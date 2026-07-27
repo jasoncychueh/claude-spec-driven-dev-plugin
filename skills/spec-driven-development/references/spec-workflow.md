@@ -137,7 +137,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
 [/implement]
     │
     ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms)
-    ├── Stage 1: spec-implementer (Mode 1) writes the initial version in parallel / sequentially + self-verify + build
+    ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build
     │
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)

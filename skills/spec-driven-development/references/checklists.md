@@ -356,6 +356,8 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 
 ### 1. Cross-agent integration (integration conflicts from Stage 1 parallel implementation)
 
+> Parallel groups are Stage 1's default shape, so this section applies to most runs — skip it only when the main agent states that a single group ran. The group seams (where one group's output is another's input) are where these defects concentrate.
+
 - [ ] Are the interfaces defined by the parallel agents consistent with their callers?
 - [ ] Are cross-component data structures / naming consistent?
 - [ ] Are the import / dependency paths correct?
