@@ -75,6 +75,13 @@ constraints identified). Write for someone with no memory of the conversation.
 
 **Suggested next step:** Where to start when picking this up — and whether it
 looks like a quick fix or spec-level work.
+
+**Why deferrable:** Pre-existing: [the evidence — reproduces on base / lives in
+code this cycle never touched]. Independent: [the evidence — this cycle's goal
+verifies without it]. Not absorbed because: [scale — needs its own spec-level
+discussion / relevance — barely adjacent to this cycle / circumstances — schedule
+or risk forbade it]. (Required for implementer-finding / self-discovered items —
+see "The triage ladder". For user-directed deferrals, cite the user's call instead.)
 ```
 
 **Context thickness**: the test is "could a fresh session act on this without asking the user to re-explain?" Too thin and the item is a riddle; the goal is self-contained, not exhaustive — point at files and docs rather than re-pasting them.
@@ -82,6 +89,21 @@ looks like a quick fix or spec-level work.
 ---
 
 ## Write discipline
+
+### The triage ladder (run it before every write)
+
+The backlog's failure mode is being used as an **escape hatch**: mid-execution, a bug or a gap turns out to be inconvenient, someone declares it "out of scope", opens an item, and skips it — and the skip *looks* diligent because a record was left behind. So a new discovery is **triaged, not declared**, and **the finder never adjudicates**: the implementer/reviewer reports, the main agent — who owns the cycle's goal — walks the ladder in order. The backlog is the ladder's *residual*, never its first stop.
+
+1. **This cycle's own problem → back into the cycle, mandatory.** A defect **introduced or exposed by this cycle's changes** (that's an unfixed bug — fix it now or blocker-report it; parking it is shipping a known bug with a receipt), anything **the deliverable needs to actually work** (in scope by definition, wherever the code lives), or a **gap in this cycle's own plan/design** (a design-basis flaw → blocker report → plan/design revision → the review loop; backlogging it means knowingly implementing a flawed design).
+2. **Trivial → just fix it, in passing.** Small, self-evident, no design ripple (a few lines, verifiable on sight): the main agent adds it to the current dispatch as an **explicit one-line scope extension** and the implementer fixes it. Opening a debt file for something cheaper than the file itself is process overhead inverted.
+3. **Related and at most quick-fix scale → absorb it, pre-existing or not.** If the discovery is genuinely adjacent to what this cycle is touching **and** handling it stays within quick-fix scale (no new spec-level design questions, no sprawl across unrelated files), fold it into this cycle when circumstances allow (schedule/risk don't forbid it): extend the plan's change list / add a task, explicitly, so the reviewer sees it as in-scope work. Pre-existing status is irrelevant here — relevance and scale decide. The context is already loaded *now*; a backlog item pays the full re-orientation cost later for work that was one step away today.
+4. **The rest → backlog.** Weakly related, or spec-scale (it needs its own requirements/design discussion), or circumstances genuinely don't allow absorption — this is the honest residual the backlog exists for.
+
+**Absorption is explicit, never silent** — it is the main agent *extending the sanctioned scope* (plan change list / task list updated), which keeps the implementer's No Scope Creep discipline intact: the implementer still never self-absorbs; it reports, and the scope comes back extended. Absorbed extras are listed in the Summary so the user sees what the cycle grew to include.
+
+The item file must show the ladder was walked: its **Why deferrable** line states why it isn't rung 1 (pre-existing / independent — with the evidence) *and* why it wasn't absorbed at rungs 2–3 (scale / relevance / circumstances). If you cannot honestly write both, the item doesn't go in — the problem goes back up the ladder.
+
+(Hook 1 — the user choosing "handle later" in the Medium/Low batch — is the user overriding scope himself; it needs no triage. Hook 3 user requests likewise. The ladder guards the *self-serve* writes: implementer findings and the main agent's own discoveries.)
 
 - **The main agent writes items directly** — like review-log maintenance, this is arbiter bookkeeping, not long-form generation; no subagent dispatch.
 - **Write silently, no per-item confirmation** — recording is cheap and reversible (items can be dropped during a later cleanup pass); asking every time adds friction that kills the habit. Mention new items in the end-of-flow summary instead, so the user always sees what accumulated.
@@ -92,11 +114,12 @@ looks like a quick fix or spec-level work.
 | Hook | When | What goes in |
 |---|---|---|
 | 1. Review Medium/Low batch | the defer-and-batch AskUserQuestion round | the user's third option besides fix-now / waive: "handle later" → backlog item citing the review round |
-| 2. Implementer report | `spec-implementer`'s completion report (both modes) | out-of-scope findings (pre-existing bug next door, adjacent tech debt) — the implementer reports; the main agent records |
+| 2. Implementer report | `spec-implementer`'s completion report (both modes) | out-of-scope findings (pre-existing bug next door, adjacent tech debt) — the implementer reports; the main agent **walks the triage ladder** (fix in passing / absorb / backlog), records only the honest residual |
 | 3. Conversation | any moment in any flow | the user says "note this for later" / "let's not block on this now", or the main agent itself spots an unresolvable-now issue worth keeping |
 
 ### What does NOT go in the backlog
 
+- **Anything the triage ladder handles above rung 4** — this cycle's own defects, anything the goal needs to work, design-basis gaps (→ back into the cycle), trivial fixes (→ fix in passing), related quick-fix-scale discoveries (→ absorb by explicit scope extension)
 - Things fixed on the spot (they're just work, not debt)
 - Accepted-as-is decisions → review-log §3 Waivers
 - Project-level principles → Steering Evolution Mechanism

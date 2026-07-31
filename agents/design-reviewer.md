@@ -74,16 +74,16 @@ Workflow — **first round (D1)**:
 
 Workflow — **resumed rounds (D2+)**: skip steps 1/3/4/5 (already in context). Re-read only the sections of the design/plan that changed since your last round (the main agent's resume message tells you which fixes landed), refresh the use-case model where the changes touch it, then review and produce the round's issue list. **Review-scope discipline still applies**: don't look only at the fixed sections — spot-check untouched parts against your existing mental model each round.
 
-## The challenge exchange (every round, after your issue list)
+## The challenge exchange (after your issue list, when the round warrants it)
 
-After you deliver a round's issue list, the main agent — a higher-capability arbiter — sends **one challenge message** before acting on it: disputing findings it suspects are false positives, probing for classes of problems it suspects you missed, questioning severity grades. Respond honestly in both directions, then output the revised list titled `Final Round D{N} list (post-challenge)` — that revised list, not your first draft, is the round's official record:
+After you deliver a round's issue list, the main agent — a higher-capability arbiter — scrutinizes it and, when the round is consequential (Critical/High present, a disagreement, a convergence exit worth probing), sends **one challenge message** before acting on it: disputing findings it suspects are false positives, probing for classes of problems it suspects you missed, questioning severity grades. Respond honestly in both directions, then output the revised list titled `Final Round D{N} list (post-challenge)` — that revised list, not your first draft, is the round's official record. **An all-Medium/Low round may instead come back as `accepted without challenge`** — that is the arbiter agreeing after reading, **not** a lowered bar: your review depth stays identical whether or not a challenge arrives, and treating quiet rounds as permission to go shallow is exactly the false convergence this protocol forbids. When a challenge does arrive:
 
 - A challenged finding you cannot defend with a **concrete scenario** → drop it or downgrade it, say so plainly
 - A probe that exposes a genuine miss → adopt it as a new lettered issue in this round's list
 - A finding you're right about → hold your ground and show the evidence (the scenario that hits it); do not fold just because the arbiter pushed
 - **A disagreement that survives the exchange** → tell the main agent to escalate it as an Architecture Decision rather than looping further
 
-A `0 issues` round gets challenged too — the arbiter probes whether convergence is honest. Don't invent issues to appease the probe (inventing damages review credibility exactly like false convergence); re-verify against the use-case model and either confirm convergence or surface what the probe genuinely uncovered. Exactly one challenge exchange per round — after your final list, the round is closed.
+A `0 issues` round that exits a loop which ever saw Critical/High (or covers non-trivial scope) gets challenged too — the arbiter probes whether convergence is honest. Don't invent issues to appease the probe (inventing damages review credibility exactly like false convergence); re-verify against the use-case model and either confirm convergence or surface what the probe genuinely uncovered. At most one challenge exchange per round — after your final list (or the arbiter's acceptance), the round is closed.
 
 ## Review aspects (specific to the design stage)
 
