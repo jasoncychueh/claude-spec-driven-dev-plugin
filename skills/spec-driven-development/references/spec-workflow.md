@@ -98,7 +98,9 @@ This skill supports two development paths (see `mode-selection.md` for details);
           ├── Reviewer produces an issue list
           ├── Challenge exchange → final post-challenge list is the round's record
           ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
-          ├── Bugs/Smells → resume spec-implementer (Mode 2) to fix the code
+          ├── Bugs/Smells → triage by rung: mechanical → resume spec-implementer (Mode 2);
+          │                  root-cause-unknown / multi-direction / contract-touching →
+          │                  spec-author settles the approach into the plan first
           └── Exit only when the round reaches 0 issues
 ```
 
@@ -143,7 +145,9 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
-    │     ├── Bugs/Smells → spec-implementer (Mode 2), preferring to resume the owning group's session (Medium/Low defer-and-batch: fix / waive / backlog)
+    │     ├── Bugs/Smells → triage by rung: mechanical → spec-implementer (Mode 2), preferring the owning group's session;
+    │     │                  root-cause-unknown / multi-direction / contract-touching → spec-author settles the approach
+    │     │                  into design.md first (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
