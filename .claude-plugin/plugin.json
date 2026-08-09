@@ -1,6 +1,6 @@
 {
   "name": "spec-driven-development",
-  "version": "1.18.0",
+  "version": "1.18.1",
   "description": "Spec-driven development workflow: steering documents, feature specs (requirements/design/tasks/review-log), verification, and agent-based implementation on a generator/arbiter split — the main agent arbitrates while persistent subagent sessions author, implement (parallel groups by file-disjointness), and review to 0 issues. Enforces 'no spec, no code' discipline, with a project backlog for deferred discoveries and an advisor gate that settles clear-cut decisions instead of interrupting the user.",
   "author": {
     "name": "Jason Chueh",

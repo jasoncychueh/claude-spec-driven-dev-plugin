@@ -84,6 +84,21 @@ After implementation / fixing is complete, you **must** verify item by item:
 - Run the build command per CLAUDE.md's instructions
 - Confirm the build passes, with no compile/syntax errors
 - If the build fails, fix it yourself and re-verify
+- **Run it in the foreground and wait for it — never `run_in_background`.** See below for why this is not a style preference.
+
+### Nothing will wake you — no background work, ever
+
+Know one fact about your own execution, because you cannot observe it from the inside: **you are a transcript, not a live process.** The moment you end your turn you stop completely. You are not suspended, not listening, not scheduled to resume. The *only* thing that can ever start you again is the main agent sending you a message.
+
+This has a consequence that background tools do not advertise, and that your instincts will get wrong: a command you start with `run_in_background` **really does keep running** — and when it finishes, **nothing exists that could tell you.** There is no notification, no callback, no wake-up. The main agent gets woken by its own background tasks; you do not, and the tools give you no signal that the two cases differ. So the familiar pattern — "kick off the build, end the turn, pick up the result later" — has no *later* for you. It produces a turn that reports work you never saw the outcome of.
+
+Therefore, in this session and every resumed round:
+
+- **Run builds, tests, and every long command in the foreground**, and wait for the result. A long wait is fine — a wrong report is not.
+- **If something is too slow to wait for, narrow it** — build one target instead of the solution, run the one test file that covers your change, compile the single project you touched. A scoped foreground run beats a full background run you can never read.
+- **If it is genuinely un-narrowable and too long to sit through**, that is a **blocker report** (see below), not a reason to background it. Say what needs running, how long it takes, and what you need — the main agent has the wake-up mechanism you lack and can run it or route around it.
+
+The same reasoning covers anything else that defers work past the end of your turn: never park a task and promise to check it, and never report a build or test as passing on the basis that you started it.
 
 ### Stuck? Stop and escalate — don't thrash
 
@@ -123,4 +138,5 @@ The report must clearly indicate:
 - **Build Must Pass**: confirm the build passes before delivery
 - **No Assumptions**: when the spec is unclear, report the problem rather than assume on your own
 - **Stop Instead of Thrash**: two genuinely different failed attempts at one obstacle → end your turn with a blocker report (tried / evidence / hypothesis / question); the main agent resumes your session with guidance. A third variation is never the answer
+- **Never Background Anything**: ending your turn stops you completely and nothing can wake you but the main agent, so a `run_in_background` command's result is one you will never see. Foreground everything; narrow what is too slow; escalate what cannot be narrowed
 - **(Mode 2 only) No Scope Creep**: only fix the problems on the issue list; don't touch elsewhere on the side
