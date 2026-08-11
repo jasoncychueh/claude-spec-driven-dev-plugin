@@ -347,6 +347,10 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 **Coverage, backward** (drift detection):
 - [ ] Does every case's anchor still exist — no case citing a removed requirement or a renamed interface?
 
+**Requirement fidelity** (usually High — the design and the table share one author, so a misread requirement is implemented *and* verified, and ships certified wrong; no other check here catches it):
+- [ ] For each `behavior` case, read the **requirement's own text** and confirm the case verifies *that*, not the design's interpretation of it. The probe: **would this case still be correct if the design were thrown away and rebuilt differently?** If not, it is pinned to the design rather than to the requirement
+- [ ] Does any case quietly narrow or widen its requirement — e.g. requirement "an expired claim is released automatically" vs case "the claim is released when the session ends" (both observable, only one is what was asked for)?
+
 **Behavior, not mechanism** (usually High — rot is born in this column):
 - [ ] Does the "Behavior to verify" column state an **observable outcome** ("concurrent push loses no items") rather than a structural assertion ("push takes the lock before appending")?
 

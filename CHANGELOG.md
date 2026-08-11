@@ -2,6 +2,16 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.19.1 (2026-08-11)
+
+Close the one gap 1.19.0's design left open: **`spec-author` writes both the design and the test cases, so a misread requirement is implemented *and* verified.** The design implements the misreading, the case certifies it, the test goes green — and the feature ships *certified wrong*, which is worse than shipping untested, because the suite now supplies evidence for the mistake.
+
+Checked against 1.19.0's actual §6 aspects, this passes every one of them. Requirement "an expired claim is released automatically", misread as "released when the session ends": the case names a real requirement (anchor legality ✓), that requirement has a case (coverage ✓), "released when the session ends" is a genuinely observable outcome and not a mechanism ✓, the level fits ✓. Seven checks, none of which look at whether the case says what the *requirement* says.
+
+- **A `Requirement fidelity` check, in `design-reviewer` §6 and the matching checklist.** For every `behavior` case, read the **requirement's own text** and apply one probe: **would this case still be correct if the design were thrown away and rebuilt differently?** If not, it verifies the design's *interpretation* of the requirement rather than the requirement. `design-reviewer` is the only reader positioned for this — it holds both documents and authored neither.
+- **The same probe given to `spec-author` as a writing rule**, so the mistake is less likely to be made than to be caught later.
+- **Why no structural fix.** Two more ambitious options were worked through and rejected on mechanism, not cost. *Splitting authorship so a clean `spec-author` instance writes the cases blind to design.md* fails because requirements.md already carries Acceptance Criteria — a blind pass can only paraphrase them, since every useful case needs concrete inputs, observable points, and a seam to check at, and all three require knowing the system's shape; `spec-tester` would then read design.md anyway, moving the contamination down a layer rather than removing it. *A fresh (non-blind) instance writing the cases after design* was rejected because a misreading still needs a **checker** to surface, and once the check exists the writer's identity stops mattering — it would buy a second full read for a guarantee the reviewer already provides. **Blindness is a property the writer needs; a checker doesn't need it**, which is why the leverage point is the check.
+
 ## 1.19.0 (2026-08-11)
 
 Add the **Test Anchoring Mechanism** and a dedicated `spec-tester` agent. Observed in practice: tests come out thin, and after a refactor or two the suite rots — the expensive part isn't the rot itself but the repair, because a red suite gives no way to separate a real regression from a test that was only ever describing the old structure, so every failure gets investigated and most of that work buys nothing.
