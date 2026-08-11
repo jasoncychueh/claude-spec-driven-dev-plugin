@@ -7,6 +7,7 @@ This skill supports two development paths. **Any** work that writes / modifies c
 | Document output | plan file only (outside the repo) | requirements.md + design.md + tasks.md |
 | Who writes docs | `spec-author` (plan file, per the main agent's brief) | `spec-author` (plan + spec docs, per the main agent's brief) |
 | Who writes code | `spec-implementer` (single session by default, plan-file-driven; fans out to a 2nd only across genuinely file-disjoint areas) | `spec-implementer` agents (parallel groups by default — `File:`-disjoint within a phase, ≤4, tasks.md-driven) |
+| Who writes tests | `spec-implementer` — the plan's change list names them (no separate tester) | `spec-tester`, dispatched alongside the implementer groups and **blind to the code they write**, one test per case ID in design.md's Test Cases table |
 | design-reviewer loop | **mandatory** (multi-round review of the plan content to 0 issues) | **mandatory** (multi-round review of design.md to 0 issues) |
 | implementation-reviewer loop | **mandatory** (multi-round review to 0 issues) | **mandatory** (multi-round review to 0 issues) |
 | Applicable situations | bug fix / refactor / small extension | new feature / large refactor / cross-component |

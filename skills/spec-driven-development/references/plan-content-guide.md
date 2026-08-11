@@ -16,7 +16,7 @@ Writing process narration amounts to:
 | ✅ Write | ❌ Don't write |
 |---|---|
 | **Context** — the trigger cause, the current problem, the expected post-change state | **Process narration** — "I'll invoke X and then X will ..." |
-| **Change list** — specific file paths + change scope | **Skill discipline restatement** — moving review-protocol.md clauses into the plan |
+| **Change list** — specific file paths + change scope, **including the tests to add or change** (Quick Fix has no separate tester, so the plan is where test scope is decided; name the behavior each test verifies, not the code path it walks) | **Skill discipline restatement** — moving review-protocol.md clauses into the plan |
 | **Risk assessment** — specific regression / API break / behavior change | **Mode comparison table** — "why not the other mode" (mode-selection.md already covers it) |
 | **Architecture Decisions** (**only inside the `## Review Log` section of the Quick Fix Mode plan file**) — the Quick Fix plan file is itself the review log container; Decisions are staged here and resolved by the user | **`## Architecture Decisions` / `## Decisions Record` / `## ADR` sections written into spec mode's design.md** — in Spec Mode all Decision content can exist only in review-log.md §2, while design.md is completely clean with no reference |
 | **Verification method** — specific runnable commands / test list | **Estimated number of review rounds** — the reviewer decides; it shouldn't be estimated |
@@ -35,7 +35,7 @@ Input validation needs to be added. The error-handling strategy is to be decided
 
 ## Change list
 - agent_service/services/user_service.py:42 — add a null guard
-- tests/services/test_user_service.py — three test groups: None / empty string / normal value
+- tests/services/test_user_service.py — three tests, by behavior: None raises ValueError / empty string raises ValueError / a valid id returns the profile
 
 ## Risks
 - If an existing caller relies on a None silent return, changing to raise will break it

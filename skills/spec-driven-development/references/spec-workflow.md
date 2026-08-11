@@ -140,13 +140,17 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │
     ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms)
     ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build
+    │            spec-tester (Mode 1) writes the tests in the SAME message — its own group, blind to the source files in flight,
+    │            one test per case ID in design.md's Test Cases table; Mode 1 red is expected, never softened
+    │            → main agent joins the two: impl wrong → implementer / test wrong → tester / basis doesn't settle it → spec-author
     │
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
     │     ├── Bugs/Smells → triage by rung: mechanical → spec-implementer (Mode 2), preferring the owning group's session;
-    │     │                  root-cause-unknown / multi-direction / contract-touching → spec-author settles the approach
+    │     │                  root-cause-unknown / multi-direction / contract-touching → spec-author settles the approach;
+    │     │                  issues against the tests → spec-tester (Mode 2), never the implementer
     │     │                  into design.md first (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
@@ -205,7 +209,7 @@ Content to define:
 - Components and Interfaces - component design, public API
 - Data Models - data structure definitions
 - Error Handling - error handling strategy
-- Testing Strategy - test plan
+- Testing Strategy - the **Test Cases table** (ID / Anchor / Level / Behavior to verify — every anchor is a requirement number or a component's public interface) plus Test Approach notes
 
 **Authoring points**:
 - The architecture diagram clearly expresses component relationships

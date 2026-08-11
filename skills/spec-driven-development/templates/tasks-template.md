@@ -40,6 +40,14 @@
   - Purpose: [the purpose of this task]
   - Design ref: [corresponding section/component name in design.md]
 
+- [ ] 3. [Test task title]
+  - File: [test file path — **test files only**; a test task's File: set must not overlap any implementation task's]
+  - [What this task covers]
+  - Cases: [the case IDs from design.md's Test Cases table this task implements, e.g. T-1, T-2, T-5]
+  - Design ref: [Testing Strategy]
+
+> **Test tasks** are dispatched to `spec-tester`, not `spec-implementer`, and run in parallel with the implementation groups **of the same phase** — put a test task in a later phase and the tester ends up writing against a finished implementation instead of against the contract, which is the coupling this whole arrangement exists to prevent. Every case ID in design.md's Test Cases table must be claimed by exactly one test task — none orphaned, none claimed twice — and no test task may cite an ID that isn't in the table.
+
 ---
 
 ## Phase 2: [Phase name]

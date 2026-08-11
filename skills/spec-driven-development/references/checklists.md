@@ -89,7 +89,9 @@ Before you start implementing, confirm the feature spec documents are complete.
   - [ ] Dependencies
 - [ ] Defines Data Models (data structures)
 - [ ] Defines an Error Handling strategy
-- [ ] Has a Testing Strategy
+- [ ] Has a Testing Strategy containing a **Test Cases table**, every row carrying ID / Anchor / Level / Behavior to verify
+- [ ] Every case's **Anchor** is a requirement number or a component's **public** interface — never an internal function or private state
+- [ ] Has **Test Approach** notes (harness, fixtures, what must not be mocked)
 
 **Implementation-detail completeness** (ensure it contains enough technical information):
 - [ ] Includes **API specifications** (endpoints, request/response formats)
@@ -115,7 +117,7 @@ Before you start implementing, confirm the feature spec documents are complete.
 - [ ] **Every component** in design.md has a corresponding task
 - [ ] Task order accounts for **dependency relationships** (depended-upon items come first)
 - [ ] Every task has a **Design ref** field (pointing to the corresponding section in design.md)
-- [ ] Includes **test tasks**
+- [ ] Includes **test tasks**, each listing the **case IDs** it covers and writing only test files (test tasks are what `spec-tester` is dispatched on, so their `File:` sets must not overlap any implementation task's)
 - [ ] Each task does only one thing (Single Responsibility)
 
 ### Design vs Requirements alignment check
@@ -168,9 +170,12 @@ Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec
 
 ### 6. Test coverage check
 
+- [ ] **Every case ID** in design.md's Test Cases table is claimed by exactly one test task — none orphaned, none claimed twice
+- [ ] No test task cites a case ID that isn't in the table
+- [ ] Each test task sits in the **same phase as the implementation it covers** — a phase that implements something has test tasks in it, and no test task is deferred to a later phase (by then the code exists and the tester can no longer be kept blind to it)
+- [ ] Test tasks write **only test files**, and their `File:` sets are **disjoint from every implementation task's** (the two are dispatched in parallel into one worktree; overlap is last-writer-wins)
 - [ ] Every major component has a corresponding **test task**
-- [ ] The **Testing Strategy** in design.md is covered by tasks
-- [ ] Includes tasks for unit tests and integration tests
+- [ ] The levels in the table (behavior / interface / e2e) are all represented by tasks
 
 ---
 
@@ -328,7 +333,32 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 - [ ] **Under**: is an extension that will obviously happen (multi-tenant / multilingual) considered?
 - [ ] **Under**: is the monitoring / auth / audit necessary at the MVP stage planned?
 
-### 6. Steering Alignment (alignment with the steering documents, if steering exists)
+### 6. Test Cases (the `## Testing Strategy` table in design.md)
+
+**Anchor legality** (an illegal anchor is the seed of a test that dies at the first refactor — usually High):
+- [ ] Is every case's Anchor either a requirement number that **exists in requirements.md**, or a **public** interface of a component defined in design.md?
+- [ ] Is no case anchored to an internal function, private state, or a description of how the code works?
+
+**Coverage, forward** (a requirement with no case means the feature ships unverified — usually High):
+- [ ] Does every requirement have at least one `behavior`-level case?
+- [ ] Does every component's public interface have at least one `interface`-level case?
+- [ ] Does every scenario in design.md's **Error Handling** section have a case covering its failure path?
+
+**Coverage, backward** (drift detection):
+- [ ] Does every case's anchor still exist — no case citing a removed requirement or a renamed interface?
+
+**Behavior, not mechanism** (usually High — rot is born in this column):
+- [ ] Does the "Behavior to verify" column state an **observable outcome** ("concurrent push loses no items") rather than a structural assertion ("push takes the lock before appending")?
+
+**Level fit and specification depth** (Medium):
+- [ ] Is a cross-component behavior placed at an appropriate level rather than pinned at unit level (brittle)?
+- [ ] Is a single-function contract kept off e2e (slow, vague failure reporting)?
+- [ ] Does the table avoid prescribing **technique** (mock this, patch that)? Prescribing *how* re-introduces implementation coupling from above
+
+**Testability as a design property** (open against the design, not the table):
+- [ ] Can every requirement actually be verified under this design — is there an injection point, observable state, or clock control where the case needs one? A requirement that cannot be tested without a structural change is a design Bug/Smell, and an Architecture Decision when the fix is a real trade-off
+
+### 7. Steering Alignment (alignment with the steering documents, if steering exists)
 
 - [ ] Does the design violate the technology choices, architectural patterns, or design philosophy recorded in tech.md?
 - [ ] Does it violate the conventions recorded in tech.md (error handling style / dependency injection / logging, etc.)?
@@ -338,7 +368,7 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 
 **Judgment discipline**: violating an existing steering clause → issue (usually High — it is the project's explicit rule); conflicting with steering but the steering may be outdated → Architecture Decision (the user decides whether to change the design or update steering); not written in steering yet this design establishes a core principle that **clears the high bar** → Steering Candidate (default to not promoting; the bar and exclusions are in review-protocol.md).
 
-### 7. Architecture Decisions (must escalate to the user)
+### 8. Architecture Decisions (must escalate to the user)
 
 For every choice where "both paths are valid, each with its own trade-off":
 
@@ -392,11 +422,18 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 
 ### 5. Test Completeness
 
+**Against what specified the tests** — **Spec Mode**: design.md's Test Cases table, already reviewed at design time, so here you check the code honors it. **Quick Fix Mode**: the plan file's change list; there is no case table, so read "case" as "the test the plan named":
+- [ ] Is every assigned case ID implemented by a test that actually verifies the stated behavior — not a test that shares its name and asserts something weaker?
+- [ ] Does the test suite contain **no test that asserts internal structure** — private attributes, call order, a private helper's existence? Such a test is a **Smell** even when it passes: it will break at the next refactor and cost time to repair for no protection in return
+- [ ] Can every test in the changed suite be traced to a case in the table? A test that cannot is either a missing table row (report it) or an internals assertion (Smell)
+
+**Test quality**:
 - [ ] Do the added callbacks / events / paths have tests?
 - [ ] Are edge cases tested: empty / duplicate / out-of-order / concurrent?
 - [ ] Are failure paths tested, not just the happy path?
-- [ ] Are the mocks reasonable? Not so much mocking that it is effectively meaningless?
+- [ ] Are the mocks reasonable? Not so much mocking that it is effectively meaningless — in particular, is the seam the case is *about* left unmocked?
 - [ ] Are the tests deterministic (no race / sleep-based flakiness)?
+- [ ] Does any test pass for the wrong reason — an assertion so weak it would hold against a broken implementation, or one that was softened to reach green?
 
 ### 6. Steering Alignment (alignment with the steering documents, if steering exists)
 
@@ -405,7 +442,7 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 - [ ] Does it introduce a new dependency / technology not recorded in tech.md?
 - [ ] Does the implementation establish a core convention that **runs through the whole project and, if not recorded into steering, would almost certainly cause future inconsistency**? (→ list it as a Steering Candidate, not an issue; **default to not promoting** — choices that relate only to this implementation / details / project memory are all excluded; see review-protocol.md, "Steering Candidates")
 
-**Judgment discipline**: same as Design Review §6 — violating an existing clause → issue (usually High); conflicting but steering may be outdated → Architecture Decision; not recorded, and a core principle that clears the high bar → Steering Candidate (default to not promoting).
+**Judgment discipline**: same as Design Review §7 (Steering Alignment) — violating an existing clause → issue (usually High); conflicting but steering may be outdated → Architecture Decision; not recorded, and a core principle that clears the high bar → Steering Candidate (default to not promoting).
 
 ### 7. Architecture Decisions (must escalate to the user)
 
