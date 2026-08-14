@@ -11,9 +11,12 @@ Steering documents are the project's "guardrails"; they should be refined and re
 - **Conventions**: naming conventions, module boundaries, code organization conventions
 
 Avoid writing into steering:
+- **Operating knowledge** — how to run a command, an environment trap, the sequencing that makes some tool work. **Steering is not an operations manual**; that knowledge belongs in CLAUDE.md, whose job is making the next run succeed
 - Specific feature requirements or implementation details (these belong in a feature spec)
 - Over-detailed specifications (e.g. a full API schema)
 - One-off decision records (unless it is an architecture decision affecting the whole project)
+
+**Decisions vs operating knowledge** — the distinction that keeps steering from rotting, and the one that breadth alone can't make. Steering records what the project **decided**: what we chose, what we always do, what we never do. Naming a concrete tool is still a decision ("tests are written with pytest" belongs in tech.md). Operating knowledge is how to *successfully operate* this repository, and it fails one probe: **can you explain why the rule exists without recounting an incident?** A decision stands on its own; operating knowledge without its war story is an unexplained step. So "we hit this three times" marks CLAUDE.md material no matter how many features it spans — the recurrence is real, it just makes it *important operating knowledge* rather than a principle. Steering is read as the project's standing intent, and every operating detail added to it buries the clauses that actually constrain design.
 
 Steering documents should be "living documents", continuously updated as the project evolves.
 

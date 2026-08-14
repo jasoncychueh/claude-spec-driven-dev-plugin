@@ -369,6 +369,8 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 - [ ] Does it violate the module boundaries, dependency direction, or naming conventions in structure.md?
 - [ ] Does it introduce a new technology / framework / pattern not recorded in steering?
 - [ ] Does the design establish a core principle that **runs through the whole project and, if not recorded into steering, would almost certainly cause future inconsistency**? (→ list it as a Steering Candidate, not an issue; **default to not promoting** — spec-specific / detail / one-off decisions / project memory are all excluded; see review-protocol.md, "Steering Candidates")
+- [ ] Is it a **decision** rather than **operating knowledge**? Probe: **can the rule be explained without recounting an incident?** If the justification is "we hit this repeatedly", it belongs in CLAUDE.md however broadly it applies → tag the entry `[claude-md]`, not `[steering]`. Steering is not an operations manual
+- [ ] Does every Steering Candidate carry a `[steering]` or `[claude-md]` tag?
 
 **Judgment discipline**: violating an existing steering clause → issue (usually High — it is the project's explicit rule); conflicting with steering but the steering may be outdated → Architecture Decision (the user decides whether to change the design or update steering); not written in steering yet this design establishes a core principle that **clears the high bar** → Steering Candidate (default to not promoting; the bar and exclusions are in review-protocol.md).
 
@@ -445,6 +447,8 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 - [ ] Does the implementation follow the conventions recorded in tech.md (error handling style / async patterns / logging / how tests are written)?
 - [ ] Does it introduce a new dependency / technology not recorded in tech.md?
 - [ ] Does the implementation establish a core convention that **runs through the whole project and, if not recorded into steering, would almost certainly cause future inconsistency**? (→ list it as a Steering Candidate, not an issue; **default to not promoting** — choices that relate only to this implementation / details / project memory are all excluded; see review-protocol.md, "Steering Candidates")
+- [ ] Is it a **decision** rather than **operating knowledge**? Probe: **can the rule be explained without recounting an incident?** A trap hit repeatedly during this cycle passes every breadth test and is still CLAUDE.md material → tag it `[claude-md]`. This is the most common misfiling at the implementation stage
+- [ ] Does every Steering Candidate carry a `[steering]` or `[claude-md]` tag?
 
 **Judgment discipline**: same as Design Review §7 (Steering Alignment) — violating an existing clause → issue (usually High); conflicting but steering may be outdated → Architecture Decision; not recorded, and a core principle that clears the high bar → Steering Candidate (default to not promoting).
 

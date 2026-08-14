@@ -156,7 +156,20 @@ After receiving these, the main agent routes them through the advisor gate (SKIL
 
 **Default to not promoting.** Steering is the project's guardrail, not a development notebook; the vast majority of what review finds **should not** go into steering. The bar for a Steering Candidate is deliberately set very high — **don't promote unless necessary**. Better to miss an edge one than to pad: padding dilutes the guardrails, drowns the genuinely important clauses, and is also a waste of the user's attention (see SKILL.md "Calibrate for Cognitive Load"). A truly important principle will recur in the future and naturally get raised again; the cost of missing one is far lower than dumping a pile of noise every round.
 
-**List as an SC only when all three hold** (none can be missing):
+### First ask *what kind of thing it is*, not how widely it applies
+
+Breadth is the second question. The first one is whether the finding is a **decision** or a **piece of operating knowledge**, because the most common bad promotion passes every breadth test there is:
+
+- **Steering records the project's decisions** — what we chose, what we always do, what we never do. Naming a concrete tool still counts: "tests are written with pytest" is a decision. So is "an external call that fails must fail fast and leave a log — never swallow it silently."
+- **CLAUDE.md records how to operate this repository successfully** — commands, tool invocations, environment traps, the sequencing that makes something work. "Refresh the token before calling X or you get a 401." "Set PYTHONPATH or the imports break."
+
+**The probe that separates them: can you explain why this rule exists without recounting an incident?** A decision stands on its own — you state it and a newcomer understands why it is the rule. Operating knowledge without its war story is just an unexplained step, which is exactly why the temptation is to write the story down alongside it. **If the justification is "we hit this three times", it is CLAUDE.md material, not steering** — no matter how many features it spans, how certain the recurrence, or how much time it cost. That breadth is real; it just makes it *important* operating knowledge, not a principle.
+
+This is where steering rots. Steering is read as the project's standing intent; every operating detail added to it dilutes that and buries the clauses that actually constrain design. **Steering is not an operations manual.**
+
+A `claude-md` finding is still worth reporting — it goes in the same `📌 Steering Candidates` section, tagged `[claude-md]` (see "Output format"). You are not deciding where it lands, only what kind of thing it is; the main agent routes it and the user confirms.
+
+### Then apply the breadth bar — list as an SC only when all three hold (none can be missing)
 
 1. it is a **core concept / principle / convention that runs through the whole project** — future, unrelated features must also follow it to stay consistent;
 2. **not recording it in steering will almost certainly cause** inconsistency or difficulty in future planning or implementation — it's "trouble if not recorded", not "nicer if recorded";
@@ -164,6 +177,7 @@ After receiving these, the main agent routes them through the advisor gate (SKIL
 
 **Explicitly excluded** (even if they show up in review, they are **not** SCs):
 
+- **operating knowledge** — anything that fails the incident probe above, however broadly it applies → tag it `[claude-md]`;
 - **spec-specific** — a choice that only concerns this feature (some cache TTL, some API's parameter) → leave it in that feature's design / review-log;
 - **implementation detail** — algorithm, backoff parameter, a one-off naming decision → belongs to code / design;
 - **project-memory-level facts** — a note describing the current state like "legacy module X uses callback style", which is not a forward-looking project principle;
@@ -215,7 +229,10 @@ Every review round must end by outputting an issue list conforming to the struct
   - **Suggested user considerations**: {the key dimensions of the decision}
 
 ### 📌 Steering Candidates (non-blocking — not counted in the issue total, list only if any)
-- **SC-1**: {a project-level principle this design/implementation establishes but steering hasn't recorded} — suggested target: {tech.md §X / structure.md §Y}
+- **SC-1** `[steering]`: {a project-level principle this design/implementation establishes but steering hasn't recorded} — suggested target: {tech.md §X / structure.md §Y}
+- **SC-2** `[claude-md]`: {operating knowledge — how to run something in this repo, an environment trap, a required sequencing} — {the failure it prevents, in one line}
+
+  ↑ **The tag is required on every entry** and is the only thing that distinguishes the two destinations. `[steering]` = a project decision (what we chose / always do / never do). `[claude-md]` = knowledge about operating this repository, including anything whose justification is an incident rather than a principle — see "Steering Candidates" above. Tag what kind of thing it is; the main agent routes it and the user confirms.
 
 ### Conclusion
 [ ] 0 issues — converged, can proceed to the next stage (Steering Candidates not counted in the issue total)
@@ -253,7 +270,7 @@ When the main agent drives the review loop:
 4. **Update Review Log**: after each review round, maintain `review-log.md` (Spec Mode) or the plan file's `## Review Log` section (Quick Fix Mode) — see the next section "Review Log integration"
 5. **Avoid scope creep**: when dispatching fixes, strictly limit to the issue scope, no incidental refactoring (if refactoring is needed, treat it as a new issue in the next round)
 6. **Judge convergence**: only exit the loop when the reviewer reports "0 issues — converged" with no accumulated pending Medium/Low; can't exit early with Critical/High present; round 5 still has new Critical/High → trigger the convergence fuse (see "Core model"), stop the loop, run one fresh-eyes reviewer round, and report to the user. **Before accepting a `0 issues` round as the loop exit, consult the advisor as a second pair of eyes against false convergence** (the advisor gate's second application — `advisor-gate-guide.md`); if it flags a plausible miss, run another round rather than exiting. Degrades to today's solo convergence judgment when the advisor is unavailable; a convergence the advisor confirmed is noted in the Summary (a `0 issues` round has no §1 issue row)
-7. **Steering Candidates delivery**: accumulate the SCs the reviewer lists (dedupe across rounds), merge with findings from Decision resolution / the implementation process, batch-deliver to the user for confirmation per SKILL.md "Steering Evolution Mechanism", then lightly write into steering and record in review log §5
+7. **Steering Candidates delivery**: accumulate the SCs the reviewer lists (dedupe across rounds), merge with findings from Decision resolution / the implementation process, batch-deliver to the user for confirmation per SKILL.md "Steering Evolution Mechanism", then lightly write into steering and record in review log §5. **Route by tag, and re-judge rather than trust it**: `[steering]` entries take the path above; `[claude-md]` entries are proposed for CLAUDE.md instead, in the same batch and with the same user confirmation. The tag is the reviewer's classification, not a verdict — a `[steering]` entry that only makes sense once you hear the incident behind it is misfiled, and belongs in CLAUDE.md. Neither destination is written without the user's confirmation
 8. **Detect thrashing, then escalate by rung**: when the same issue survives two consecutive fix dispatches, or the fixer returns a blocker report instead of a completion, stop re-sending the big goal — but the response is a **classification**, not a fixed move (SKILL.md "The fix escalation ladder"). Path unclear with local scope → decompose it yourself into small independently verifiable steps, one at a time to the same resumed session. Root cause unknown / several viable directions / framework or contract impact → hand it to `spec-author` to settle the approach first. And when the judgment layer has already tried and missed — a settled approach that didn't hold, two cumulative failed attempts on one problem, or rounds accumulating without the Critical/High count trending down (watch from Round 3) — **go to the primary evidence yourself** (the code, the failing output, the cross-round pattern), form the diagnosis, and dispatch `spec-author` to write your conclusion into the basis. A blocker report is the escalation channel working as designed, not a failed dispatch
 
 ## Review Log integration (the handshake with the reviewer)

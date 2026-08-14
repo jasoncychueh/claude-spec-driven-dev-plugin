@@ -141,12 +141,13 @@ Written when an issue's resolution is "kept, not fixed" (whether the user active
 
 ### §5 Steering Updates (Promotion Record)
 
-When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in SKILL.md), record a row here:
+When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in SKILL.md), record a row here. **A confirmed `[claude-md]` candidate is recorded here too** — same table, with CLAUDE.md as the destination — so the promotion channel has one audit trail rather than one visible record and one invisible one:
 
 ```markdown
 | #   | Date       | Principle (one sentence)                          | Written into            | Source        |
 |-----|------------|----------------------------------------|------------------------|------------|
 | SU1 | 2026-05-12 | service-layer errors always raise, no Result type | tech.md §Error Handling | D2 SC-1    |
+| SU2 | 2026-05-12 | refresh the token before calling the sync API     | CLAUDE.md               | I3 SC-2    |
 ```
 
 **Source field values**: the reviewer's SC number (`D2 SC-1`), the Architecture Decision number (`Decision D`), or `implementer report` (discovered during implementation).
