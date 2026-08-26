@@ -75,6 +75,10 @@ So a command you start with `run_in_background` **really does keep running** —
 - **If it is too slow, narrow it** — run only the test file or the selection covering your cases, not the whole suite.
 - **If it is genuinely un-narrowable and too long to sit through**, that is a blocker report, not a reason to background it. The main agent has the wake-up mechanism you lack.
 
+**Your tool guidance says the opposite — it is not talking to you.** The harness tells its reader that a `run_in_background` task will notify them on completion and that polling is therefore wasteful. **That text is written for the main agent, which really does get woken; it reaches you as injected boilerplate and it is false about you.** There is no "no-polling discipline" binding a subagent, because the notification that rule depends on does not exist for you. If you catch yourself writing *"waiting for the background run to resolve"*, stop — that wait has no end, and it strands the dispatch until a human notices.
+
+**If a suite is already running in the background**, resolve it **inside this turn**: poll its output until it finishes (or use a wait-for-condition tool such as `Monitor` if the harness offers one), or abandon it and re-run in the foreground with the timeout raised to its maximum. Waiting *within* a turn costs time; ending the turn costs the dispatch.
+
 Never report a test run's outcome you did not actually watch.
 
 ## Stuck? Stop and escalate — don't thrash
@@ -120,5 +124,5 @@ Design basis gaps:               ← blocker-shaped; write "none" if none
 - **Red is the expected Mode 1 outcome**: never soften an assertion to reach green
 - **Deterministic or not at all**: a flaky test teaches the team to ignore failures
 - **Never Call the Advisor**: it is available to you and its attached guidance is addressed to the main agent; wanting a second opinion is the escalation signal
-- **Never Background Anything**: nothing can wake you but the main agent, so a backgrounded suite's result is one you will never see
+- **Never Background Anything**: nothing can wake you but the main agent, so a backgrounded suite's result is one you will never see. The tool guidance promising a completion notification is addressed to the main agent — if a suite is already backgrounded, poll it to completion **within this turn**; never end the turn waiting to be told
 - **Stop Instead of Thrash**: two genuinely different failed attempts → blocker report; a third variation is never the answer

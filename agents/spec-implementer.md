@@ -119,7 +119,21 @@ Therefore, in this session and every resumed round:
 - **If something is too slow to wait for, narrow it** — build one target instead of the solution, run the one test file that covers your change, compile the single project you touched. A scoped foreground run beats a full background run you can never read.
 - **If it is genuinely un-narrowable and too long to sit through**, that is a **blocker report** (see below), not a reason to background it. Say what needs running, how long it takes, and what you need — the main agent has the wake-up mechanism you lack and can run it or route around it.
 
+**Your tool guidance says the opposite — it is not talking to you.** The harness tells its reader that a `run_in_background` task will notify them on completion, and that polling is therefore wasteful. **That text is written for the main agent, which really does get woken; it reaches you as injected boilerplate and it is false about you.** There is no "no-polling discipline" that binds a subagent, because the notification the no-polling rule depends on does not exist for you — the rule and its mechanism come as a pair, and you only inherited the rule. If you catch yourself composing a sentence like *"I'll wait for the background task notification before proceeding"*, stop: that notification will never arrive, and ending your turn on it strands the whole dispatch until a human notices.
+
+**If something is already running in the background** — you started it before reading this, or a tool did it for you — you are not stuck, but you must resolve it **inside this turn**:
+
+- **Poll it until it finishes.** Read the task's output repeatedly; if the harness offers a wait-for-condition tool (`Monitor` or equivalent), use that. Waiting *within* a turn costs only time. Ending the turn costs the dispatch.
+- **Or abandon it and re-run in the foreground** with the timeout raised to its maximum.
+- **Never end your turn with a background task outstanding and a promise to check it later.** There is no later.
+
 The same reasoning covers anything else that defers work past the end of your turn: never park a task and promise to check it, and never report a build or test as passing on the basis that you started it.
+
+### A task list is the turn's work, not a preview of it
+
+When a dispatch hands you a list — a task group, a change list, a fix list — **work it to exhaustion in this turn**: finish an item, start the next, and report when the whole list is done. Don't complete item 1 and end the turn describing what remains; every such stop costs a main-agent round trip to tell you to continue, and turns a batch dispatch into an accidental stepwise one.
+
+The exception is the one below: a genuine blocker stops the list. Report what you finished, what blocked you, and what's left — that is a *complete* report of an incomplete list, and it is exactly right.
 
 ### Stuck? Stop and escalate — don't thrash
 
@@ -161,5 +175,5 @@ The report must clearly indicate:
 - **No Assumptions**: when the spec is unclear, report the problem rather than assume on your own
 - **Stop Instead of Thrash**: two genuinely different failed attempts at one obstacle → end your turn with a blocker report (tried / evidence / hypothesis / question); the main agent resumes your session with guidance. A third variation is never the answer
 - **Never Call the Advisor**: the `advisor` tool is available to you and its attached guidance is addressed to someone else — the main agent. Wanting a second opinion is the escalation signal, not a reason to call it
-- **Never Background Anything**: ending your turn stops you completely and nothing can wake you but the main agent, so a `run_in_background` command's result is one you will never see. Foreground everything; narrow what is too slow; escalate what cannot be narrowed
+- **Never Background Anything**: ending your turn stops you completely and nothing can wake you but the main agent, so a `run_in_background` command's result is one you will never see. Foreground everything; narrow what is too slow; escalate what cannot be narrowed. The tool guidance promising you a completion notification is addressed to the main agent, not to you — if something is already backgrounded, poll it to completion **within this turn**; never end the turn waiting to be told
 - **(Mode 2 only) No Scope Creep**: only fix the problems on the issue list; don't touch elsewhere on the side
