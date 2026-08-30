@@ -3,6 +3,8 @@ name: spec-tester
 description: "Use this agent to write test code from the Test Cases table in the design basis — design.md's Testing Strategy in Spec Mode. Operates in two modes: (Mode 1) Initial test authoring — given a set of case IDs, implement each one as a test; (Mode 2) Issue-driven fix — given an issue list from implementation-reviewer, fix the tests per each issue. Dispatched **in parallel with `spec-implementer`** on the same design basis, and in Mode 1 it must NOT read the source files that dispatch is writing: a test writer who can see the implementation writes tests that assert the implementation, which is exactly the coupling that makes tests rot at the first refactor. The session stays alive across the implementation + review cycle; the main agent resumes it via SendMessage for fix rounds. NEVER writes production code (that is spec-implementer's job) and never edits the case table itself (that is spec-author's)."
 model: sonnet
 color: orange
+maxTurns: 20
+effort: medium
 disallowedTools: advisor
 ---
 
