@@ -132,6 +132,22 @@ When a reviewer dispatch comes back partial:
 
 The same rule holds for every other agent: an author's document, an implementer's task group, and a tester's case set are each done when the agent says they are done, not when a dispatch returns. **Treating a truncated dispatch as a finished unit of work is the one failure mode `maxTurns` can introduce, and this rule is what removes it.**
 
+### How to read a partial return — reading is work, not a stall
+
+A partial return says one thing: the dispatch was larger than its turn budget. It does not say the executor was idle, and it does not say it was reading instead of working. The harness note that accompanies it — "was still calling tools and had produced no report" — describes every executor that was cut mid-task, including one doing exactly what it should.
+
+**Reading the design basis and the target files is the executor's work.** An implementer building from design.md has to read design.md, tasks.md, and every file it will touch before the first edit is safe; a reviewer's sweep is reading by definition; an author settling an approach reads code to find the fact it is about to write down. An executor cut after twenty reads and no edits was not stalling — it was in the part of the task that comes first.
+
+Measured over two weeks of real cycles, the arbiter's most common misreading of a partial return was exactly this: "it spent its turns reading and did nothing" → "stop reading and start editing now". Some of those resumes were fine; some removed the executor's evidence basis while keeping the same output demand. The line between them:
+
+- **Reordering or scoping the reading is legitimate.** "One target file at a time — read what that file needs, write it, move on; don't read every target up front." "Read only requirements.md §3 and the two files this fix touches." The executor still reads what it asserts against; it just reads it later or reads less of it.
+- **Removing the basis while keeping the output demand is not.** "Stop reading and write design.md now — for anything still unverified, use your best evidence" instructs the executor to author spec text on facts it knows it has not checked. That is spec drift by dispatch prompt: the same failure autocompaction causes (working from a paraphrase instead of the design), except the arbiter caused it on purpose. **An executor forbidden from reading edits blind.**
+- **If the reading must be cut short, the confidence claim shrinks with it.** The legitimate form of "write with what you have" is "write what you verified; list the rest as `not verified` rather than guessing." Reading may be bounded; assertion may not outrun it.
+
+**What a real stall looks like** — and only this justifies treating the session as stuck: across two consecutive partial returns from the same session, the executor re-reads the same files it read in the previous dispatch, or nothing on disk has changed and its report names no new fact. One partial return is never evidence of a stall; it is evidence of a budget. A session that is stuck is retired and respawned fresh on a narrower target, exactly as at 400K — even then the fix is a smaller question, not a reading ban.
+
+**The resume, therefore, is one of two things.** "Continue" — the default, and correct far more often than it feels. Or a **narrower target**: which file, which function, which requirement section — scope that lets the same budget reach an edit. Never a reading ban as a response to a partial return, and never an instruction to output on facts the executor has not verified. (Reading bans that exist for another reason stand — `spec-tester` Mode 1 must not read the files the implementer is writing, which is a coupling rule, not a budget response.)
+
 ## Architecture Decision discipline
 
 This is the reviewer's **core line of defense**. A reviewer resolving an architecture decision is overstepping, and these choices are often irreversible — once a path is chosen, the cost of turning back is extremely high.
