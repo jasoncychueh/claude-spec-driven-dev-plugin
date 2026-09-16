@@ -2,7 +2,11 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
-## 1.23.0 (2026-09-16)
+## 1.23.1 (2026-09-16)
+
+- **`/advise`: `$ARGUMENTS` rendered both branches of its conditional.** The topic section was written as two prose branches ("non-empty → …", "empty → …"), and the first live run showed why no other command in `commands/` branches: substitution happens before the text is read, so both bullets came back with the argument filled in and the false branch stood as an instruction. `$ARGUMENTS` now appears exactly once (`Topic: $ARGUMENTS`), with blankness self-evident. The first cut of this fix explained the rule in the body text and named the token while doing so — which was itself substituted, leaving empty backticks in the expansion. The explanation now lives in an HTML comment for the next editor, outside the agent's runtime instructions.
+- **Corrected the stated reason for writing the draft in the open.** 1.23.0 said the advisor would otherwise not see it; the advisor is forwarded the whole history, reasoning included, so that premise was false. The instruction stands for the real reason: the user must see the draft, or Step 4's "where the draft and the advisor diverged" has nothing to point at.
+
 
 - **New command: `/advise [topic]`.** A user-triggered form of the advisor gate for questions rather than decisions: form a position first (conclusion, reasoning, rejected alternatives, open uncertainties — written into the conversation, because the advisor reads the transcript and takes no parameters), take that position to the advisor to be challenged, reconcile the two on evidence, and answer with the final position plus the points of divergence. The ordering is the mechanism: a consult without a prior position is routing, not thinking, and it spends the strongest model on work the main agent should have done. Disagreeing with the advisor is permitted and must be argued. When the advisor is unavailable the draft is given as an unreviewed answer — never a subagent standing in for it, consistent with the skill's rule that the advisor is a main-agent-only, server-side tool.
 

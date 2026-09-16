@@ -9,12 +9,19 @@ The user is asking for a considered answer: one that was argued out with the adv
 
 ## The topic
 
-- `$ARGUMENTS` is non-empty → the topic is `$ARGUMENTS`.
-- `$ARGUMENTS` is empty → the topic is the most recent thing under discussion: the user's last message, or the reply / decision just given.
+<!-- Exactly one substitution point, deliberately. The argument is substituted
+     before this text is read, so (a) a conditional written as two prose
+     branches leaves the false branch standing as an instruction, and (b) any
+     mention of the placeholder token — even inside an explanation — is itself
+     substituted. Both shipped as bugs in 1.23.0 / 1.23.1. -->
+
+Topic: $ARGUMENTS
+
+If that line is blank, the topic is the most recent thing under discussion — the user's last message, or the reply / decision just given.
 
 ## Step 1 — form a position (before any advisor call)
 
-Write the draft **out loud, in the conversation**, not in thinking. The advisor takes no parameters — it reads the transcript — so a position that exists only in thinking is a position the advisor never sees. The draft covers, at minimum:
+Write the draft **out loud, in the conversation**, not in thinking. The advisor would see it either way — the whole history, reasoning included, is forwarded — but the user would not, and Step 4 reports where the draft and the advisor diverged: a draft the user never saw gives that report nothing to point at. The draft covers, at minimum:
 
 1. **The conclusion or recommendation** — one sentence.
 2. **Why this and not something else** — the reasoning, not a restatement of the conclusion.
