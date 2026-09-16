@@ -2,7 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
-## 1.22.1 (2026-09-14)
+## 1.23.0 (2026-09-16)
+
+- **New command: `/advise [topic]`.** A user-triggered form of the advisor gate for questions rather than decisions: form a position first (conclusion, reasoning, rejected alternatives, open uncertainties — written into the conversation, because the advisor reads the transcript and takes no parameters), take that position to the advisor to be challenged, reconcile the two on evidence, and answer with the final position plus the points of divergence. The ordering is the mechanism: a consult without a prior position is routing, not thinking, and it spends the strongest model on work the main agent should have done. Disagreeing with the advisor is permitted and must be argued. When the advisor is unavailable the draft is given as an unreviewed answer — never a subagent standing in for it, consistent with the skill's rule that the advisor is a main-agent-only, server-side tool.
+
 
 Two weeks on 1.22.0, and the ceiling holds: across **1510** executor sessions since 9/01 the peak context is a median of **237K**, p90 **337K**, max **542K**; 27 sessions crossed 400K, none crossed 600K, and the subagent transcripts carry **one** new `compact_boundary` against 138 in the same-length window before 8/30 (all of those at ~930K; the 151 cited in 1.22.0 counted every transcript on disk). Compaction has effectively left the executor tier. The user's own finding — that a session-wide autocompact of 400k–600k is by itself a good setting — is compatible: it governs the main agent, and the 400K hook keeps executors below the point where it would ever fire on them.
 

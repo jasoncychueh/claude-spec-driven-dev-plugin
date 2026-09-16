@@ -42,6 +42,7 @@ A structural choice keeps the token economics honest too: **generation in subage
 | `/verify-spec <feature>` | Verify spec completeness + tasks-design alignment |
 | `/implement <feature>` | Start implementation via agents |
 | `/backlog [args]` | List / pick up / close project backlog items |
+| `/advise [topic]` | Form a position, take it to the advisor, then answer — divergences stated |
 
 ## Agents
 
