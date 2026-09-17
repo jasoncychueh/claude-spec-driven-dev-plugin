@@ -2,7 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
-## 1.23.1 (2026-09-16)
+## 1.23.2 (2026-09-17)
+
+- **`/advise` with no argument calls the advisor directly.** In that case the topic is the reply just given, and that reply already is the position: the user has read it and the advisor will see it. Asking for a four-part draft first only made the main agent restate its last message before every consult. Step 1 now runs only when a topic is named, because only then does the conversation hold no position yet. The consult itself is still never skipped.
+
 
 - **`/advise`: `$ARGUMENTS` rendered both branches of its conditional.** The topic section was written as two prose branches ("non-empty → …", "empty → …"), and the first live run showed why no other command in `commands/` branches: substitution happens before the text is read, so both bullets came back with the argument filled in and the false branch stood as an instruction. `$ARGUMENTS` now appears exactly once (`Topic: $ARGUMENTS`), with blankness self-evident. The first cut of this fix explained the rule in the body text and named the token while doing so — which was itself substituted, leaving empty backticks in the expansion. The explanation now lives in an HTML comment for the next editor, outside the agent's runtime instructions.
 - **Corrected the stated reason for writing the draft in the open.** 1.23.0 said the advisor would otherwise not see it; the advisor is forwarded the whole history, reasoning included, so that premise was false. The instruction stands for the real reason: the user must see the draft, or Step 4's "where the draft and the advisor diverged" has nothing to point at.

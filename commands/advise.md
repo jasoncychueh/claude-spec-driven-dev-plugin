@@ -5,7 +5,7 @@ argument-hint: "[question or idea to discuss; empty = the latest topic in this c
 
 # /advise — think, then consult, then answer
 
-The user is asking for a considered answer: one that was argued out with the advisor before it reached them. The order below is the whole point — **a position formed before the consult, a consult that challenges it, an answer that states where the two diverged**. Do not reorder the steps, and do not skip the first one.
+The user is asking for a considered answer: one that was argued out with the advisor before it reached them. The order below is the whole point — **a position formed before the consult, a consult that challenges it, an answer that states where the two diverged**. Do not reorder the steps. The only step that can be skipped is Step 1, and only in the case the topic section names.
 
 ## The topic
 
@@ -13,13 +13,15 @@ The user is asking for a considered answer: one that was argued out with the adv
      before this text is read, so (a) a conditional written as two prose
      branches leaves the false branch standing as an instruction, and (b) any
      mention of the placeholder token — even inside an explanation — is itself
-     substituted. Both shipped as bugs in 1.23.0 / 1.23.1. -->
+     substituted. Both shipped as bugs: 1.23.0, and the first cut of its fix. -->
 
 Topic: $ARGUMENTS
 
-If that line is blank, the topic is the most recent thing under discussion — the user's last message, or the reply / decision just given.
+If that line is blank, the topic is the reply or decision just given, and **that reply is already the position**. It is in the conversation, the user has read it, and the advisor will see it. Writing it out again would only repeat it. **Skip Step 1 and call the advisor now**, then continue from Step 3.
 
-## Step 1 — form a position (before any advisor call)
+If the line names a topic, the conversation holds no position on it yet. Start at Step 1.
+
+## Step 1 — form a position (topic given only; before any advisor call)
 
 Write the draft **out loud, in the conversation**, not in thinking. The advisor would see it either way — the whole history, reasoning included, is forwarded — but the user would not, and Step 4 reports where the draft and the advisor diverged: a draft the user never saw gives that report nothing to point at. The draft covers, at minimum:
 
@@ -28,7 +30,7 @@ Write the draft **out loud, in the conversation**, not in thinking. The advisor 
 3. **What was considered and rejected**, and why.
 4. **What is uncertain** — the places where a stronger reviewer's judgment is actually wanted.
 
-**No draft, no consult.** A consult without a position is the failure this command exists to prevent: forwarding the user's question to the advisor and relaying whatever comes back is not thinking, it is routing, and it wastes the strongest model on work the main agent should have done first.
+**No position, no consult.** With a topic named, the draft is the position. With no argument, the reply just given is the position. A consult without a position is the failure this command exists to prevent: forwarding the user's question to the advisor and relaying whatever comes back is not thinking, it is routing, and it wastes the strongest model on work the main agent should have done first.
 
 ## Step 2 — take the position to the advisor
 
