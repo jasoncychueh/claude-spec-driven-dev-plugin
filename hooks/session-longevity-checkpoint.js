@@ -19,15 +19,17 @@
  * own design basis rather than the design.
  *
  * Worse, the resume-count axis actively fights the dispatch rule it now sits beside.
- * Small bounded dispatches continued by resume are the prescribed shape (and
- * `maxTurns` in the agent frontmatter enforces it), which drives resume counts UP
- * by design. A hook that complains at #15 would be complaining about exactly the
- * behaviour the skill asks for, and would teach the main agent to ignore it.
+ * Small bounded dispatches continued by resume are the prescribed shape, which drives
+ * resume counts UP by design. A hook that complains at #15 would be complaining about
+ * exactly the behaviour the skill asks for, and would teach the main agent to ignore it.
  *
- * So it measures context instead. `maxTurns` bounds growth WITHIN one dispatch —
- * the hook cannot see that, because no SendMessage happens mid-dispatch. This hook
- * bounds accumulation ACROSS dispatches — which `maxTurns` cannot see, because its
- * budget resets on every resume. Neither covers the other; that is why both exist.
+ * So it measures context instead. Growth WITHIN one dispatch is `dispatch-checkpoint.js`'s
+ * job — it runs inside the executor and asks it to report in past a per-agent threshold
+ * (the `maxTurns` ceilings it replaced in 1.24.0 cut mid-action instead of asking, which
+ * cost more than the look at work in progress was worth). That hook cannot see what this
+ * one sees, because its count resets on every resume; this one cannot see what it sees,
+ * because no SendMessage happens mid-dispatch. Neither covers the other; that is why both
+ * exist.
  *
  * WHY RETIRE RATHER THAN COMPACT. The ceiling is enforced by retiring the session,
  * not by compacting it, and 400K sits far below the ~930K the harness compacts at,

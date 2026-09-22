@@ -61,6 +61,8 @@
 |------|---------|
 | `PreToolUse` on `ExitPlanMode` | 一個確定性、無狀態的 Node command hook(`hooks/briefing-checkpoint.js`),在**每一次** `ExitPlanMode` 上強制執行 Plan Briefing(Quick Fix Mode、`/create-spec` 與 `/update-spec` 的 plan 階段、以及一般 plan mode —— briefing 能降低任何 plan 的閱讀負荷,fail-open 設計讓一般 plan mode 也安全)。當 `ExitPlanMode` 之前有真實的使用者回覆時**放行**(即 turn-final briefing 流程)—— 會跳過 agent 的機械性工具回合(例如載入 deferred `ExitPlanMode` 的 `ToolSearch`、核准後的 `Edit`),使其不干擾判定 —— 而對「寫完 plan 直接 `ExitPlanMode`」的跳過行為則**攔截**並附上簡短提醒。檢查**錨定在當前 plan session**——回溯至 plan mode(重新)進入之處(手動的 `permission-mode:plan` 標記,或 `EnterPlanMode` 工具呼叫),因此 briefing 的要求以進入後為準,拒絕時也絕不會指向 Claude Code 重啟前的舊訊息(重啟會丟失 plan-mode 狀態,必須手動重新進入)。任何不確定情況一律 fail-open,絕不死鎖;過濾 subagent(`isSidechain`)與注入(`isMeta`)項目;只讀 transcript,不寫任何東西。 |
 | `SessionStart` on `startup`/`resume` | 一個小型 Node command hook(`hooks/session-start-skill-reminder.js`),注入簡短提醒:任何程式碼工作都應載入並使用 spec-driven-development skill。靜態 context 注入 —— 不做專案偵測;提醒文字本身陳述「如果這是程式碼專案」的條件,由 agent 自行判斷。SessionStart 無法攔截;腳本不讀不寫任何東西。 |
+| `PreToolUse` on `*`(僅在 executor 內部） | 一個 Node command hook(`hooks/dispatch-checkpoint.js`),在 executor 自己的 session 內執行——`agent_id` 只在 subagent 呼叫時存在,所以主 agent 永遠不會被它叫住——每當一次派工超過該型別的門檻(implementer 45 次工具呼叫、tester 20 次,依此類推),請它用 `SendMessage` 把進度發給主 agent,然後繼續做。它不停任何東西、也不等回覆:主 agent 下一個 turn 讀到,只有方向錯了才回覆,而回覆會在執行途中送達 executor。絕不叫 executor 少讀檔。取代 1.24.0 移除的 `maxTurns` 上限 |
+| `PreToolUse` on `SendMessage` | 一個 Node command hook(`hooks/session-longevity-checkpoint.js`),在續派的當下讀出目標 executor 的真實 context 大小,到 400K 就要求退役——遠低於 harness 會自動壓縮的點,所以 executor 不會落到照著自己設計基礎的摘要在寫碼。只注入 context,不擋 |
 
 > Hooks 在 session 啟動時載入 —— 安裝或更新 plugin 後,需重啟 Claude Code session 才會生效。
 
