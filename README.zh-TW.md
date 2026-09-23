@@ -15,7 +15,7 @@
 
 兩條紀律維持文件的乾淨:**正式文件描述「決策之後的世界」** —— *為什麼*(waiver、決策、被否決的路徑)住在 `review-log.md`,絕不污染 requirements/design/tasks/code;以及 **steering 是活的 —— 但克制**:只有「不記下來幾乎必然造成跨 feature 不一致」的專案級原則,才在使用者確認後晉升;預設是不收錄(spec 專屬的選擇、實作細節、一次性決策都不屬於 steering)。
 
-還有一個結構性選擇,讓 token 經濟也保持誠實:**生成在 subagent,仲裁在主 agent**。主 agent 跑的是 session 中最強(也最貴)的模型,它的 token 只花在高槓桿的判斷上:組織任務與方向、提煉 brief、上呈決策,以及**挑戰每一個 subagent 的結論**;所有長文生成(plan、spec 文件、程式碼、review)都跑在較便宜模型的 persistent subagent session 裡,跨 review 輪次以 resume 接續而非重新生成。品質靠的是對抗式仲裁 —— 每一輪強制的 challenge exchange —— 而不是用高級模型的價格去換大量寫作。
+還有一個結構性選擇,讓 token 經濟也保持誠實:**生成在 subagent,仲裁在主 agent**。主 agent 的 token 只花在高槓桿的判斷上:組織任務與方向、提煉 brief、上呈決策,以及**挑戰每一個 subagent 的結論**;所有長文生成(plan、spec 文件、程式碼、review)都跑在 persistent subagent session 裡,跨 review 輪次以 resume 接續而非重新生成。負責撰寫、審查、驗證的 subagent 一律用 opus:執行者(implementer、tester、兩個 verifier)固定 medium effort,判斷角色(author、兩個 reviewer)跟主 session 用同一個 effort,由 `/effort` 決定它們想多深。品質靠的是對抗式仲裁 —— 每一輪強制的 challenge exchange —— 而不是在大量寫作上開到最高 effort。
 
 ## 功能特色
 
@@ -23,7 +23,7 @@
 - **Feature Spec**:每個 feature 的 requirements、design、tasks 與 review-log
 - **自動化驗證**:spec 完整性檢查 + tasks 與 design 對齊檢查
 - **Agent 化實作**:平行實作 + 跨 agent review
-- **生成/仲裁分工**:高級模型的主 agent 負責仲裁 —— 組織任務、提煉 brief、挑戰每一個 subagent 的結論 —— 所有長文生成(plan、文件、程式碼、review)由較便宜模型的 persistent subagent session 承擔:品質靠對抗式挑戰把關,token 省在大量寫作上
+- **生成/仲裁分工**:主 agent 負責仲裁 —— 組織任務、提煉 brief、挑戰每一個 subagent 的結論 —— 所有長文生成(plan、文件、程式碼、review)由 opus 的 persistent subagent session 承擔,執行者用 medium effort、判斷角色跟主 session 同 effort:品質靠對抗式挑戰把關,token 省在大量寫作上
 - **Review Log 紀律**:Waivers / Decisions / 逐輪稽核軌跡住在 `review-log.md`;正式文件(requirements / design / tasks / code)保持乾淨
 - **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件
 - **Backlog 與 Roadmap**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 會默默記成一張票(一張票只裝一個題目),存進票的總表 `.spec/backlog/backlog.json`(記錄永不刪除,結案只是加上結案資訊),每張票另有一個 Markdown 本體,不隨 session 結束蒸發。roadmap(`.spec/roadmap/roadmap.json`)只存結構:一棵照架構長的樹,帶順序與依賴,能精確回答「現在可以開工什麼」,用 id 引用票。未分類的籃子就是「還沒結案、也沒被任何節點引用的票」;`promote` 只是加一個引用,不會丟失任何資料。兩者都只透過 `scripts/board.mjs` 讀寫:它驗證每次修改、產生不會撞號的 id、處理認領,而且永遠操作 main 工作樹那份;`/backlog` 與 `/roadmap` 負責驅動它

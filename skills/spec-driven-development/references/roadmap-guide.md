@@ -54,7 +54,7 @@ board roadmap <command> ...
 
 **The two do different jobs.** `dependsOn` decides whether something *can* start; `ordinal` decides what goes *first* among the things that can. Validation enforces that they agree: a node's ordinal must be greater than every dependency's, and a node with an ordinal cannot depend on one without.
 
-**Other fields**: `tickets` (ticket ids in `backlog.json` — set only by `promote`), `spec` (the feature spec once one exists), `summary` (one line), `detail` (where it landed, short), `updated` (set to today by any edit), `notes` (history). The root carries `title`, `intro` and `now` — a paragraph or two on what is currently being worked on.
+**Other fields**: `tickets` (ticket ids in `backlog.json` — set only by `promote`), `spec` (the feature spec once one exists), `summary` (one line), `detail` (where it landed, short), `updated` (set to today by any edit), `notes` (history). The root carries `title`, `intro` (what this roadmap covers) and `now` — a paragraph or two on what is currently being worked on; `roadmap root` edits them, and `show` opens with `now`.
 
 ---
 
@@ -64,6 +64,7 @@ board roadmap <command> ...
 roadmap init <title>                         create an empty roadmap
 roadmap show [id] [--full] [--done]          the tree, or one branch; finished parts fold to one line unless --done
 roadmap next [--all]                         what can start now — the lowest ordinal whose dependencies are done
+roadmap root [title|intro|now] [p ...]       print the root, or replace one field; one argument per paragraph, "-" clears
 roadmap set <id> <field> <value>             status / ordinal / title / summary / detail / spec / dependsOn / updated; "-" clears
 roadmap finish <id> --resolution <text>      a work item is done — see "Finished work"
 roadmap add <parentId> <id> <title> [...]    a grouping node, a design question, or a work item with no ticket yet
@@ -99,7 +100,7 @@ The roadmap is built for **discussing the architecture one node at a time**: wal
 - **A design question is settled** → `set <id> status decided`, and the conclusion goes into the parent item's body. The one-line `summary` on the question node says what was decided; the body says why.
 - **An item starts** → `set <id> status active` and route it like any task: Quick Fix Mode or Spec Mode per `mode-selection.md`, with the body as the seed. When a spec is opened, `set <id> spec <feature>`.
 - **An item finishes** → `roadmap finish <id> --resolution "<where it landed>"` — see "Finished work". `set … status done` is refused for work items.
-- **The `now` paragraph** is updated whenever the focus changes, so a new session reads what is in flight before it reads anything else.
+- **The `now` paragraph** is updated with `roadmap root now "<paragraph>" …` whenever the focus changes, so a new session reads what is in flight before it reads anything else.
 - **Before choosing the next piece of work**, run `roadmap next`. It already accounts for dependencies, inherited waits and ordinals; picking by eye does not.
 
 ---

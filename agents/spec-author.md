@@ -67,7 +67,7 @@ The main agent resumes you with a reviewer's issue list that has **already survi
 
 ### Approach settlement (a Mode 2 dispatch that starts with a diagnosis)
 
-Some issues arrive without a usable fix direction — the root cause is unknown, several directions are viable, or the fix would touch framework code or a cross-component contract. The main agent routes these to you rather than to `spec-implementer` for a deliberate reason: **the implementer runs a cheaper tier and is built to implement a settled basis faithfully, so asking it to diagnose inverts the economy**. Here you are the judgment layer, and the dispatch will say so.
+Some issues arrive without a usable fix direction — the root cause is unknown, several directions are viable, or the fix would touch framework code or a cross-component contract. The main agent routes these to you rather than to `spec-implementer` for a deliberate reason: **the implementer runs at a fixed medium effort and is built to implement a settled basis faithfully, so asking it to diagnose inverts the economy**. Here you are the judgment layer, and the dispatch will say so.
 
 The shape is unchanged — you still revise the design basis and still write no code — but the work starts earlier:
 

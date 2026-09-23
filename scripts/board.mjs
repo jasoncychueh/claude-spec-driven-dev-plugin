@@ -98,6 +98,8 @@ Roadmap — the scheduled tree
   roadmap show [id] [--full] [--done]            Print the tree (or one branch). Finished parts fold to one
                                                  line unless --done.
   roadmap next [--all]                           Work that can start now; --all lists every ordered item.
+  roadmap root [title|intro|now] [paragraph...]  Print the root, or replace one of its fields. intro and now take
+                                                 one argument per paragraph; "-" clears them.
   roadmap set <id> <field> <value>               Fields: ${NODE_SETTABLE.join(', ')}. "-" clears.
                                                  dependsOn takes a comma-separated list; tickets arrive only via promote.
   roadmap add <parentId> <id> <title> [--status s] [--ordinal n] [--depends a,b]
@@ -910,7 +912,8 @@ function roadmapCommand(board, command, args, options) {
   switch (command) {
     case 'show':
     case undefined:
-      return { print: showTree(index, args[0], options.full, options.done) };
+      // The whole tree opens with what is in flight, so a new session reads that first.
+      return { print: [...(!args[0] && roadmap.now?.length ? ['Now:', ...roadmap.now.map((p) => `  ${p}`), ''] : []), ...showTree(index, args[0], options.full, options.done)] };
     case 'next':
       return { print: nextLines(index, options.all) };
     case 'format':
@@ -920,11 +923,34 @@ function roadmapCommand(board, command, args, options) {
       if (!options.out) return { print: [text.replace(/\n$/, '')] };
       return { files: [{ file: path.resolve(options.out), text }], print: [`Wrote ${path.resolve(options.out)}.`] };
     }
+    case 'root': {
+      const [field, ...values] = args;
+      if (field === undefined) {
+        const lines = [`title: ${roadmap.title}`];
+        for (const key of ['intro', 'now']) {
+          lines.push('', `${key}:`);
+          if (!roadmap[key]?.length) lines.push('  (empty)');
+          for (const paragraph of roadmap[key] ?? []) lines.push(`  ${paragraph}`);
+        }
+        return { print: lines };
+      }
+      if (!['title', 'intro', 'now'].includes(field)) throw new UsageError(`Root fields: title, intro, now.`);
+      if (values.length === 0) throw new UsageError(`Usage: roadmap root ${field} <${field === 'title' ? 'text' : 'paragraph...'}>`);
+      if (field === 'title') {
+        if (values.length !== 1 || values[0] === '-') throw new UsageError('The title takes exactly one value and cannot be cleared.');
+        roadmap.title = values[0];
+      } else if (values.length === 1 && values[0] === '-') {
+        delete roadmap[field];
+      } else {
+        roadmap[field] = values;
+      }
+      return { saveRoadmap: true, print: [`Set root ${field}.`] };
+    }
     case 'set': {
       const [id, field, value] = args;
       if (value === undefined) throw new UsageError('Usage: roadmap set <id> <field> <value>');
       const entry = requireNode(index, id);
-      if (entry === index.root) throw new UsageError('The root cannot be edited with set.');
+      if (entry === index.root) throw new UsageError('The root is edited with: roadmap root <title|intro|now> ...');
       if (field === 'tickets') throw new UsageError('Tickets arrive through promote, not set.');
       if (field === 'status' && value === 'done' && entry.node.status in WORK_STATUS) {
         throw new UsageError(`Work items are finished with: roadmap finish ${id} --resolution "<where it landed>" — that also closes its tickets and archives their bodies.`);
