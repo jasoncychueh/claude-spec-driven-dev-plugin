@@ -26,7 +26,7 @@ A structural choice keeps the token economics honest too: **generation in subage
 - **Generator/Arbiter Split**: the premium main-agent model arbitrates — organizes the task, distills briefs, challenges every subagent conclusion — while persistent cheaper-tier subagent sessions carry all long-form generation (plans, docs, code, reviews): quality held by adversarial challenge, tokens saved on bulk writing
 - **Review Log Discipline**: Waivers / Decisions / round-by-round audit trail live in `review-log.md`; formal docs (requirements / design / tasks / code) stay clean
 - **Living Steering**: review loops surface unrecorded project principles as steering candidates; user-confirmed updates flow back into steering docs as development progresses. Steering stays a set of decisions, not an operations manual — a finding whose justification is a recurring incident is routed to CLAUDE.md instead, so the guardrails don't silt up with operating knowledge
-- **Project Backlog**: anything discovered mid-flow that can't be resolved now — deferred review issues, out-of-scope findings, unresolved discussion threads — is recorded silently to `.spec/backlog/` (index + one file per item, archive on close) so it survives the session; `/backlog` lists, picks up, and closes items. Item ids are random hashes and picked-up items are claim-marked, so concurrent sessions neither collide on an id nor work the same item unknowingly
+- **Backlog and Roadmap**: anything discovered mid-flow that can't be resolved now — deferred review issues, out-of-scope findings, unresolved discussion threads — is recorded silently as a ticket — one question per ticket — in the registry `.spec/backlog/backlog.json` (records are never deleted; closing adds how it closed), with one Markdown body per ticket, so it survives the session. The roadmap (`.spec/roadmap/roadmap.json`) holds only structure: an architecture-shaped tree with ordinals and dependencies that answers "what can start now?" exactly, referencing tickets by id. The unsorted basket is the open tickets no node references; `promote` adds a reference and loses nothing. Both are read and written only through `scripts/board.mjs`, which validates every edit, generates collision-free ids, handles claims, and always works on the main worktree's copy; `/backlog` and `/roadmap` drive it
 - **Brief Before Build**: before implementation starts, a conversational summary of key points, resolved decisions, and waivers gets the user oriented without reading the full spec — cheapest moment to catch misunderstandings
 - **Calibrate for Cognitive Load**: a global discipline — the main agent digests and abstracts before every message, narrates through real use cases + execution flow + data structures, and re-surfaces context from earlier turns; review and briefing use the same lens to find and explain the core design concepts
 
@@ -41,7 +41,8 @@ A structural choice keeps the token economics honest too: **generation in subage
 | `/update-spec <feature>` | Update feature spec |
 | `/verify-spec <feature>` | Verify spec completeness + tasks-design alignment |
 | `/implement <feature>` | Start implementation via agents |
-| `/backlog [args]` | List / pick up / close project backlog items |
+| `/backlog [args]` | List / pick up / close items in the unsorted backlog basket |
+| `/roadmap [args]` | Show the scheduled roadmap tree, what can start next, promote items onto it, walk a branch |
 | `/advise [topic]` | Form a position, take it to the advisor, then answer — divergences stated |
 
 ## Agents

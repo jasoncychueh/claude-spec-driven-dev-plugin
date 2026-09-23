@@ -26,7 +26,7 @@
 - **生成/仲裁分工**:高級模型的主 agent 負責仲裁 —— 組織任務、提煉 brief、挑戰每一個 subagent 的結論 —— 所有長文生成(plan、文件、程式碼、review)由較便宜模型的 persistent subagent session 承擔:品質靠對抗式挑戰把關,token 省在大量寫作上
 - **Review Log 紀律**:Waivers / Decisions / 逐輪稽核軌跡住在 `review-log.md`;正式文件(requirements / design / tasks / code)保持乾淨
 - **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件
-- **專案 Backlog**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 默默記錄到 `.spec/backlog/`(索引 + 每項一檔,結案歸檔),不隨 session 結束蒸發;`/backlog` 負責列出、撿起與結案。項目 id 採隨機 hash、撿起的項目會標記認領,因此併行的 session 既不會撞號,也不會在不知情下做同一項
+- **Backlog 與 Roadmap**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 會默默記成一張票(一張票只裝一個題目),存進票的總表 `.spec/backlog/backlog.json`(記錄永不刪除,結案只是加上結案資訊),每張票另有一個 Markdown 本體,不隨 session 結束蒸發。roadmap(`.spec/roadmap/roadmap.json`)只存結構:一棵照架構長的樹,帶順序與依賴,能精確回答「現在可以開工什麼」,用 id 引用票。未分類的籃子就是「還沒結案、也沒被任何節點引用的票」;`promote` 只是加一個引用,不會丟失任何資料。兩者都只透過 `scripts/board.mjs` 讀寫:它驗證每次修改、產生不會撞號的 id、處理認領,而且永遠操作 main 工作樹那份;`/backlog` 與 `/roadmap` 負責驅動它
 - **Brief Before Build**:實作開始前,以對話式摘要呈現重點、已決策事項與 waivers,讓使用者不必讀完整份 spec 就能進入狀況 —— 這是抓出誤解最便宜的時刻
 - **認知負荷校準**:全域紀律 —— 主 agent 在每則訊息前先消化與抽象,用真實使用情境 + 執行流程 + 資料結構敘事,並主動重述前幾輪的脈絡;review 與 briefing 用同一副透鏡找出並解釋核心設計概念
 
@@ -41,7 +41,8 @@
 | `/update-spec <feature>` | 更新 feature spec |
 | `/verify-spec <feature>` | 驗證 spec 完整性 + tasks 與 design 對齊 |
 | `/implement <feature>` | 透過 agents 開始實作 |
-| `/backlog [args]` | 列出 / 撿起 / 結案專案 backlog 項目 |
+| `/backlog [args]` | 列出 / 撿起 / 結案未分類籃子裡的項目 |
+| `/roadmap [args]` | 顯示排程中的 roadmap 樹、下一步可開工的項目、把項目放上樹、逐枝討論 |
 
 ## Agents
 

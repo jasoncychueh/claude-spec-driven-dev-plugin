@@ -1,6 +1,6 @@
 ---
 name: spec-driven-development
-description: "Disciplined development workflow with multi-round architecture review loops. MUST use for any task that writes or modifies code — bug fixes, refactors, config tweaks, new features, anything (sole exception: trivial pure-text edits like a README typo). Auto-routes: (a) Quick Fix Mode for bug fixes / refactors / small extensions — Plan Mode + mandatory review loops, no spec docs; (b) Spec Mode for new features / large refactors / cross-component work — full steering + requirements + design + tasks docs before implementation. Both modes run design-reviewer and implementation-reviewer loops until 0 issues — non-negotiable regardless of task size. Steering docs are living: review loops surface unrecorded project principles for user-confirmed promotion into steering. Triggers: fix bug / refactor / add feature / change behavior / modify config / create or edit spec / implement feature. Deferred discoveries — issues found mid-flow that can't be resolved now — are recorded silently to the project backlog (.spec/backlog/) so nothing is lost to session end. Also use when asked about steering / requirements / design / tasks docs, the backlog / recording something for later, /create-spec, /implement, /load-spec, /verify-spec, /backlog."
+description: "Disciplined development workflow with multi-round architecture review loops. MUST use for any task that writes or modifies code — bug fixes, refactors, config tweaks, new features, anything (sole exception: trivial pure-text edits like a README typo). Auto-routes: (a) Quick Fix Mode for bug fixes / refactors / small extensions — Plan Mode + mandatory review loops, no spec docs; (b) Spec Mode for new features / large refactors / cross-component work — full steering + requirements + design + tasks docs before implementation. Both modes run design-reviewer and implementation-reviewer loops until 0 issues — non-negotiable regardless of task size. Steering docs are living: review loops surface unrecorded project principles for user-confirmed promotion into steering. Triggers: fix bug / refactor / add feature / change behavior / modify config / create or edit spec / implement feature. Deferred discoveries — issues found mid-flow that can't be resolved now — are recorded silently to the project backlog (.spec/backlog/) so nothing is lost to session end. Work picked out of the backlog is scheduled on a roadmap tree (.spec/roadmap/) — architecture-shaped, ordered, dependency-aware — queried and edited through a script rather than read as Markdown. Also use when asked about steering / requirements / design / tasks docs, the backlog / recording something for later, the roadmap / what to work on next, /create-spec, /implement, /load-spec, /verify-spec, /backlog, /roadmap."
 ---
 
 # Spec-Driven Development
@@ -41,7 +41,8 @@ After deciding, **tell the user explicitly which route you're taking**, e.g.: "I
 | `/update-spec <feature>` | Update a feature spec |
 | `/verify-spec <feature>` | Verify spec completeness + tasks vs design alignment |
 | `/implement <feature>` | Start implementation |
-| `/backlog [args]` | List / pick up / close backlog items (works in both modes) |
+| `/backlog [args]` | List / pick up / close items in the unsorted backlog basket (works in both modes) |
+| `/roadmap [args]` | Show the scheduled roadmap tree, what can start next, and promote items onto it |
 
 ### Quick Fix Mode has no slash command
 
@@ -72,16 +73,20 @@ The main agent enters Plan Mode and runs the full flow directly — no slash com
 
 > **The role of review-log.md**: the formal docs (r/d/t/code) describe "the world after decisions"; review-log.md describes "why it's this world, what was rejected along the way, which principles were deliberately waived." See the "Review Log Mechanism" section below and `references/review-log-guide.md`.
 
-### Backlog (project level)
+### Backlog and roadmap (project level)
 
 ```
 .spec/backlog/
-├── BACKLOG.md              # index — open / in-progress items only
-├── bl-a3f9c1-{slug}.md     # one item per file, thick context
-└── archive/                # closed items (done / dropped)
+├── backlog.json            # the ticket registry — every ticket's record, open or closed, never deleted
+├── bl-a3f9c1-{slug}.md     # one body per open ticket — long-form content, no frontmatter
+└── archive/                # bodies of closed tickets
+.spec/roadmap/
+└── roadmap.json            # structure only — the tree of scheduled work, referencing tickets by id
 ```
 
-> **The role of the backlog**: the durable parking lot for anything discovered mid-flow that can't be resolved now or needs deeper discussion later — deferred review issues the user intends to repay (as opposed to waivers), out-of-scope findings from implementation, unresolved threads from conversation. See the "Backlog Mechanism" section below and `references/backlog-guide.md`.
+> **The role of the backlog**: the unsorted basket for anything discovered mid-flow that can't be resolved now or needs deeper discussion later — deferred review issues the user intends to repay (as opposed to waivers), out-of-scope findings from implementation, unresolved threads from conversation. **The role of the roadmap**: the work picked out of that basket and scheduled — placed in the architecture, ordered, with its dependencies. The two files are normalized like two tables: `backlog.json` holds every ticket's record, `roadmap.json` holds only structure and references tickets by id, and the basket is a query — open tickets no node references. `promote` adds a reference and moves nothing. Both are read and written only through the board script, which always operates on the main worktree's copy:
+>
+> **Board command: `node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs"`** — the references abbreviate it as `board`. Use this path exactly as it appears here; the variable is resolved when this skill loads, and is **not** set in the shell, so never type `${CLAUDE_PLUGIN_ROOT}` into a Bash call. See the "Backlog Mechanism" section below, `references/backlog-guide.md` and `references/roadmap-guide.md`.
 
 ---
 
@@ -158,7 +163,7 @@ Load a feature spec and show progress.
 2. Load requirements.md, design.md, tasks.md, review-log.md (if review-log.md is missing, mark it as missing but do not abort)
 3. Parse tasks.md to tally task status
 4. Parse review-log.md to tally: counts of §2 Decisions, §3 Waivers, §4 False Positives, §5 Steering Updates
-5. Read `.spec/backlog/BACKLOG.md` (if it exists) and count open items, noting any related to this feature
+5. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs" backlog list` and count open items, noting any whose `feature` is this one; if a roadmap exists, find the node whose `spec` is this feature (`roadmap show` / `check`) and note its status and what it waits for
 6. Show a status summary and a recommended next step
 
 > **Note**: loading does not run verification. Verification runs only when `/create-spec` or `/update-spec` completes.
@@ -175,6 +180,7 @@ Load a feature spec and show progress.
 📊 Progress: ✅ {n} completed | 🔄 {current} in progress | ⏳ {m} pending
 📒 Review Log: {n} Decisions resolved | {m} Waivers | {k} False Positives | {s} Steering Updates
 📥 Backlog: {n} open ({m} related to this feature) — /backlog to review
+🗺️ Roadmap: {node id} {status} (waits for {…}) — /roadmap to see the tree   ← only when a node carries this spec
 
 🎯 Suggestion: continue with task #{next}: {description}
 ```
@@ -391,13 +397,25 @@ Before reporting, batch-process the accumulated Steering Candidates / findings f
 
 ### /backlog [list | pick \<id\> | close \<id\> | drop \<id\>]
 
-Manage the project backlog (`.spec/backlog/` — structure and formats per `references/backlog-guide.md`). Works in both modes; needs no steering or spec to exist.
+Manage the unsorted backlog basket (`.spec/backlog/` — scope, storage and rules per `references/backlog-guide.md`). Works in both modes; needs no steering or spec to exist. Every read and write is a call to `node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs" backlog …`; never edit `backlog.json` by hand.
 
 **Steps**:
 
-- **No argument / `list`**: read `BACKLOG.md` (the index alone answers "what's outstanding" — item files are opened only on pick). Show the open items digested per "Calibrate for Cognitive Load" (group by type; flag likely-stale items — e.g. older than a month, or whose related feature has since shipped — as prune candidates), and suggest 1–2 pickup candidates. If the directory doesn't exist or the index is empty, say so — don't create anything.
-- **`pick <id>`**: open the item file. If the item is already `[~]` (claimed), stop and report the claim — since when, which branch, what's being done — and let the user decide (pick something else / take it over / coordinate); never silently take it over. Otherwise **claim it right now, before the briefing**: frontmatter `status: in-progress` + `picked_up: DATE (branch: TBD) — under discussion` and the index line flips to `[~]` (`backlog-guide.md` → "Claiming an item") — the briefing and the debate that follows are already contention, and a parallel session must see `[~]` during them. Then brief the user on Problem / Context / Suggested next step (use-case-driven, per `briefing-guide.md` — assume they've forgotten the original discussion). Two outcomes: the user **skips** ("not now") → **release the claim in the same turn** (drop `picked_up`, `status: open`, index back to `[ ]`); the user **proceeds** → update the claim's sentence and branch as they materialize, and **route it like any incoming task**: decide Quick Fix Mode vs Spec Mode per `mode-selection.md` and run the normal flow — the item file's content seeds the brief. When the work completes, close the item as `done`.
-- **`close <id>` / `drop <id>`**: run the three-step close rule from `backlog-guide.md` — frontmatter `status` + `resolution:` line → move the file to `archive/` → remove the index line. For `drop`, capture the user's one-sentence reason in `resolution:` (that sentence is what prevents the same idea from being re-litigated months later).
+- **No argument / `list`**: `backlog list` (the basket; `--all` adds open tickets already on the roadmap, `--closed` lists closed ones). Show the tickets digested per "Calibrate for Cognitive Load" (group by type; flag likely-stale items and claims — e.g. older than a month, or whose related feature has since shipped — as prune candidates; flag any item that bundles several questions as a split candidate), and suggest 1–2 pickup candidates — or, if a roadmap exists, whether an item looks ready to `promote`. An empty basket: say so, create nothing.
+- **`pick <id>`**: `backlog claim <id> --branch TBD --note "under discussion"` **first, before the briefing** — the briefing and the debate that follow are already contention. If the claim is refused (exit 3), stop and report who holds it — since when, which branch, what's being done — and let the user decide (pick something else / take it over with `--force` / coordinate); never silently take it over. Then read the body (`backlog show <id>` gives its path) and brief the user on Problem / Context / Suggested next step (use-case-driven, per `briefing-guide.md` — assume they've forgotten the original discussion). Three outcomes: the user **skips** ("not now") → `backlog release <id>` in the same turn; the user **schedules** it → `promote` it onto the roadmap (see `/roadmap`); the user **proceeds now** → update the claim's branch and note (`claim --force`) as they materialize and **route it like any incoming task**: Quick Fix Mode vs Spec Mode per `mode-selection.md`, the body seeding the brief. When the work completes, `backlog close <id> --resolution "…"`.
+- **`close <id>` / `drop <id>`**: `backlog close|drop <id> --resolution "…"` — the record gains a `closed` field and the body moves to `archive/`. For `drop`, the resolution is the user's one-sentence reason (that sentence is what prevents the same idea from being re-litigated months later). For a split, the resolution names where each part went.
+
+### /roadmap [show \<id\> | next | promote \<id\> … | walk \<id\>]
+
+Work with the scheduled roadmap tree (`.spec/roadmap/roadmap.json` — model and rules per `references/roadmap-guide.md`). Every read and write is a call to `node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs" roadmap …` (and `promote …`); never read or edit the JSON by hand when a command answers the question.
+
+**Steps**:
+
+- **No argument / `next`**: `roadmap next`. Report what can start now — the lowest-ordinal batch whose dependencies are done, with how many design questions each still has open — and, in one line each, what is next behind them and what is blocked. If no roadmap exists yet, say so and offer `roadmap init <title>` when the user wants to start one.
+- **`show [<id>]`**: `roadmap show [<id>] [--full]`. For a whole tree, digest it — the layers, where the active work is, what is blocked on what — rather than pasting the output.
+- **`promote <id> …`**: move a backlog item onto the tree — `promote <id> <parentNodeId> <newNodeId> [--ordinal n] [--depends …] [--summary …]`, or `promote <id> --into <nodeId>`. Agree the placement, ordinal and dependencies with the user first; the script refuses an ordinal that contradicts a dependency. Only a single-question item can be promoted — split a bundled one first (`backlog-guide.md` → "Scope").
+- **`walk <id>`** — a planning discussion over one branch: take its work items top-down, and for each, expand its open design questions as child nodes, settle them one at a time with the user, and write each conclusion into the item's body **as it is reached**, setting the question `decided`. An item met during the walk that has no ticket gets one on the spot (`backlog add` + `promote --into`), listed in the summary rather than asked about individually.
+- **Starting and finishing work**: when an item starts, `roadmap set <id> status active` and route it like any task (Quick Fix Mode / Spec Mode per `mode-selection.md`, its body as the seed; `set <id> spec <feature>` once a spec exists). When it finishes, `roadmap finish <id> --resolution "<where it landed>"` — it refuses while any design question or child item under it is unfinished, folds the settled question nodes away (their conclusions are already in the body), and archives the body; the node stays as part of the architecture. `show` folds finished parts to one line (`--done` expands). Update the root's `now` paragraph whenever the focus changes.
 
 ---
 
@@ -565,16 +583,18 @@ Anything discovered mid-flow that **can't be resolved now or needs deeper discus
 
 **The semantic line vs waivers**: a waiver (review-log §3) means "we accept the current state — not a debt"; a backlog item means "this is a debt we intend to repay." When the user defers a Medium/Low issue, which of the two they mean decides where it's recorded (never both). A backlogged issue's review-log §1 row gets Status `backlogged` citing the item id.
 
-**Structure** (MEMORY.md-style progressive disclosure — scan the index cheaply, open an item only when picking it up): `BACKLOG.md` is the index listing **open / in-progress items only**; each item is its own `bl-{hash}-{slug}.md` file with frontmatter (id / title / type / status / date / source / feature) and a body thick enough for a reader two weeks later (Problem / Context / Suggested next step). Closed items live in `archive/`.
+**Scope — one item, one question.** An item holds exactly one thing that could be decided, scheduled or done on its own; the test, applied when writing, is *could this item as written become one node on the roadmap?* A deferral that touches three questions is three items. An item found bundling several is split before it is promoted — each question moved into its own item, the original dropped with a resolution naming where each part went. Bundles are what make a basket impossible to schedule: nine topics in one item get a sentence each and no place in the architecture.
 
-**Ids are random, not sequential** — 6 hex characters from `[guid]::NewGuid().ToString('N').Substring(0,6)` (POSIX: `uuidgen | tr -d - | head -c 6`). **Run the command; never invent the characters** (model-picked "random" hex repeats and collides silently). If the id already exists in the root or `archive/`, generate another. A counter would force every writer to first scan for the highest existing id, and two sessions scanning concurrently both write the same next number — the id generation *is* the race, and a random id has nothing to race on. Ordering lives in `date`, which every index line already carries.
+**Storage — records in JSON, long-form content in one body per ticket.** `backlog.json` is the ticket registry: every ticket's id / title / type / date / source / feature / claim, and — once closed — how it closed; records are never deleted. Each ticket's Problem / Context / Suggested next step / Why deferrable lives in `bl-{hash}-{slug}.md`, which carries no frontmatter and moves to `archive/` when the ticket closes. Listing and checking claims is a script call over the JSON, not a read of Markdown. **The script is the only writer** (`node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs" backlog …`): it generates ids (random `bl-` + 6 hex, collision-checked — never invent one), validates the whole board before every write and refuses one that would leave a problem, and always operates on the **main worktree's copy**, so a session inside a linked worktree still writes the one shared board.
 
-**Claiming (the other race)**: unique ids stop two sessions recording the same id; they don't stop two sessions working the same item. The claim is written **the moment the item enters focused discussion** — on pick, that's before the briefing, not after confirmation; the briefing, the debate, Plan Mode, and spec authoring are all already contention: the item is marked `status: in-progress` + `picked_up: DATE (branch: TBD until it exists) — what's being done (or "under discussion")`, and the index line flips to `[~]` carrying the same claim inline. **The mirror obligation**: the user decides to skip after the briefing, or the work is abandoned → **release the claim in the same turn** (drop `picked_up`, `status: open`, index back to `[ ]`) — a claim left behind by a skipped item is a phantom lock. **Every entry path claims, not just `/backlog pick`** — a discussion or task that arrives any other way but covers an open item claims it at that same moment. On encountering a `[~]` item, never silently take it over or skip it — report the claim (since when / which branch / what) and let the user decide. No expiry rule: whether an old claim is dead or a live long-running branch isn't knowable from inside the repo.
+**Claiming (the other race)**: unique ids stop two sessions recording the same id; they don't stop two sessions working the same item. The claim (`backlog claim <id> --branch … --note …`) is written **the moment the item enters focused discussion** — on pick, that's before the briefing, not after confirmation. `claim` refuses (exit 3) when someone already holds the item: report who, since when, which branch and what — never silently take it over or skip it; `--force` only once the user says so. **The mirror obligation**: the user decides to skip after the briefing, or the work is abandoned → `backlog release <id>` in the same turn — a claim left behind by a skipped item is a phantom lock. **Every entry path claims, not just `/backlog pick`.** No expiry rule: whether an old claim is dead or a live long-running branch isn't knowable from inside the repo.
+
+**Backlog vs roadmap.** `backlog.json` holds the tickets; the roadmap (`.spec/roadmap/roadmap.json`, `references/roadmap-guide.md`) holds only structure — the tree of scheduled work, placed in the architecture, ordered, with its dependencies — and references tickets by id. The basket is the open tickets no node references. `promote` adds a reference: the record is untouched, so nothing it carries (type, date, source) can be lost on the way onto the tree, and a finished node's tickets resolve forever. A ticket's attributes live only in the registry, scheduling status only on the tree — nothing to drift. A node's title is its architectural name and may be shorter than the ticket's. Work already on the roadmap is not re-recorded in the basket; its discussion goes into its node's body.
 
 **Write discipline — the main agent adjudicates, then writes, silently**:
 
 - **The triage ladder comes first** (full rule in `backlog-guide.md`) — a self-serve discovery (implementer finding / main-agent discovery, as opposed to a user-directed deferral) is walked down in order, and the backlog is the residual, never the first stop: **(1)** this cycle's own problem — a defect its changes introduced, anything the deliverable needs to work, a gap in its own plan/design — goes back into the cycle, mandatory (fix now / blocker report / design revision); **(2)** trivial (a few lines, self-evident) → fix in passing via an explicit one-line scope extension; **(3)** related and at most quick-fix scale → absorb into this cycle **pre-existing or not** (extend the plan/tasks explicitly — the context is loaded now; a backlog item pays full re-orientation cost later for work one step away today); **(4)** only the rest — weakly related, spec-scale, or circumstances forbid — is recorded. Absorption is always an explicit scope extension by the main agent (the implementer still never self-absorbs), surfaced in the Summary. The finder never adjudicates; the item's `Why deferrable` line records both why it isn't rung 1 and why rungs 2–3 didn't take it.
-- Recording is arbiter bookkeeping (like review-log maintenance) — the main agent writes the item file + index line directly, no subagent, **no per-item confirmation** (recording is cheap and reversible; a later cleanup pass prunes noise — asking every time kills the habit). New items are surfaced in the end-of-flow Summary so the user always sees what accumulated.
+- Recording is arbiter bookkeeping (like review-log maintenance) — the main agent records the item with `backlog add` and fills its body directly, no subagent, **no per-item confirmation** (recording is cheap and reversible; a later cleanup pass prunes noise — asking every time kills the habit). New items are surfaced in the end-of-flow Summary so the user always sees what accumulated.
 
 | Hook point | When | What goes in |
 |---|---|---|
@@ -584,9 +604,9 @@ Anything discovered mid-flow that **can't be resolved now or needs deeper discus
 
 **Not backlog material**: things fixed on the spot; accepted-as-is decisions (→ review-log §3); project-level principles (→ Steering Evolution Mechanism).
 
-**Close rule (one rule for done and dropped)**: update frontmatter `status` + add a `resolution:` line → move the file to `archive/` → remove the index line. Archive, don't delete — a `dropped` item's resolution ("considered X, decided no, because Y") is a lightweight ADR that stops the same idea from being re-discovered and re-litigated months later. The invariant: **`BACKLOG.md` always equals the exact set of unresolved items.**
+**Close rule (one rule for done and dropped)**: `backlog close|drop <id> --resolution "…"` — the record stays and gains a `closed` field (status, date, resolution), and the body moves to `archive/`. Archive, don't delete — a `dropped` item's resolution ("considered X, decided no, because Y") is a lightweight ADR that stops the same idea from being re-discovered and re-litigated months later. Tickets on the roadmap close when their node is finished with `roadmap finish` — the node stays on the tree as architecture, and each of its tickets closes the same way.
 
-**Consumption**: `/load-spec` shows the open count; `/backlog` lists, picks up (routing the item through normal mode selection), and closes items.
+**Consumption**: `/load-spec` shows the open count and the feature's roadmap node; `/backlog` lists, picks up (routing the item through normal mode selection, or promoting it), and closes items; `/roadmap` shows the tree, what can start next, and walks a branch.
 
 ---
 
