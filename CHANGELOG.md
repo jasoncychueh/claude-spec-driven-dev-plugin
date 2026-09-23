@@ -2,6 +2,15 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.2 (2026-09-24)
+
+**Executors run on opus at low effort, not medium.** 1.25.1 replaced sonnet with opus at medium effort, citing opus medium (about 51 for about $1.4 per task on the Artificial Analysis Intelligence Index) against sonnet high (about 31.5 for about $1.75). That chart had no low-effort point for opus. With one added, Opus 5.5 at low effort scores about 42 for about $0.55 per task. That is cheaper than Sonnet 5 at medium (about 28 for about $1.0), the setting these agents actually ran before 1.25.1, and it scores above Sonnet 5 at xhigh (about 34.5 for about $2.9). The slots sonnet held should therefore have gone to opus low, which improves on what they had at the same or lower cost. 1.25.1's opus medium bought the improvement at about two and a half times the price. Jason: 「我發現我們設定錯了，應該要用 opus low 取代 sonnet 才對」.
+
+- **`spec-implementer`, `spec-tester`, `spec-verifier` and `tasks-design-verifier` move to `effort: low`.** `tasks-design-verifier` was haiku before 1.25.1, not sonnet. It drops to low with the other executors: at about 42 it is still far above haiku's about 17.
+- **Bug fixing in Quick Fix Mode runs at low too.** One agent definition serves both modes, and a resumed session keeps its effort. Diagnosis stays where the fix ladder already puts it: from rung 3, an unknown root cause or several viable directions go to `spec-author` at the session's effort, and the implementer lands the settled fix. Jason chose this over splitting the implementer into a low Spec Mode role and a medium Quick Fix role.
+- **Unchanged:** `spec-author` and the two reviewers still declare no effort and follow the session's. `spec-researcher` stays on haiku.
+- The figures are the benchmark's per-task cost. An implementer's cost is dominated by how much it reads, so the saving in practice is "about", not the chart's ratio.
+
 ## 1.25.1 (2026-09-24)
 
 **Every subagent that writes, reviews or verifies runs on opus; effort, not model, separates the tiers.** On the Artificial Analysis Intelligence Index, Opus 5.5 at medium effort scores about 51 for about $1.4 per task, where Sonnet 5 scores about 28 at medium (~$1.0) and about 31.5 at high (~$1.75). Even at xhigh, Sonnet 5 stays under 35. Opus 5.5 at medium also matches Fable 5.1 at high for about a third of the cost. So the premise that the executors should run on a cheaper *model* no longer holds. Jason: 「現在 opus 5.5 出來以後，使用 medium effort 的效果用 cost per task 來衡量比 sonnet 5 high 還要便宜又更聰明」.

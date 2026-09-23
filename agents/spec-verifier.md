@@ -3,7 +3,7 @@ name: spec-verifier
 description: Use this agent when you need to verify the completeness of spec files (requirements.md, design.md, tasks.md). This agent checks content completeness, responsibility boundaries, and format compliance according to the checklists. Should be invoked during /verify-spec command (Stage 1) before tasks-design alignment check. If verification fails, the process should stop immediately.
 model: opus
 color: cyan
-effort: medium
+effort: low
 disallowedTools: advisor
 ---
 

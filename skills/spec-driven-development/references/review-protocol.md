@@ -14,7 +14,7 @@ This discipline has a symmetric flip side: **a clean round outputting `0 issues`
 
 ## Persistent sessions and the challenge exchange
 
-The loop runs on a **generator/arbiter split**: long-form work (authoring documents, writing code, reviewing) is carried by subagent sessions — executors at a fixed medium effort, the author and reviewers at the session's effort — while the main agent spends its tokens only on short, high-leverage reasoning: distilling briefs, challenging conclusions, escalating decisions, maintaining the review log. The reviewer's depth is deliberately backstopped by the arbiter's challenge; that's why the challenge must be substantive, not ceremonial.
+The loop runs on a **generator/arbiter split**: long-form work (authoring documents, writing code, reviewing) is carried by subagent sessions — executors at a fixed low effort, the author and reviewers at the session's effort — while the main agent spends its tokens only on short, high-leverage reasoning: distilling briefs, challenging conclusions, escalating decisions, maintaining the review log. The reviewer's depth is deliberately backstopped by the arbiter's challenge; that's why the challenge must be substantive, not ceremonial.
 
 ### Persistent sessions
 
