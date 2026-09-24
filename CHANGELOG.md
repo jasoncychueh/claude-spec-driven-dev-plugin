@@ -2,6 +2,16 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.3 (2026-09-24)
+
+**Every roadmap edit has a command, and the `/roadmap` flow names them.** Jason: 「我們現在對於 roadmap 缺少修改節點的指令，例如移動節點，或是修改裡面的屬性」. Part of that impression came from where the commands were listed rather than from the script. `roadmap move` and `roadmap set` already existed, but only `roadmap-guide.md` listed them. The `/roadmap` flow, which is what an agent driving the command reads, routed only next, show, promote, walk and finish. Checking the script turned up three real holes as well:
+
+- **`demote <ticket>`**, the opposite of `promote`: it takes an open ticket off its node and returns it to the basket. Nothing could move a ticket between nodes before this. `promote --into` refuses a ticket that is already on the tree, which left `roadmap remove --force` as the only way, and that destroys the node. Moving a ticket is now `demote` then `promote --into`, and the refusal says so.
+- **`roadmap rename <id> <newId>`.** Node ids are dotted paths that echo the tree, so a `move` left them stale, with no way to fix one short of hand-editing. Every `dependsOn` pointing at the old id follows the rename. Renaming the root, reusing an existing id or passing a malformed id is refused.
+- **`backlog set <id> resolution <text>`** works on a closed ticket, for example when a rebase changed the commit hash a resolution cites. That field had no command, so correcting it meant hand-editing `backlog.json`. It is refused on an open ticket.
+- **The `/roadmap` flow gains an "Editing the tree" step** that lists structure, fields, tickets and closed records, and says a missing command is never a reason to hand-edit. `roadmap move` documents that the root's id is `root`.
+- Removed a `tickets` case in the node-field setter that `set` could never reach, since tickets arrive only through `promote`.
+
 ## 1.25.2 (2026-09-24)
 
 **Executors run on opus at low effort, not medium.** 1.25.1 replaced sonnet with opus at medium effort, citing opus medium (about 51 for about $1.4 per task on the Artificial Analysis Intelligence Index) against sonnet high (about 31.5 for about $1.75). That chart had no low-effort point for opus. With one added, Opus 5.5 at low effort scores about 42 for about $0.55 per task. That is cheaper than Sonnet 5 at medium (about 28 for about $1.0), the setting these agents actually ran before 1.25.1, and it scores above Sonnet 5 at xhigh (about 34.5 for about $2.9). The slots sonnet held should therefore have gone to opus low, which improves on what they had at the same or lower cost. 1.25.1's opus medium bought the improvement at about two and a half times the price. Jason: 「我發現我們設定錯了，應該要用 opus low 取代 sonnet 才對」.

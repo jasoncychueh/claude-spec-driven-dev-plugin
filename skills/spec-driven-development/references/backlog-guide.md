@@ -51,6 +51,7 @@ board backlog claim <id> --branch <b> --note "<what>"
 board backlog release <id>
 board backlog close <id> --resolution "<where it landed>"
 board backlog drop <id> --resolution "<why not>"
+board backlog set <id> <field> <value>   # title / type / source / feature; resolution on a closed ticket
 board check
 ```
 

@@ -68,13 +68,15 @@ roadmap root [title|intro|now] [p ...]       print the root, or replace one fiel
 roadmap set <id> <field> <value>             status / ordinal / title / summary / detail / spec / dependsOn / updated; "-" clears
 roadmap finish <id> --resolution <text>      a work item is done — see "Finished work"
 roadmap add <parentId> <id> <title> [...]    a grouping node, a design question, or a work item with no ticket yet
-roadmap move <id> <newParentId> [--before s] restructure
+roadmap move <id> <newParentId> [--before s] re-parent or reorder; the root's id is "root"
+roadmap rename <id> <newId>                  change a node's id — every dependsOn on it follows
 roadmap remove <id> [--force]                an unfinished branch only; --force when it has children or tickets, which return to the basket
 roadmap note <id> <text>                     append a history note
 roadmap render [--out <path>]                a Markdown document on demand — not committed
 roadmap format                               canonical key order after a hand edit
 promote <ticket> <parentId> <newNodeId> [--ordinal n] [--depends a,b] [--summary s] ...
 promote <ticket> --into <nodeId>             attach a ticket to an existing node
+demote <ticket>                              take an open ticket off its node, back to the basket; demote + promote --into moves it
 check                                        validate backlog, roadmap and every cross-reference
 ```
 

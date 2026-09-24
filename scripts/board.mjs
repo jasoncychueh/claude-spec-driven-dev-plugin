@@ -85,6 +85,7 @@ Backlog — the ticket registry
                                                  (exit 3) if someone else holds it, unless --force.
   backlog release <id>                           Drop a claim.
   backlog set <id> <field> <value>               Fields: ${TICKET_SETTABLE.join(', ')}. "-" clears feature.
+                                                 resolution: a closed ticket's, e.g. after a commit hash changed.
   backlog close <id> --resolution <text>         Done without scheduling: closed, body to archive/.
   backlog drop <id> --resolution <text>          Not doing it: closed as dropped, body to archive/.
 
@@ -92,6 +93,8 @@ Promote — put a basket ticket on the tree (adds a reference; the record is unt
   promote <id> <parentNodeId> <newNodeId> [--title t] [--status s] [--ordinal n] [--depends a,b]
           [--summary text] [--detail text] [--spec name] [--before siblingId]
   promote <id> --into <nodeId>                   Attach to an existing node instead.
+  demote <id>                                    Take an open ticket off its node, back to the basket. To move
+                                                 it to another node: demote, then promote --into.
 
 Roadmap — the scheduled tree
   roadmap init <title>                           Create an empty roadmap.
@@ -105,6 +108,8 @@ Roadmap — the scheduled tree
   roadmap add <parentId> <id> <title> [--status s] [--ordinal n] [--depends a,b]
               [--summary text] [--detail text] [--spec name] [--before siblingId]
   roadmap move <id> <newParentId> [--before siblingId]
+                                                 Re-parent or reorder; the root's id is "root".
+  roadmap rename <id> <newId>                    Change a node's id; every dependsOn on it follows.
   roadmap remove <id> [--force]                  --force is required when the node has children or tickets;
                                                  its live tickets return to the basket.
   roadmap finish <id> --resolution <text>        Mark a work item done: its tickets close, bodies go to
@@ -625,7 +630,13 @@ function backlogCommand(board, command, args, options) {
       const [id, field, value] = args;
       if (value === undefined) throw new UsageError('Usage: backlog set <id> <field> <value>');
       const t = requireTicket(board, id);
-      if (!TICKET_SETTABLE.includes(field)) throw new UsageError(`Unknown field "${field}". Settable: ${TICKET_SETTABLE.join(', ')}.`);
+      if (field === 'resolution') {
+        if (isLive(t)) throw new UsageError(`${id} is open; a resolution is set when it closes.`);
+        if (value === '-') throw new UsageError('A resolution cannot be cleared.');
+        t.closed.resolution = value;
+        return { saveBacklog: true, print: [`Set the resolution of ${id}.`] };
+      }
+      if (!TICKET_SETTABLE.includes(field)) throw new UsageError(`Unknown field "${field}". Settable: ${TICKET_SETTABLE.join(', ')}, and resolution on a closed ticket.`);
       if (value === '-') {
         if (field !== 'feature') throw new UsageError(`"${field}" cannot be cleared.`);
         delete t.feature;
@@ -659,7 +670,7 @@ function promoteCommand(board, args, options) {
   const t = requireTicket(board, id);
   if (!isLive(t)) throw new UsageError(`${id} is closed.`);
   const holders = ticketHolders(roadmap);
-  if (holders.has(id)) throw new UsageError(`${id} is already on roadmap node "${holders.get(id).node.id}".`);
+  if (holders.has(id)) throw new UsageError(`${id} is already on roadmap node "${holders.get(id).node.id}" — to move it, \`demote ${id}\` first.`);
   const index = indexTree(roadmap);
   // On the tree, a node's "active" status is the claim; the ticket record keeps everything else.
   const wasClaimed = Boolean(t.claim);
@@ -683,6 +694,21 @@ function promoteCommand(board, args, options) {
   node.updated = today();
   insertChild(parent.node, node, options.before);
   return { saveBacklog: wasClaimed, saveRoadmap: true, print: [`Promoted ${id} to roadmap node "${nodeId}" under "${parentId}" (${node.status}).${options.title ? '' : ' Its title is the ticket\'s; give the node a shorter architectural name with --title or `roadmap set ... title`.'}`] };
+}
+
+function demoteCommand(board, args) {
+  const roadmap = requireRoadmap(board);
+  const [id] = args;
+  if (!id) throw new UsageError('Usage: demote <id>');
+  const t = requireTicket(board, id);
+  if (!isLive(t)) throw new UsageError(`${id} is closed — it stays on its finished node as history.`);
+  const holder = ticketHolders(roadmap).get(id);
+  if (!holder) throw new UsageError(`${id} is not on the roadmap; it is already in the basket.`);
+  const node = holder.node;
+  node.tickets = node.tickets.filter((x) => x !== id);
+  if (node.tickets.length === 0) delete node.tickets;
+  if (node.status !== undefined) node.updated = today();
+  return { saveRoadmap: true, print: [`Took ${id} off roadmap node "${node.id}"; it is back in the basket.`] };
 }
 
 // ---------------------------------------------------------------------------
@@ -890,7 +916,7 @@ function setNodeField(node, field, value) {
     case 'summary': case 'detail': case 'spec': case 'updated':
       if (clear) delete node[field]; else node[field] = value;
       break;
-    case 'tickets': case 'dependsOn':
+    case 'dependsOn':
       if (clear) delete node[field]; else node[field] = splitList(value);
       break;
     default:
@@ -983,6 +1009,24 @@ function roadmapCommand(board, command, args, options) {
       detach(entry);
       insertChild(target.node, entry.node, options.before);
       return { saveRoadmap: true, print: [`Moved "${id}" under "${parentId}".`] };
+    }
+    case 'rename': {
+      const [id, newId] = args;
+      if (newId === undefined) throw new UsageError('Usage: roadmap rename <id> <newId>');
+      const entry = requireNode(index, id);
+      if (entry === index.root) throw new UsageError('The root has no id to rename; its title is edited with: roadmap root title <text>');
+      if (!NODE_ID.test(newId) || newId === ROOT_ID) throw new UsageError(`"${newId}" is not a valid node id (lowercase, "." and "-" separated; "${ROOT_ID}" is reserved).`);
+      if (index.entries.has(newId)) throw new UsageError(`A node with id "${newId}" already exists.`);
+      entry.node.id = newId;
+      let followed = 0;
+      for (const other of index.list) {
+        const deps = other.node.dependsOn;
+        if (!deps?.includes(id)) continue;
+        other.node.dependsOn = deps.map((d) => (d === id ? newId : d));
+        followed += 1;
+      }
+      if (entry.node.status !== undefined) entry.node.updated = today();
+      return { saveRoadmap: true, print: [`Renamed "${id}" to "${newId}".${followed ? ` ${followed} dependsOn reference(s) updated.` : ''}`] };
     }
     case 'remove': {
       const [id] = args;
@@ -1333,6 +1377,7 @@ function main(argv) {
     case 'backlog': result = backlogCommand(board, command, args, options); break;
     case 'roadmap': result = roadmapCommand(board, command, args, options); break;
     case 'promote': result = promoteCommand(board, [command, ...args].filter((a) => a !== undefined), options); break;
+    case 'demote': result = demoteCommand(board, [command, ...args].filter((a) => a !== undefined)); break;
     default: throw new UsageError(`Unknown area "${area}". Run with --help for usage.`);
   }
 
