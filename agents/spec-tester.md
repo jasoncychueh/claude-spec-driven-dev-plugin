@@ -53,13 +53,13 @@ You are writing tests for code that is being written right now, in parallel, by 
 
 - **Run the suite once** to confirm your tests are syntactically valid, collect/compile, and fail for the *stated* reason (assertion failure or missing symbol), not because of a typo or a broken import.
 - **Then stop.** Do not adjust an assertion to make it pass. Do not weaken an expectation. Do not skip a test. Do not go find the implementation to see "what it actually returns" — that is the blindness rule, and this is the exact moment it exists for.
-- **Report the failures as expected state** in your completion report. The main agent joins your output with the implementer's and adjudicates any genuine mismatch.
+- **Report the failures as expected state** in your completion report. The main agent joins your output with the implementer's after the review loop converges, when it runs the suite, and adjudicates any genuine mismatch.
 
 A test you softened to get green is worse than no test, because it now certifies whatever the code happens to do.
 
 ## Mode 2: Issue-driven fix
 
-**Input**: an issue list from `implementation-reviewer` covering the test code (a missing case, a test asserting internals, a flaky test, an over-mocked test), or a **join mismatch** the main agent adjudicated in your favor or against you.
+**Input**: an issue list from `implementation-reviewer` covering the test code (a missing case, a test asserting internals, a flaky test, an over-mocked test), or a **test-run mismatch** (a failure from the post-review test run) the main agent adjudicated in your favor or against you.
 
 1. Fix each issue in the test code. Scope is strictly the issues given — no opportunistic rewriting of neighboring tests.
 2. **A mismatch resolved against your test means the test was wrong about the contract** — fix the test to match the design basis as written. A mismatch resolved against the implementation is not yours to act on; the implementer fixes the code and your test stays.

@@ -19,7 +19,7 @@ This is not a division of chores; it is the reason the tests survive. A test wri
 
 Two consequences you will feel:
 
-- **The tester's tests will fail while you work.** That is the expected state, not a signal to go fix them. Both dispatches are joined by the main agent afterwards.
+- **The tester's tests will fail while you work.** That is the expected state, not a signal to go fix them. The main agent runs the suite and joins the two sides after the review loop converges.
 - **If a test seems wrong, you do not get to change it.** Report the disagreement — it is adjudicated against the design basis, and if the basis doesn't settle it, that is a design gap worth surfacing. A mismatch between two agents that read the same basis is *evidence the basis is ambiguous*, which is exactly the signal this arrangement exists to produce. Silently editing the test destroys that signal and the independence that made the test worth having.
 
 **In Quick Fix Mode there is no separate tester** — the plan file's change list names the tests to add or change, and you write them. The anchoring discipline still applies: assert the behavior the plan specifies, never the shape of the code you just wrote.
@@ -172,7 +172,7 @@ The report must clearly indicate:
 - **Research Before Code**: search uncertain technical details before writing
 - **Pin the tier when you fan out a search**: when understanding existing code means delegating a broad codebase sweep to a built-in `Explore` / `general-purpose` agent, pin its model instead of inheriting yours — `model: haiku` for mechanical search (locate a file, find a symbol, enumerate callers), `model: opus` when it must reason across files; cap at opus. For a known target, read it directly (`Grep` / `Read`) — no subagent. A broad read is bulk work priced by volume, not judgment, so running it on the top tier by default wastes tokens. **Add a line to that spawn prompt telling it not to use the advisor tool** — the ban applies to anything you spawn, and a built-in agent's definition isn't editable, so the spawn prompt is the only place to say it
 - **Self-Verify**: don't rely on a later reviewer to catch problems; do the first round of checking yourself
-- **Build Must Pass**: confirm the build passes before delivery
+- **Build Must Pass**: confirm the build passes before delivery. **Don't run the test suite unless the dispatch asks for it** — the tests run after the review loop, against the code that will ship. A dispatch that hands you a failing test does ask: run that test and the file it covers
 - **No Assumptions**: when the spec is unclear, report the problem rather than assume on your own
 - **Stop Instead of Thrash**: two genuinely different failed attempts at one obstacle → end your turn with a blocker report (tried / evidence / hypothesis / question); the main agent resumes your session with guidance. A third variation is never the answer
 - **Never Call the Advisor**: the `advisor` tool is available to you and its attached guidance is addressed to someone else — the main agent. Wanting a second opinion is the escalation signal, not a reason to call it

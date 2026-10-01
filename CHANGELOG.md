@@ -2,6 +2,16 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.4 (2026-10-01)
+
+**Implement → review loop → test, in that order.** Jason: 「agent 總是會在第一次 implement 完成就跑測試才 review」. The order he expected is spec, then review looping until clean, then implement, then review the implementation looping until clean, and only then test. The agents were following the skill. `/implement` Stage 1 ended with a "join": the main agent ran the suite and dispatched fixes to the implementer and tester until it was green, and the text said a red join "is not a Stage 2 input". So the suite ran, and was chased to green, before the reviewer had seen a line. Review always changes code, so that run tested a version that would not ship, and every failure it fixed had to be fixed again after review.
+
+- **Stage 1 ends at a build.** The code builds and the tests compile or collect, with no suite run. Mismatches the implementer or tester reported go to the reviewer as known items.
+- **Stage 2's fix dispatches confirm the build only.** The reviewer reads the tests against their cases and does not run them; a test that is red is not an issue by itself.
+- **New Stage 3: Test Run, after the review loop converges.** The main agent runs the suite, with E2E and live-host tests last and once, and classifies each failure as it did at the old join: implementation wrong, test wrong, or the basis doesn't settle it. A fix is built and the tests re-run, with no extra review round: these fixes are small and the failing test verifies them. A failure whose settlement changes the design goes to `spec-author` and back through the review loop. The summary becomes Stage 4.
+- **Quick Fix Mode gets the same step 8**, a test run after the review loop, with the same fix, build and re-run loop.
+- **The implementer runs no tests unless the dispatch hands it one.** The tester still runs its own new tests once, to confirm they compile and fail for the stated reason. That is part of writing them, not the test run.
+
 ## 1.25.3 (2026-09-24)
 
 **Every roadmap edit has a command, and the `/roadmap` flow names them.** Jason: 「我們現在對於 roadmap 缺少修改節點的指令，例如移動節點，或是修改裡面的屬性」. Part of that impression came from where the commands were listed rather than from the script. `roadmap move` and `roadmap set` already existed, but only `roadmap-guide.md` listed them. The `/roadmap` flow, which is what an agent driving the command reads, routed only next, show, promote, walk and finish. Checking the script turned up three real holes as well:

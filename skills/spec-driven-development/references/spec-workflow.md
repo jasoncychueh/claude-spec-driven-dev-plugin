@@ -142,7 +142,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build
     │            spec-tester (Mode 1) writes the tests in the SAME message — its own group, blind to the source files in flight,
     │            one test per case ID in design.md's Test Cases table; Mode 1 red is expected, never softened
-    │            → main agent joins the two: impl wrong → implementer / test wrong → tester / basis doesn't settle it → spec-author
+    │            Stage 1 ends at a build (code builds, tests compile) — no test run yet
     │
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
@@ -156,7 +156,12 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
     │
-    └── Stage 3: Summary (incl. steering updates + new backlog items recorded this run)
+    ├── Stage 3: Test run — only after the review loop converges
+    │     ├── Main agent runs the suite (E2E / live-host tests last, once)
+    │     ├── Each failure: impl wrong → implementer / test wrong → tester / basis doesn't settle it → spec-author
+    │     └── Fix → build → re-run, until green (a fix that changed the design goes back through review)
+    │
+    └── Stage 4: Summary (incl. steering updates + new backlog items recorded this run)
 ```
 
 The two modes differ only in **the document layer** (plan file vs steering+spec docs) — document authoring (`spec-author`), implementation (`spec-implementer`), and the review loop mechanism are fully shared (the same `review-protocol.md`, including persistent sessions and the challenge exchange).
