@@ -2,6 +2,15 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.5 (2026-10-09)
+
+**Three tiers, each pinned: opus medium for judgment, sonnet high for execution, haiku xhigh for research.** A new Artificial Analysis comparison covers the 5.5 generation, and Jason set the tiers from it. Approximate points, cost per task and index: Haiku 5.5 xhigh about $0.13 / 41; Sonnet 5.5 high about $0.9 / 47; Opus 5.5 low about $0.55 / 42, medium about $1.4 / 51.
+
+- **`spec-author`, `design-reviewer`, `implementation-reviewer`: opus at medium effort, pinned.** They no longer follow the session's effort as 1.25.1 had them do, so the judgment layer thinks at the same depth whatever `/effort` the session runs.
+- **`spec-implementer`, `spec-tester`, `spec-verifier`, `tasks-design-verifier`: sonnet at high effort**, replacing opus low. Sonnet 5.5 high scores about 47 at about $0.9 per task, between opus low and opus medium. The "sonnet is never the economical pick" reasoning of 1.25.1 and 1.25.2 was measured on Sonnet 5 and no longer holds for 5.5.
+- **`spec-researcher`: haiku at xhigh effort.** Before, it had no effort, so it followed the session's.
+- The aliases were checked before relying on them: `opus`, `sonnet` and `haiku` resolve to `claude-opus-5-5`, `claude-sonnet-5-5` and `claude-haiku-5-5`, and `xhigh` is a valid effort level (`--effort` accepts low, medium, high, xhigh, max).
+
 ## 1.25.4 (2026-10-01)
 
 **Implement → review loop → test, in that order.** Jason: 「agent 總是會在第一次 implement 完成就跑測試才 review」. The order he expected is spec, then review looping until clean, then implement, then review the implementation looping until clean, and only then test. The agents were following the skill. `/implement` Stage 1 ended with a "join": the main agent ran the suite and dispatched fixes to the implementer and tester until it was green, and the text said a red join "is not a Stage 2 input". So the suite ran, and was chased to green, before the reviewer had seen a line. Review always changes code, so that run tested a version that would not ship, and every failure it fixed had to be fixed again after review.
