@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.6 (2026-10-15)
+
+**`spec-author`, `design-reviewer` and `implementation-reviewer` run opus at high effort, not medium.** Jason first wanted the judgment roles to run one level below the main session: medium under a high session, high under xhigh. That is feasible. The session's current effort is written on every assistant line of its transcript, and a PreToolUse hook could redirect the spawn to an agent definition at the matching effort. But it needs three or four near-identical copies of each agent kept in sync, because a spawn cannot carry an effort. He chose the simpler fix and raised the fixed tier instead (「簡單一點好了」). Everything else is unchanged: executors stay on sonnet at high effort, and `spec-researcher` stays on haiku at xhigh.
+
 ## 1.25.5 (2026-10-09)
 
 **Three tiers, each pinned: opus medium for judgment, sonnet high for execution, haiku xhigh for research.** A new Artificial Analysis comparison covers the 5.5 generation, and Jason set the tiers from it. Approximate points, cost per task and index: Haiku 5.5 xhigh about $0.13 / 41; Sonnet 5.5 high about $0.9 / 47; Opus 5.5 low about $0.55 / 42, medium about $1.4 / 51.
