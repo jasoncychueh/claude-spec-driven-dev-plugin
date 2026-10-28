@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.7 (2026-10-28)
+
+**`spec-author`, `design-reviewer` and `implementation-reviewer` are back on opus at medium effort.** Jason reversed 1.25.6 and set the judgment roles to medium. Everything else is unchanged: executors stay on sonnet at high effort, and `spec-researcher` stays on haiku at xhigh.
+
 ## 1.25.6 (2026-10-15)
 
 **`spec-author`, `design-reviewer` and `implementation-reviewer` run opus at high effort, not medium.** Jason first wanted the judgment roles to run one level below the main session: medium under a high session, high under xhigh. That is feasible. The session's current effort is written on every assistant line of its transcript, and a PreToolUse hook could redirect the spawn to an agent definition at the matching effort. But it needs three or four near-identical copies of each agent kept in sync, because a spawn cannot carry an effort. He chose the simpler fix and raised the fixed tier instead (「簡單一點好了」). Everything else is unchanged: executors stay on sonnet at high effort, and `spec-researcher` stays on haiku at xhigh.
