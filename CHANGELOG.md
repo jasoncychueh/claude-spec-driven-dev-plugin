@@ -2,6 +2,10 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.25.8 (2026-10-29)
+
+**`spec-tester` and `tasks-design-verifier` run haiku at xhigh effort, not sonnet at high; `spec-researcher` drops from xhigh to high.** Jason set these after walking through what each role does. `tasks-design-verifier` cross-checks two documents item by item (every case ID claimed once, paths and field names matching, file sets disjoint), and `spec-tester` writes one test per row of a settled case table without seeing the code, so both are narrow, rule-bound jobs. `spec-verifier` stays on sonnet at high effort because half of its checklist is semantic judgment (whether a sentence oversteps into technology choice, whether every acceptance criterion lands somewhere in the design). The two reviewers stay on opus at medium: `implementation-reviewer` reviews code that sonnet wrote, and a same-tier reviewer shares the writer's blind spots; `design-reviewer` reviews an opus-authored design with no code to ground it. `spec-implementer` stays on sonnet at high and `spec-author` on opus at medium.
+
 ## 1.25.7 (2026-10-28)
 
 **`spec-author`, `design-reviewer` and `implementation-reviewer` are back on opus at medium effort.** Jason reversed 1.25.6 and set the judgment roles to medium. Everything else is unchanged: executors stay on sonnet at high effort, and `spec-researcher` stays on haiku at xhigh.
