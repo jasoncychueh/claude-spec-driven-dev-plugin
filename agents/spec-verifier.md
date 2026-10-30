@@ -39,7 +39,7 @@ The "Spec completeness check" section of checklists.md is the **single source of
 
 The formal docs follow a **100% isolation principle**: requirements.md / design.md / tasks.md **must not** contain any trace of the review process — including Decision content, reviewer references, process narration, waiver explanations, review-log citations, or footnote pointers. All such artifacts belong in `review-log.md`; the formal docs are physically isolated.
 
-Scan requirements.md / design.md / tasks.md one by one, and **treat finding any of the following patterns as a failure**:
+Scan requirements.md / design.md / tasks.md one by one, and **treat finding any of the following patterns as a failure** (A–D are pattern matches; E is a judgment item):
 
 **A. Decisions / ADR sections (any form)**:
 - [ ] `^##+ Architecture Decisions?( Record)?$`
@@ -65,6 +65,12 @@ Scan requirements.md / design.md / tasks.md one by one, and **treat finding any 
 - [ ] `review-log(\.md)?` — review-log mentioned inside a formal doc (any form)
 - [ ] `> ?ⓘ ` — footnote pointer symbol (abolished)
 - [ ] `→ §[WD\d]` / `→ Waivers? §` / `→ Decisions? §` / `→ FP\d` — a citation pointing to a review-log section
+
+**E. Design-principle citation (principle names live only in the review conversation) — a judgment item, not a pattern match**:
+- [ ] Text that invokes one of this plugin's design principles **by name, as authority**, or that mentions this plugin's `design-principles.md`. The principle names are everyday phrases ("fix the cause", "one writer", "foundation first"), so a literal search would flag ordinary prose and miss real citations in other wordings; read the sentences that contain the names and judge what each one does. The doc states the reason, never the principle's name.
+  - ❌ Flag: "Per One decision, one place, pricing lives in PricingPolicy." / "This violates Don't bolt on." / "(see Idempotent under retry and rerun)" / "see design-principles.md"
+  - ✅ Not residue: "We fix the cause in the parser, not at the call site" (the same words as ordinary prose), and a citation of an external principle ("per the least-privilege principle, the worker gets read-only access"); likewise a project's own unrelated file that happens to be named `design-principles.md`
+  - ✅ Good rewrite of the first bad example: "Pricing lives in PricingPolicy so checkout and the cart view cannot disagree."
 
 **Allowed forms** (should not be flagged as violations):
 

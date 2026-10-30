@@ -81,10 +81,12 @@ Every issue must carry a level. The grading isn't decoration — it's **the basi
 
 | Level | Definition | Example (design stage) | Example (implementation stage) |
 |------|------|-------------------|---------------------------|
-| **Critical** | Not fixing causes a production incident | no idempotency but will be retried / missing unique constraint | weak-ref GC / async race / silent failure |
+| **Critical** | Not fixing causes a production incident | no idempotency where a retry repeats a harmful effect (a second charge) / missing unique constraint behind a write a retry can repeat | weak-ref GC / async race with a real second writer / silent failure |
 | **High** | Not fixing becomes tech debt within 6 months or a misuse trap | unclear component boundary / no timeout defined | callback not unregistered / shared utility not extracted |
 | **Medium** | Not fixing increases maintenance cost | inconsistent naming / uneven abstraction levels | stale docstring / over-defense |
 | **Low** | nit-pick level, can defer | unclear doc description | minor variable naming quibble |
+
+For violations of the design principles, the Default severities table in `design-principles.md` is the grading: its consequence-based rows decide (a retry that repeats a harmful effect is Critical; a check-then-act guard, or shared state correct only by convention, is High), and the examples above do not override them. The definitions above still govern the grade when the actual scenario impact differs from the default.
 
 **Convergence rule**: all Critical / High must be zeroed out; Medium / Low are kept or not at the user's discretion (the main agent asks via AskUserQuestion).
 
@@ -282,8 +284,11 @@ Every review round must end by outputting an issue list conforming to the struct
 
   ↑ **The tag is required on every entry** and is the only thing that distinguishes the two destinations. `[steering]` = a project decision (what we chose / always do / never do). `[claude-md]` = knowledge about operating this repository, including anything whose justification is an incident rather than a principle — see "Steering Candidates" above. Tag what kind of thing it is; the main agent routes it and the user confirms.
 
+### Out-of-scope findings (non-blocking — not counted in the issue total, list only if any)
+- **OOS-1**: {a pre-existing problem the change did not add or worsen — e.g. an existing violation of a design principle in the surrounding code} — Location: {file_path:line_number}; why out of scope: {one line}
+
 ### Conclusion
-[ ] 0 issues — converged, can proceed to the next stage (Steering Candidates not counted in the issue total)
+[ ] 0 issues — converged, can proceed to the next stage (Steering Candidates and out-of-scope findings not counted in the issue total)
     ⚠️ Main agent post-convergence next-step reminder: depending on your flow, the next step is often a Briefing stop point —
     Quick Fix Mode: design converged → must deliver the Plan Briefing before ExitPlanMode;
     /create-spec, /update-spec: after continuing to write tasks / running the verifier you must deliver the Spec Briefing.
@@ -291,6 +296,8 @@ Every review round must end by outputting an issue list conforming to the struct
     must not be skipped, must not cram the briefing and a tool call into the same turn
 [x] {N} issues found — main agent must handle (fix + ask user about Decisions) then re-enter the next round
 ```
+
+**Out-of-scope findings** are the slot for what the review sees but the change is not responsible for: a pre-existing problem in the surrounding code that the change did not add or make worse (`design-principles.md`, "Scope of judgment"). They are not issues — no letter ID, no §1 row, no severity — and they **do not count toward convergence**: a round whose only content is out-of-scope findings is a `0 issues` round. The reviewer reports them and never fixes or escalates them. The main agent triages each one: record it to the backlog per SKILL.md "Backlog Mechanism" (the same triage ladder as an implementer's out-of-scope finding), or drop it.
 
 **Why the convergence conclusion carries a next-step reminder**: the main agent's SKILL.md instructions are loaded at the start of the task, and after many review rounds they've long drifted away from the focus of attention (or even been summarized away by context compaction). The reviewer's convergence report is "the freshest context at the moment of transition" — putting the next-step reminder here means the main agent sees it at the right moment.
 

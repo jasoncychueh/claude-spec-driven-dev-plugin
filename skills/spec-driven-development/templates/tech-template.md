@@ -41,6 +41,9 @@
 - **Testing Framework**: [Unit, integration, and/or end-to-end testing tools]
 - **Documentation**: [Documentation generation tools]
 
+### Test Run Scope (optional)
+[The commands for each test tier, so a run can be scoped without guessing — e.g. targeted: `dotnet test --filter "FullyQualifiedName~Orders"` or `pytest tests/orders -k refund`; affected: the test project / directory per module; full suite: the whole-solution command. Omit this section and the agent derives the tier from the changed files and states what it ran.]
+
 ### Version Control & Collaboration
 - **VCS**: [e.g., Git, Mercurial, SVN]
 - **Branching Strategy**: [e.g., Git Flow, GitHub Flow, trunk-based]

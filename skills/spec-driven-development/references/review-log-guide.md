@@ -180,6 +180,7 @@ Use **neutral design rationale** integrated into the Component / docstring / tas
 - "user resolved it in Round N"
 - "See review-log.md §X" / `> ⓘ` / `→ §W1`
 - Whole `## Architecture Decisions Record` / `## ADR` / `## Decisions` sections
+- Invoking a design principle by name as authority, or citing `design-principles.md` ("Per One decision, one place, …") — principle names live only in the review; state the reason itself
 
 Full bad/good comparison (6 patterns + a general rewrite formula): `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 

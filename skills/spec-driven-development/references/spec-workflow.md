@@ -157,9 +157,9 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │         → one fresh-eyes reviewer round before reporting)
     │
     ├── Stage 3: Test run — only after the review loop converges
-    │     ├── Main agent runs the suite (E2E / live-host tests last, once)
+    │     ├── Main agent runs the affected tier (targeted first; E2E / live-host subset last, once) — the full suite only on a significant risk
     │     ├── Each failure: impl wrong → implementer / test wrong → tester / basis doesn't settle it → spec-author
-    │     └── Fix → build → re-run, until green (a fix that changed the design goes back through review)
+    │     └── Fix → build → re-run only what failed, until green (a fix that changed the design goes back through review)
     │
     └── Stage 4: Summary (incl. steering updates + new backlog items recorded this run)
 ```

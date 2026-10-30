@@ -60,7 +60,7 @@ Content to define:
 - Application Architecture - architecture patterns
 - Data Storage - database, cache
 - External Integrations - external APIs
-- Development Environment - development tools
+- Development Environment - development tools; includes an optional Test Run Scope subsection with the commands per test tier (targeted / affected / full suite), see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/test-run-scope.md`
 - Deployment - deployment method
 
 **Writing points**:

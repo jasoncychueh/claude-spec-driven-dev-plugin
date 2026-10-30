@@ -156,6 +156,7 @@ Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec
 - [ ] The order of the tasks matches the **dependency relationships** described in design.md
 - [ ] Tasks for depended-upon components **come first**
 - [ ] No circular dependencies
+- [ ] **Advisory** — Foundation first (`design-principles.md`): the shared type, migration, or helper that several later tasks need comes before the tasks that use it. This item is Medium (waivable) and this check is a binary pass/fail gate for `/implement`, so a failure here is **reported with the suggested reorder and does not by itself fail the check or block `/implement`**; the main agent decides whether to dispatch `spec-author` to reorder tasks.md
 
 ### 4. Data model check
 
@@ -305,8 +306,7 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 ### 2. Failure Modes
 
 - [ ] Is handling defined for partial failure (half the writes succeed)?
-- [ ] Is concurrent modification (two actors changing it at once) handled?
-- [ ] Is idempotency guaranteed? Will a retry not cause duplication?
+- [ ] Retry / rerun paths and concurrent writers: Idempotent under retry and rerun, One writer (§9)
 - [ ] Are cascading-failure paths contained?
 - [ ] Is there an upper bound on resource exhaustion (connection pool / FD / memory)?
 - [ ] Are timeouts defined?
@@ -322,13 +322,13 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 ### 4. Component Boundaries & Data Models
 
 - [ ] Are component responsibilities clear, with no "half the logic here, half there"?
-- [ ] Do the data models express invariants (NOT NULL / FK / unique constraint)?
+- [ ] Do the data models express their invariants: Data shape first (§9)?
 - [ ] Are there "fields that should be separate merged together" or "fields that should be merged split apart"?
 - [ ] Is the interface contract complete? Is returning None vs an empty list clearly defined?
 
 ### 5. Over / Under-Engineering
 
-- [ ] **Over**: did it introduce an abstraction layer (factory / strategy / plugin system) for an imagined future requirement?
+- [ ] **Over**: did it introduce an abstraction layer (factory / strategy / plugin system) for an imagined future requirement? (A structure that a triggered design principle requires is not over-engineering — `design-principles.md`, "How to apply these")
 - [ ] **Over**: did it use a framework / pattern the team simply doesn't need?
 - [ ] **Under**: is an extension that will obviously happen (multi-tenant / multilingual) considered?
 - [ ] **Under**: is the monitoring / auth / audit necessary at the MVP stage planned?
@@ -382,6 +382,13 @@ For every choice where "both paths are valid, each with its own trade-off":
 - [ ] Does it explain "why there is no industry consensus"?
 - [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
 
+### 9. Design Principles
+
+The rules, probes and default severities live in `design-principles.md` — **the single source; not restated here**.
+
+- [ ] For each principle whose Stage is `design` or `both` (Foundation first only for a Quick Fix plan's change list — Spec Mode's tasks.md is checked under "Tasks vs Design alignment" §3): does a real scenario reach it, and if so, does the design satisfy it? Judge what the change adds or modifies
+- [ ] When the change extends existing structure and a redesign option was in view, does the plan / the component text state the reason in a sentence (Don't bolt on)?
+
 ---
 
 ## Implementation Review checklist
@@ -404,7 +411,7 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 - [ ] **Async race**: do two coroutines modify shared state at the same time?
 - [ ] **Weak-ref GC**: `asyncio.create_task()` did not store a strong reference — will the task be GC'd?
 - [ ] **Event loop**: was the deprecated `get_event_loop()` used, or a cross-loop operation?
-- [ ] **Idempotency**: will a retry cause a duplicate write? Is a duplicate event deduped?
+- [ ] **Idempotency**: Idempotent under retry and rerun (§8) on every retry / rerun path the code serves
 - [ ] **Resource leak**: are connection / FD / subscription / listener cleaned up?
 - [ ] **Boundary**: first-sync has no limit, a boundary condition forgotten?
 - [ ] **Silent failure**: does try/except swallow the error, does a fallback mask the real problem?
@@ -459,6 +466,14 @@ For every implementation choice where "both paths are valid, each with its own t
 - [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
 - [ ] Does it explain "why there is no industry consensus"?
 - [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
+
+### 8. Design Principles (code stage)
+
+The rules, their probes, and their default severities live in `design-principles.md` — **the single source; not restated here**.
+
+- [ ] For each principle whose Stage is `code` or `both`: does a real scenario reach it, and if so, does the code honor it? Judge what the diff adds or modifies
+- [ ] A violation faithful to the approved design basis (including an approved extension) is not a code issue: report it as a design-basis issue for the main agent to route (`spec-author` / Architecture Decision)
+- [ ] Does any code comment invoke one of this plugin's principles by name as authority, or cite `design-principles.md`? That is review residue (a Smell): the comment states the reason, not the citation. Judge by what the comment does — the same words as ordinary prose ("fix the cause in the parser") and external principles are not residue
 
 ### Severity grading and convergence rules
 

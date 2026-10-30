@@ -347,6 +347,7 @@ Example: `# Decision K: FK CASCADE on conversation_id` — the comment isn't "De
 | "See review-log §W1" | write the part of that content meaningful to the reader as neutral prose into the docstring / Component description |
 | inline tag: `owner_user_id is the single ACL column (Decision AL)` | drop `(Decision AL)`; keep only the technical claim the comment already makes |
 | `see design.md §Component 8` / `Requirements: R6.1` in a docstring | inline the one sentence that matters — or name the doc/spec without the section/requirement number |
+| `# per the "Idempotent under retry and rerun" principle` / "Per One decision, one place, …" (a principle name invoked as authority, or `design-principles.md`, in a comment or doc — the same words as ordinary prose are not residue) | state the reason itself: `# webhooks are redelivered; the event_id unique key makes a duplicate delivery a no-op` |
 
 **Core formula**: **strip away** the three layers of review meta-info — **WHO** decided + **WHEN** in review + **WHAT** waiver code — keeping only the "**WHY** technically" rationale layer, integrated into the corresponding place in the Component / docstring / task description. For production comments, strip one more layer — **WHERE-in-the-doc** (`§Component N` / `R6.1` / spec-section numbers) — and inline the WHY instead; keep only references that live *outside* your spec's structure (an external `RFC §`, or a spec's name — **not** `ADR-N`, which is a design.md section here).
 

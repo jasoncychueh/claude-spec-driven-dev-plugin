@@ -42,6 +42,8 @@ Output a structured report containing:
 - For failed items, the concrete problem, location, and suggested fix
 - Conclusion (whether `/implement` can run)
 
+**The Foundation first item (§3) is advisory.** It is a Medium, waivable principle, while this verifier is a binary pass/fail gate. If tasks.md does not build the shared type, migration, or helper before the tasks that use it, mark the item ⚠️ **advisory**, give the suggested reorder (which task moves ahead of which, and why), and list it under "Advisory findings" — it does not count as a failed item and does not by itself make the conclusion "cannot run `/implement`". The main agent decides whether to dispatch `spec-author` to reorder.
+
 **When the conclusion is "passed", the report must end with this main-agent next-step reminder** (output verbatim):
 
 > ⚠️ After verification passes, the main agent must first run the **Spec Briefing** (per briefing-guide.md: output the spec highlights summary as the **turn-final message** and **end the turn** — no tools in the same turn, otherwise the briefing goes invisible; /create-spec is only complete after the user replies to confirm) — do not end, or jump straight into /implement, without briefing.
@@ -51,7 +53,7 @@ Why: the main agent's SKILL.md instructions are loaded at the start of the task,
 ## Key principles
 
 1. **Strictly execute per the Checklist**: must check all items defined in checklists.md
-2. **Explicit verdict per item**: each item must be clearly marked ✅ or ❌
+2. **Explicit verdict per item**: each item must be clearly marked ✅ or ❌ (the Foundation first item is ✅ or ⚠️ advisory, never ❌)
 3. **Provide concrete evidence**: the explanation must point concretely to the corresponding Component/Task
 4. **Actionable suggestions**: failed items must come with concrete fix suggestions
 5. **Never call the advisor**: it is available to you and its guidance is addressed to the main agent, not to you — record the uncertainty as a failed item instead of consulting
