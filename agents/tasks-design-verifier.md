@@ -1,6 +1,6 @@
 ---
 name: tasks-design-verifier
-description: "Use this agent when you need to verify alignment between tasks.md and design.md (Stage 2 of /verify-spec). This agent ensures that all tasks properly cover the design specifications and that there are no gaps or inconsistencies. IMPORTANT: This agent should only be invoked AFTER spec-verifier has passed (Stage 1). Should be invoked during /create-spec, /update-spec, or /verify-spec commands."
+description: "Use this agent when you need to verify alignment between tasks.md and design.md (Stage 2 of /verify-spec). This agent ensures that all tasks properly cover the design specifications and that there are no gaps or inconsistencies. IMPORTANT: This agent runs in the same message as spec-verifier (Stage 1); its result is used only if spec-verifier passes. Should be invoked during /create-spec, /update-spec, or /verify-spec commands."
 model: haiku
 effort: xhigh
 color: yellow
@@ -41,6 +41,8 @@ Output a structured report containing:
 - The result (✅/❌) and explanation for each check item
 - For failed items, the concrete problem, location, and suggested fix
 - Conclusion (whether `/implement` can run)
+
+**You run in parallel with `spec-verifier`.** Your "whether `/implement` can run" conclusion and the next-step reminder below count only if `spec-verifier` also passed; if it failed, the main agent discards your report, so don't hedge on its account.
 
 **The Foundation first item (§3) is advisory.** It is a Medium, waivable principle, while this verifier is a binary pass/fail gate. If tasks.md does not build the shared type, migration, or helper before the tasks that use it, mark the item ⚠️ **advisory**, give the suggested reorder (which task moves ahead of which, and why), and list it under "Advisory findings" — it does not count as a failed item and does not by itself make the conclusion "cannot run `/implement`". The main agent decides whether to dispatch `spec-author` to reorder.
 

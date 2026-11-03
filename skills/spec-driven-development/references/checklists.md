@@ -136,7 +136,7 @@ Before you start implementing, confirm the feature spec documents are complete.
 
 ## Tasks vs Design alignment check
 
-Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec` Stage 2 (after Stage 1 passes), to verify the alignment between tasks.md and design.md.
+Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec` Stage 2 (dispatched alongside Stage 1; its result is used only if Stage 1 passes), to verify the alignment between tasks.md and design.md.
 
 ### 1. Component coverage check
 
@@ -242,7 +242,7 @@ When design.md is modified and implementation code already exists, handle it in 
 #### 5. Verification and completion
 
 - [ ] The `implementation-reviewer` agent reviews the implementation and directly fixes non-conforming items
-- [ ] Confirm the build passes
+- [ ] Confirm the build passes (build scope per `verification-scope.md`)
 - [ ] After all `[~]` tasks are complete, change them to `[x]`
 - [ ] All `[-]` task code has been cleaned up; the tasks are retained as a record
 - [ ] tasks.md progress correctly reflects the current state
@@ -270,7 +270,7 @@ Result: items that do not pass must be completed
 ### Running the Tasks vs Design alignment check
 
 ```
-Trigger: when /create-spec or /update-spec completes, or /verify-spec Stage 2 (after Stage 1 passes)
+Trigger: when /create-spec or /update-spec completes, or /verify-spec Stage 2 (dispatched in the same message as Stage 1; used only if Stage 1 passes)
 Executed by: tasks-design-verifier agent
 Result: must pass before /implement can run; otherwise it displays the inconsistent items
 ```

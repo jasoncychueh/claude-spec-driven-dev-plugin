@@ -52,7 +52,7 @@
  *
  * FAIL-OPEN, ALWAYS: no transcript, an unreadable or absent subagent transcript, a
  * `to` that is not a subagent id (a peer-session or teammate name), a parse error,
- * or no usage record yet -> allow, silently. A checkpoint that interrupts the flow
+ * or no usage record yet -> silent pass (no output, no permissionDecision). A checkpoint that interrupts the flow
  * over its own bugs costs more than the problem it guards.
  *
  * Stateless & side-effect-free: reads stdin + transcripts (read-only, tail only),
@@ -62,6 +62,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { readInput, allow, note } = require('./lib/hook-io');
 
 // Context sizes at which the checkpoint speaks, in tokens of the executor's own
 // conversation. 400K is the retirement ceiling: high enough that ordinary bounded
@@ -77,22 +78,13 @@ const TAIL_BYTES = 512 * 1024;
 // session or teammate, which has no subagent transcript and is not ours to judge.
 const AGENT_ID = /^a[0-9a-f]{8,}$/;
 
-function emit(out) {
-  process.stdout.write(JSON.stringify(out));
-  process.exit(0);
-}
-function allow() {
-  emit({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow' } });
-}
-function note(text) {
-  // No permissionDecision, ever: the call passes through untouched and only the
-  // main agent's context gains a line it could not have computed for itself.
-  emit({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: text } });
-}
+// A pass (allow) exits 0 with no output; note() writes additionalContext and no permissionDecision,
+// ever: the call passes through under the user's own permission rules and only the main agent's
+// context gains a line it could not have computed for itself.
 
 // ---- read hook input ----
-let input;
-try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch (_) { allow(); }
+const input = readInput();
+if (!input) allow();
 
 const toolInput = (input && input.tool_input) || {};
 const target = typeof toolInput.to === 'string' ? toolInput.to.trim() : '';

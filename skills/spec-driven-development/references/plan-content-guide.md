@@ -1,6 +1,6 @@
 # Plan / Design Document Content Guide
 
-This document governs what a **design-type document** (the quick fix mode plan file, the spec mode design.md) should and should not contain. The principle is the same for both document types — the only difference is length and degree of formality.
+This document governs what a **design-type document** (the quick fix mode plan file, the spec mode plan file, the spec mode design.md) should and should not contain. The principle is the same for all of them — substance, not process; what differs is the altitude (how much detail the document settles), length and degree of formality.
 
 ## Core principle: write substance, not process
 
@@ -10,6 +10,31 @@ Writing process narration amounts to:
 - Repeating what SKILL.md already promises
 - Wasting the reviewer's tokens
 - Blurring the substance that actually matters — after reading it, the user doesn't know which files you're going to change
+
+## Altitude: what each document settles
+
+| Document | Its job | Detail |
+|---|---|---|
+| Quick Fix plan file | The implementer's **only design basis** | Enough that the implementer does not have to guess: the files to change, the behavior change in each, the tests to add or change |
+| Spec Mode plan file | Settle the **direction and the rough framework design** with the user | Boxes-and-responsibilities level. Interfaces, signatures, fields and error handling are not forbidden — when the discussion went there they can be written down — but they are not the plan's job |
+| design.md | The detail every implementer reads | Interfaces, data models, error handling, the Test Cases table; `design-reviewer` Mode B reviews it here |
+
+### Quick Fix plan
+
+The implementer reads this file and nothing else, so every choice it would otherwise make by guessing is written down. For each change: the file (and the function or section when the file is large), the behavior before and after, and why this shape. The tests to add or change are named by the behavior each verifies. A plan that says "handle the null case in the service" leaves the implementer to pick where and how; the example below names the route, the parse and the response.
+
+### Spec Mode plan
+
+The plan exists to settle the direction before any spec document is written. It carries:
+
+- **Problem and goals** — what the feature is for, and who it serves
+- **Scope and out-of-scope** — explicit boundaries
+- **The chosen approach** — and its components at a boxes-and-responsibilities level (what each box owns, how the boxes talk), not their interfaces
+- **Key trade-offs and Architecture Decisions** — the options weighed, what was chosen with the user, and why
+- **Risks**
+- **Roadmap decomposition** — how the work splits into roadmap items, for the main agent to record with the board script
+
+`design-reviewer` Mode A challenges the direction and the framework only, in one pass; it does not grade details. A direction settled here is not re-litigated when design.md is reviewed: Mode B asks whether design.md realises it well. The Spec Mode plan file has no `## Review Log` section — the review log is review-log.md.
 
 ## ✅/❌ comparison table
 
@@ -120,6 +145,7 @@ The first is 50 lines of useful substance; the second is 300+ lines of noise (ea
 
 | Document type | Expected length |
 |---|---|
+| Spec mode plan file | 40-120 lines |
 | Quick fix plan (single bug / small refactor) | 30-80 lines |
 | Quick fix plan (medium refactor) | 80-150 lines |
 | Spec mode design.md (small to medium feature) | 200-400 lines |

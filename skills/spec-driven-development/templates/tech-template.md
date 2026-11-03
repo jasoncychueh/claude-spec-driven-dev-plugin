@@ -41,8 +41,8 @@
 - **Testing Framework**: [Unit, integration, and/or end-to-end testing tools]
 - **Documentation**: [Documentation generation tools]
 
-### Test Run Scope (optional)
-[The commands for each test tier, so a run can be scoped without guessing — e.g. targeted: `dotnet test --filter "FullyQualifiedName~Orders"` or `pytest tests/orders -k refund`; affected: the test project / directory per module; full suite: the whole-solution command. Omit this section and the agent derives the tier from the changed files and states what it ran.]
+### Build and test scope (optional)
+[The commands for each scope, so a run can be scoped without guessing — build: the per-project / per-module command, e.g. `dotnet build src/Orders/Orders.csproj`, plus the whole-solution command (run only by the main agent); tests: targeted, e.g. `dotnet test --filter "FullyQualifiedName~Orders"` or `pytest tests/orders -k refund`; affected: the test project / directory per module; full suite: the whole-solution command. Omit this section and the agent derives the scope from the changed files and states what it ran.]
 
 ### Version Control & Collaboration
 - **VCS**: [e.g., Git, Mercurial, SVN]

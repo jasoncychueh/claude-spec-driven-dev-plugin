@@ -8,10 +8,11 @@
  * of facing a wall of text in the approval dialog. (A briefing exists to lower
  * the reading load of a full plan/spec, not merely to gate approval.)
  *
- * Applies to EVERY ExitPlanMode — Quick Fix Mode, the /create-spec and
- * /update-spec plan phases, and plain plan mode alike. A briefing before
- * approving any plan is never harmful, and the check is fail-open and
- * satisfiable, so it never blocks you for real.
+ * Applies to EVERY ExitPlanMode — Quick Fix Mode and plain plan mode alike.
+ * (Spec Mode plans in an ordinary session and never calls ExitPlanMode; its
+ * approval is recorded by approval-gate.js.) A briefing before approving any
+ * plan is never harmful, and the check is fail-open and satisfiable, so it
+ * never blocks you for real.
  *
  * TWO-PASS SIGNAL (stateless, from the transcript):
  *
@@ -52,98 +53,70 @@
  *   loads ExitPlanMode when it is a deferred tool; a post-approval Edit; etc.),
  *   tool_result deliveries, injected entries, and the routine markers above. The
  *   first remaining "real" message decides:
- *     - a human user reply        -> ALLOW (user was briefed and responded)
+ *     - a human user reply        -> ALLOW, explicitly (user was briefed and responded)
  *     - an assistant TEXT message  -> DENY (agent delivered a briefing as its own
  *       turn and then exited without waiting for a reply)
  *   Reaching `sessionStart` with no human reply -> DENY (no briefing+reply since
  *   entering this plan session — this also covers a briefing CRAMMED into the same
  *   message as ExitPlanMode: that message carries a tool_use so it is skipped as
  *   mechanical, and the walk denies at the boundary). If no plan session could be
- *   identified (`sessionStart < 0`: scrolled off / compacted) -> fail-open ALLOW.
+ *   identified (`sessionStart < 0`: scrolled off / compacted) -> fail-open, silent pass.
  *
  * NEVER DEADLOCKS: after a deny the agent briefs turn-final, the user replies,
- *   and the retry sees that human reply -> allow. (This is why the old prompt
+ *   and the retry sees that human reply -> explicit allow. (This is why the old prompt
  *   hook, 1.6.2-1.6.5, was replaced: an LLM judge could not see history and
  *   blocked even AFTER a confirmed briefing.)
  *
  * FAIL-OPEN: any uncertainty (no transcript, parse error, unexpected shape, no
- *   identifiable plan session) -> allow.
+ *   identifiable plan session) -> silent pass (no output).
  *
  * Filters (verified against live transcripts):
+ *   - only entries whose `type` is exactly user or assistant are messages; stored API payloads
+ *     (`api-request-blob`, whose message.role says user/assistant), markers and the like are
+ *     ignored everywhere, including the ExitPlanMode / approval scans.
  *   - isSidechain: subagent messages — not the main conversation.
- *   - isMeta: injected user entries (local-command caveats, reminders).
+ *   - isMeta, compaction summaries and non-human-origin entries: injected, not a human reply.
+ *   - slash-command, local-command and interrupt entries: not a human reply; skipped in the walk.
  *   - tool_result-only user messages: a tool delivery, not a human reply.
+ *   - a human prompt queued while the agent's turn was running (an attachment entry, not a user
+ *     entry) IS a human reply — lib/transcript.js reads it as one.
  *   (A human reply is type:"user" with string / text content. A real user
  *   message also carries its own top-level `permissionMode` field — verified in
  *   live transcripts — which is Pass 1's reliable transition signal.)
  *
+ * The transcript helpers (classify, the walk back to the first real message) are
+ * shared with approval-gate.js and live in lib/transcript.js.
+ *
  * Stateless & side-effect-free: reads stdin + the transcript (read-only),
  * writes NOTHING anywhere. Cross-platform pure Node (Claude Code ships Node).
+ * OUTPUT: the one case that writes an explicit permissionDecision:"allow" is a VERIFIED human
+ * reply after the briefing (Pass 2 below) — the user has just answered the briefing, so the plan
+ * dialog is let through (a deny from any other hook still wins). This is the only deliberate
+ * explicit allow in the plugin. Every other pass — no transcript, parse error, no identifiable
+ * plan session, any uncertainty — emits nothing (exit 0, no output) so the user's own permission
+ * rules still apply. A deny writes the deny JSON.
  */
 
 'use strict';
-const fs = require('fs');
-
-function emit(decision, reason) {
-  const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: decision } };
-  if (reason) out.hookSpecificOutput.permissionDecisionReason = reason;
-  process.stdout.write(JSON.stringify(out));
-  process.exit(0);
-}
-const allow = () => emit('allow');
-const deny = (reason) => emit('deny', reason);
+const { readInput, allow, deny, approveVerified } = require('./lib/hook-io');
+const { readTranscript, messageBlocks, resultText, classify, replyBefore } = require('./lib/transcript');
 
 const DENY_REASON =
   'Before exiting plan mode, deliver a Plan Briefing first: per briefing-guide.md, output a use-case-driven summary of the key points as a turn-final message, ' +
   'end the turn, wait for the user to reply, and only then call ExitPlanMode. (This check is bounded to "the current entry into plan mode" — it checks whether there has been a briefing + user reply since entering; ' +
   'manually re-entering plan mode after a restart to resume the flow also counts as a new entry, so add a condensed briefing before exiting. Once the briefing is done and the user has replied, retrying will allow it.)';
 
-// ---- read hook input ----
-let input;
-try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch (_) { allow(); }
+// ---- read hook input + transcript (JSONL) ----
+const input = readInput();
 const transcriptPath = input && input.transcript_path;
 if (!transcriptPath) allow();
-
-// ---- read + parse transcript (JSONL) ----
-let objs;
-try {
-  objs = fs.readFileSync(transcriptPath, 'utf8').split(/\r?\n/).map((l) => {
-    if (!l || !l.trim()) return null;
-    try { return JSON.parse(l); } catch (_) { return null; }
-  });
-} catch (_) { allow(); }
-
-// ---- classify a main-conversation user/assistant entry (null for everything else) ----
-function classify(obj) {
-  if (!obj || typeof obj !== 'object') return null;
-  if (obj.isSidechain) return null; // subagent message — not the main conversation
-  const msg = obj.message || obj;
-  const role = (obj.type === 'user' || obj.type === 'assistant') ? obj.type
-             : (msg && typeof msg.role === 'string') ? msg.role : null;
-  if (role !== 'user' && role !== 'assistant') return null;
-
-  const content = msg && msg.content;
-  let hasToolResult = false, hasToolUse = false, hasHumanText = false, hasEnterPlan = false;
-  if (typeof content === 'string') {
-    if (content.trim()) hasHumanText = true; // plain string content = typed text
-  } else if (Array.isArray(content)) {
-    for (const b of content) {
-      if (!b || typeof b !== 'object') continue;
-      if (b.type === 'tool_result') hasToolResult = true;
-      else if (b.type === 'tool_use') { hasToolUse = true; if (b.name === 'EnterPlanMode') hasEnterPlan = true; }
-      else if (b.type === 'text' && b.text && b.text.trim()) hasHumanText = true;
-    }
-  }
-  return { role, isMeta: !!obj.isMeta, hasToolResult, hasToolUse, hasHumanText, hasEnterPlan };
-}
+const objs = readTranscript(transcriptPath);
+if (!objs) allow();
 
 // ---- collect ExitPlanMode tool_use ids from an entry (assistant turns carry them) ----
 function collectExitIds(obj, into) {
-  const msg = obj && (obj.message || obj);
-  const content = msg && msg.content;
-  if (!Array.isArray(content)) return;
-  for (const b of content) {
-    if (b && b.type === 'tool_use' && b.name === 'ExitPlanMode' && b.id) into.add(b.id);
+  for (const b of messageBlocks(obj)) {
+    if (b.type === 'tool_use' && b.name === 'ExitPlanMode' && b.id) into.add(b.id);
   }
 }
 
@@ -153,13 +126,9 @@ function collectExitIds(obj, into) {
 // "approved your plan" (e.g. a Read of this very file) can NOT close the session. A DENIED
 // exit's result is our own DENY_REASON (no "approved your plan"), so recovery never closes.
 function isApprovedExit(obj, exitIds) {
-  const msg = obj && (obj.message || obj);
-  const content = msg && msg.content;
-  if (!Array.isArray(content)) return false;
-  for (const b of content) {
-    if (b && b.type === 'tool_result' && b.tool_use_id && exitIds.has(b.tool_use_id)) {
-      const t = typeof b.content === 'string' ? b.content : JSON.stringify(b.content);
-      if (/approved your plan/i.test(t)) return true;
+  for (const b of messageBlocks(obj)) {
+    if (b.type === 'tool_result' && b.tool_use_id && exitIds.has(b.tool_use_id)) {
+      if (/approved your plan/i.test(resultText(b))) return true;
     }
   }
   return false;
@@ -197,20 +166,10 @@ for (let i = 0; i < objs.length; i++) {
 }
 
 // ---- PASS 2: walk back from ExitPlanMode to sessionStart, find the first real message ----
+//   a human user reply -> ALLOW; the agent's own text first, or reaching the boundary -> DENY
 if (sessionStart >= 0) {
-  for (let i = objs.length - 1; i > sessionStart; i--) {
-    const c = classify(objs[i]);
-    if (!c) continue;                                                      // markers / noise / subagent
-
-    if (c.role === 'assistant' && c.hasToolUse) continue;                  // mechanical agent turn (ExitPlanMode / ToolSearch / Edit / ...)
-    if (c.role === 'user' && c.isMeta) continue;                           // injected entry, not a human reply
-    if (c.role === 'user' && c.hasToolResult && !c.hasHumanText) continue; // tool_result delivery
-
-    if (c.role === 'user' && c.hasHumanText) allow();                      // a human reply since entry (mechanical turns aside) -> briefing flow
-    if (c.role === 'assistant' && c.hasHumanText) deny(DENY_REASON);       // agent's own text with no human reply after -> briefed then didn't wait
-    // else: thinking-only / empty assistant, empty user, etc. -> keep walking
-  }
-  deny(DENY_REASON); // reached the session boundary with no human reply -> no briefing+reply since entering
+  if (replyBefore(objs, objs.length, sessionStart) === 'human') approveVerified(); // the only explicit allow: a verified human reply
+  deny(DENY_REASON);
 }
 
 allow(); // no identifiable plan session (scrolled off / compacted) -> fail-open

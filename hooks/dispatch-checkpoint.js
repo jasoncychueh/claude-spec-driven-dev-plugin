@@ -61,7 +61,7 @@
  * a tool_result list, a missed marker would mean speaking on every subsequent call.
  *
  * FAIL-OPEN, ALWAYS: main thread, an unknown agent type, an unreadable transcript,
- * a parse error -> allow, silently.
+ * a parse error -> silent pass (no output, no permissionDecision).
  *
  * Stateless & side-effect-free: reads stdin + its own transcript tail, writes nothing.
  */
@@ -69,6 +69,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { readInput, allow, note } = require('./lib/hook-io');
 
 // Tool calls into a dispatch at which the executor is asked to check in. These are
 // the per-dispatch medians measured before 1.22.0 and used as the `maxTurns`
@@ -88,21 +89,11 @@ const THRESHOLDS = {
 const MARKER = '[spec-driven-development] Dispatch checkpoint';
 const TAIL_BYTES = 2 * 1024 * 1024; // long dispatches are long; reaching the boundary matters
 
-function emit(out) {
-  process.stdout.write(JSON.stringify(out));
-  process.exit(0);
-}
-function allow() {
-  emit({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow' } });
-}
-function note(text) {
-  // No permissionDecision: the call in flight proceeds untouched. The executor
-  // reads this on its next turn and checks in at a point of its own choosing.
-  emit({ hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: text } });
-}
-
-let input;
-try { input = JSON.parse(fs.readFileSync(0, 'utf8')); } catch (_) { allow(); }
+// A pass (allow) exits 0 with no output; note() writes additionalContext and no permissionDecision, so
+// the call in flight proceeds under the user's own permission rules and the executor reads the note
+// on its next turn and checks in at a point of its own choosing.
+const input = readInput();
+if (!input) allow();
 
 // Main thread -> not ours. agent_id is the documented way to tell them apart.
 const agentId = input && typeof input.agent_id === 'string' ? input.agent_id : '';

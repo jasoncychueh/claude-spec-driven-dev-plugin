@@ -96,14 +96,14 @@ Both paths run the design-reviewer + implementation-reviewer multi-round loop. *
 
 | Mode | File design-reviewer reads | What implementation-reviewer reads |
 |---|---|---|
-| Spec mode | `.spec/specs/{feature}/design.md` | the code written by spec-implementer |
+| Spec mode | `.spec/specs/{feature}/design.md` (Mode B); the plan file in the optional planning-phase Mode A | the code written by spec-implementer |
 | Quick fix mode | the plan file path specified by the main agent | the code written by spec-implementer (plan-file-driven) |
 
-**Plan file path**: Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode and hands to `spec-author` in the dispatch); if the environment provides no plan file, `spec-author` creates `~/.claude/plans/<slug>.md` instead — **plan files never live inside the repo**. Don't hard-code a specific harness path — this is version-dependent internal behavior.
+**Plan file path**: in Quick Fix Mode Claude Code usually creates the plan file automatically at EnterPlanMode (go by the path the system actually provides, which the main agent confirms after entering Plan Mode and hands to `spec-author` in the dispatch); if the environment provides no plan file, `spec-author` creates `~/.claude/plans/<slug>.md` instead. In Spec Mode there is no Plan Mode, so `spec-author` always creates `~/.claude/plans/<slug>.md` at the path the main agent gives in the dispatch. **Plan files never live inside the repo.** Don't hard-code a specific harness path — this is version-dependent internal behavior.
 
 The plan file is a real file and, like design.md, can be Read. `spec-author` writes the draft and applies each round's fixes (Mode 2, resumed session); the main agent Edits only the plan's `## Review Log` section. **The reviewer's core mechanism is shared by both modes** — both are "read the file at the path the main agent specifies → produce an issue list", differing only in the path the main agent gives.
 
-Key characteristics of quick fix mode:
+Key characteristics of quick fix mode (the only mode that uses the harness Plan Mode — Spec Mode plans in an ordinary session, see SKILL.md "Planning Phase and Approval Gate"):
 - design-reviewer's multi-round review is completed **within Plan Mode** (it is verified that a sub-agent can be invoked during Plan Mode)
 - What ExitPlanMode submits to the user to approve is the **already-reviewed final version**
 - The user doesn't see the review process, only the converged plan

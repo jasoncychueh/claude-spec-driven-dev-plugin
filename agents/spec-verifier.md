@@ -1,6 +1,6 @@
 ---
 name: spec-verifier
-description: Use this agent when you need to verify the completeness of spec files (requirements.md, design.md, tasks.md). This agent checks content completeness, responsibility boundaries, and format compliance according to the checklists. Should be invoked during /verify-spec command (Stage 1) before tasks-design alignment check. If verification fails, the process should stop immediately.
+description: Use this agent when you need to verify the completeness of spec files (requirements.md, design.md, tasks.md). This agent checks content completeness, responsibility boundaries, and format compliance according to the checklists. Should be invoked during /verify-spec command (Stage 1), in the same message as the tasks-design alignment check (Stage 2). If Stage 1 fails, its failures are reported and the Stage 2 result is discarded.
 model: sonnet
 color: cyan
 effort: high
@@ -114,7 +114,7 @@ Output a structured report containing:
 ✅ Non-functional requirement mapping: {pass}/{total} items passed
 
 ### Stage 1 conclusion
-[x] Spec completeness verification passed; may proceed to Stage 2 (Tasks vs Design alignment check)
+[x] Spec completeness verification passed
 [ ] Spec completeness verification failed; please fix the following problems first
 
 ## Failed items (if any)
@@ -132,6 +132,6 @@ Output a structured report containing:
 1. **Strictly execute per the Checklist**: must check all items defined in checklists.md
 2. **Explicit verdict per item**: each item must be clearly marked ✅ or ❌
 3. **Provide concrete evidence**: the explanation must point concretely to the missing content or location
-4. **Stop on failure**: if Stage 1 does not pass, clearly state that Stage 2 should not continue
+4. **Report failure clearly**: if Stage 1 does not pass, state it unambiguously in the conclusion so the main agent discards the Stage 2 result (Stage 2 runs alongside you; whether to use its result is the main agent's call, not yours)
 5. **Actionable suggestions**: failed items must come with concrete fix suggestions
 6. **Never call the advisor**: it is available to you and its guidance is addressed to the main agent, not to you — record the uncertainty as a failed item instead of consulting

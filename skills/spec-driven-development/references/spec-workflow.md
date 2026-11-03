@@ -112,11 +112,13 @@ This skill supports two development paths (see `mode-selection.md` for details);
 [/create-spec]
     │
     ├── Load steering
-    ├── Plan Mode
+    ├── Planning phase (an ordinary session — no Plan Mode, so roadmap writes, Artifacts and subagent writes all work)
     │     ├── spec-researcher (background research)
     │     ├── Main agent discusses with the user → distills a brief → spec-author (Mode 1) drafts the plan file
-    │     └── (optional) design-reviewer Mode A — conversational partner challenging the design draft
-    │         (the sparring session continues into Mode B below — same session)
+    │     │   (~/.claude/plans/<slug>.md): the direction and the rough framework design, not the detail
+    │     ├── (optional) design-reviewer Mode A — conversational partner challenging the direction and the framework
+    │     │   (one pass, resumed once if the direction changes; the sparring session continues into Mode B below — same session)
+    │     └── Plan Briefing (turn-final message → end the turn) — approves the direction only
     │
     ├── spec-author (same session) writes requirements.md + design.md (draft) + review-log.md skeleton
     ├── Main agent reads them in full once → fidelity challenge vs the brief + plan
@@ -131,35 +133,43 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │         → one fresh-eyes reviewer round before reporting)
     │
     ├── spec-author (same session) writes tasks.md
-    ├── spec-verifier (Stage 1: completeness)
-    ├── tasks-design-verifier (Stage 2: alignment)
-    └── Spec Briefing (turn-final message with key points + resolved Decisions / Waivers → end the turn, wait for the user's reply)
+    ├── spec-verifier (Stage 1: completeness) + tasks-design-verifier (Stage 2: alignment) — dispatched in the same message;
+    │     if Stage 1 fails, report its failures and discard the Stage 2 result
+    └── Spec Briefing (turn-final message with key points + resolved Decisions / Waivers → end the turn, wait for the user's reply;
+        the confirmation is recorded with approve.mjs <feature> as the first action of the next turn)
 
 
 [/implement]
     │
-    ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms)
-    ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build
+    ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms, recorded with approve.mjs <feature>)
+    ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build of its own scope
     │            spec-tester (Mode 1) writes the tests in the SAME message — its own group, blind to the source files in flight,
     │            one test per case ID in design.md's Test Cases table; Mode 1 red is expected, never softened
-    │            Stage 1 ends at a build (code builds, tests compile) — no test run yet
+    │            Stage 1 ends with the main agent's whole-solution build (code builds, tests compile) — no test run yet
     │
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
     │     ├── Reviewer produces an issue list (integration/Bugs/Smells/Fidelity/Tests/Steering/Decisions)
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
-    │     ├── Bugs/Smells → triage by rung: mechanical → spec-implementer (Mode 2), preferring the owning group's session;
-    │     │                  root-cause-unknown / multi-direction / contract-touching → spec-author settles the approach;
-    │     │                  issues against the tests → spec-tester (Mode 2), never the implementer
-    │     │                  into design.md first (Medium/Low defer-and-batch: fix / waive / backlog)
+    │     ├── Bugs/Smells → triage by rung:
+    │     │     ├── mechanical → spec-implementer (Mode 2), preferring the owning group's session
+    │     │     ├── root-cause-unknown / multi-direction / contract-touching → spec-author settles the approach into design.md first,
+    │     │     │   then the implementer implements it
+    │     │     └── issues against the tests → spec-tester (Mode 2), never the implementer
+    │     │     Fix items are grouped by owning session, then File:-disjointness; the groups are dispatched in the same message,
+    │     │     each building only its own scope
+    │     │     (Medium/Low defer-and-batch: fix / waive / backlog)
     │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
+    │     Loop converged → main agent builds the whole solution (serially)
     │
     ├── Stage 3: Test run — only after the review loop converges
     │     ├── Main agent runs the affected tier (targeted first; E2E / live-host subset last, once) — the full suite only on a significant risk
     │     ├── Each failure: impl wrong → implementer / test wrong → tester / basis doesn't settle it → spec-author
-    │     └── Fix → build → re-run only what failed, until green (a fix that changed the design goes back through review)
+    │     ├── Fix groups dispatched in the same message → build own scope → re-run only what failed, until green
+    │     │   (a fix that changed the design goes back through review, and the post-convergence build runs again)
+    │     └── Fix loop converged → whole-solution build, only if more than one fix group ran or a fix changed a public interface
     │
     └── Stage 4: Summary (incl. steering updates + new backlog items recorded this run)
 ```
