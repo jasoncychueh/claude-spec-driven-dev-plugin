@@ -29,6 +29,7 @@
 - **Review Log 紀律**:Waivers / Decisions / 逐輪稽核軌跡住在 `review-log.md`;正式文件(requirements / design / tasks / code)保持乾淨
 - **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件。Steering 是一組決策,而不是操作手冊 —— 若某個發現的理由是反覆發生的事故,就改記到 CLAUDE.md,避免護欄被操作知識淤積
 - **Backlog 與 Roadmap**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 會默默記成一張票(一張票只裝一個題目),存進票的總表 `.spec/backlog/backlog.json`(記錄永不刪除,結案只是加上結案資訊),每張票另有一個 Markdown 本體,不隨 session 結束蒸發。roadmap(`.spec/roadmap/roadmap.json`)只存結構:一棵照架構長的樹,帶順序與依賴,能精確回答「現在可以開工什麼」,用 id 引用票。未分類的籃子就是「還沒結案、也沒被任何節點引用的票」;`promote` 只是加一個引用,不會丟失任何資料。兩者都只透過 `scripts/board.mjs` 讀寫:它驗證每次修改、產生不會撞號的 id、處理認領,而且永遠操作 main 工作樹那份;`/backlog` 與 `/roadmap` 負責驅動它
+- **視覺設計**:有 UI 的 feature 會由 agent 把 Design canvas 畫進 `.spec/design/<feature>/`,與 spec 一起提交,作為「變更所改動之處」的視覺契約,並可用 `/design-view` 離線檢視完整的 canvas(首頁列出所有設計,並以下拉選單在設計之間切換)。設計也可以選擇性地發布到 claude.ai 來分享。檢視用的 runtime 每個專案只需從你自己擁有的 Design canvas 安裝一次,且不會被提交。開始一份設計需要 claude.ai Artifacts 且你的帳號有 Design 類型;沒有的話,feature 就沒有視覺設計,其他一切照舊。Artifacts 只用於確認該類型可用、安裝檢視 runtime、在已安裝的 runtime 沒有繪製格式時準備繪製格式,以及選擇性的發布
 - **設計原則**:十一條規則集中在同一份參考文件(Anti-accretion、Laziness & Foundational Thinking、Boundary, Idempotency & State),改編自 [ub-mode](https://github.com/unclebob/ub-mode),每條都有審查探問、壞→好範例與預設嚴重度。它們只在真實情境碰到時才啟動;author 設計時就套用,reviewer 依原則審查並按嚴重度表分級
 - **錨定 spec 的測試**:測試案例在寫任何 code 之前就定義在 design.md 的 Testing Strategy,再由專責的 `spec-tester` agent 與 implementer 平行撰寫,且刻意不看它要測試的實作 —— 因此測試驗證的是 spec 承諾的行為,而不是 code 碰巧長成的樣子,重構之後依然有效,不會腐化。測試只跑變更涉及的範圍,只有風險顯著時才跑完整測試套件
 - **Brief Before Build**:實作開始前,以對話式摘要呈現重點、已決策事項與 waivers,讓使用者不必讀完整份 spec 就能進入狀況 —— 這是抓出誤解最便宜的時刻
@@ -47,6 +48,8 @@
 | `/implement <feature>` | 透過 agents 開始實作 |
 | `/backlog [args]` | 列出 / 撿起 / 結案未分類籃子裡的項目 |
 | `/roadmap [args]` | 顯示排程中的 roadmap 樹、下一步可開工的項目、把項目放上樹、逐枝討論 |
+| `/design-view [feature]` | 在瀏覽器中離線開啟視覺設計(由本機提供服務):所有設計的首頁,或單一 feature 的 canvas |
+| `/advise [topic]` | 先形成自己的立場,再交給 advisor,然後回答 —— 明確說明兩者的分歧 |
 
 ## Agents
 

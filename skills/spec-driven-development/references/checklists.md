@@ -328,6 +328,7 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 - [ ] Is the interface contract complete? Is returning None vs an empty list clearly defined?
 - [ ] **No restated internals** *(default Medium)*: the sections this cycle writes or edits don't restate what the code will hold (private helpers, internal field lists, signatures no boundary exposes); see the ❌ "Restated internals" row in `plan-content-guide.md`. Sections the cycle leaves alone are not graded. Applies to a Spec Mode design.md under Mode B review (`/create-spec`, or a substantive `/update-spec`); not to Quick Fix plan review
 - [ ] **Shared internals are boundaries** *(default Medium)*: an internal used by more than one component or task group is treated as a boundary, either named in design.md or given its own task in tasks.md ahead of the tasks that use it. Applies to a Spec Mode design.md under Mode B review (`/create-spec`, or a substantive `/update-spec`); not to Quick Fix plan review
+- [ ] **Boards agree with the docs**: when design.md has a `Visual design:` line, requirements.md and design.md agree with the boards on what the change alters (a screen, state or field on a board that no requirement or component accounts for, or the reverse)
 
 ### 5. Over / Under-Engineering
 
@@ -435,6 +436,7 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 - [ ] Does the interface contract behavior match the description in design.md (not just the signature)?
 - [ ] Are responsibility boundaries not quietly broken (something service A should do is not quietly done by B)?
 - [ ] Is the architecture consistent with the architecture diagram in design.md?
+- [ ] **Boards match the altered elements**: when design.md has a `Visual design:` line, the elements the change alters (per requirements.md and the change's tasks) match the boards in layout, copy and states; elements the change does not alter are judged against the shipped code, not the boards
 
 ### 5. Test Completeness
 

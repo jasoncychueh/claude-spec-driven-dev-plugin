@@ -31,6 +31,8 @@
 **Code location:** [repo-relative directories this feature lives in, plus the files it touches outside them; test directories included]
 <!-- No completeness check requires this line, but the Tasks-vs-Design §2 check compares open tasks' files against it, or against the files design.md names. -->
 
+**Visual design:** [.spec/design/<feature>/ — only for a feature with UI; a pointer, not a description of the visuals]
+
 ## Code Reuse Analysis
 [What existing code will be leveraged, extended, or integrated with this feature]
 

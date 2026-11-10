@@ -30,7 +30,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { mainWorktreeRoot } from './lib/repo.mjs';
 
 // ---------------------------------------------------------------------------
 // Vocabulary
@@ -128,20 +128,6 @@ The board lives under the main worktree of the git repository containing the cur
 
 // ---------------------------------------------------------------------------
 // Paths
-
-function git(args, cwd) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-}
-
-// The main worktree is where the shared board lives. `--git-common-dir` is the same .git for the
-// main worktree and every linked one, and its parent is the main worktree's root.
-function projectRoot(cwd) {
-  try {
-    const common = path.resolve(cwd, git(['rev-parse', '--git-common-dir'], cwd));
-    if (path.basename(common) === '.git') return path.dirname(common);
-  } catch (_) { /* not a git repo, or git unavailable */ }
-  try { return git(['rev-parse', '--show-toplevel'], cwd); } catch (_) { return cwd; }
-}
 
 function boardPaths(root) {
   const backlogDir = path.join(root, '.spec', 'backlog');
@@ -1348,7 +1334,7 @@ function main(argv) {
   const [area, command, ...args] = positional;
   if (!area || area === 'help' || options.help) { console.log(USAGE); return 0; }
 
-  const root = options.root ? path.resolve(options.root) : projectRoot(process.cwd());
+  const root = options.root ? path.resolve(options.root) : mainWorktreeRoot(process.cwd());
   const paths = boardPaths(root);
   const note = () => {
     // Say so when git redirected the board away from where the command was run (a linked worktree).
