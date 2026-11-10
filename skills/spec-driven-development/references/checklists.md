@@ -93,11 +93,10 @@ Before you start implementing, confirm the feature spec documents are complete.
 - [ ] Every case's **Anchor** is a requirement number or a component's **public** interface — never an internal function or private state
 - [ ] Has **Test Approach** notes (harness, fixtures, what must not be mocked)
 
-**Implementation-detail completeness** (ensure it contains enough technical information):
+**Boundary-contract completeness** (enough for the implementer to build without guessing, without restating internals):
 - [ ] Includes **API specifications** (endpoints, request/response formats)
-- [ ] Includes **the main function signatures** (parameters, return values)
-- [ ] Includes a description of **the algorithm or processing flow**
-- [ ] Includes a plan for **the file structure**
+- [ ] Includes the **public** signatures at component boundaries (parameters, return values)
+- [ ] Includes the **processing flow where the flow is itself a decision** (ordering, keys, writers)
 
 **Responsibility boundary check** (ensure it does not cross into requirements.md):
 - [ ] **Does not repeat** the User Story description (only references the requirement number)
@@ -138,6 +137,8 @@ Before you start implementing, confirm the feature spec documents are complete.
 
 Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec` Stage 2 (dispatched alongside Stage 1; its result is used only if Stage 1 passes), to verify the alignment between tasks.md and design.md.
 
+The items that check a task against design.md apply only to tasks still to be done (`[ ]` / `[~]`); `[x]` / `[-]` tasks are records of the change they belong to and are not checked against the current design.md. Those items are: §1 'No task references a component not defined in design.md'; all four §2 items (file location, Purpose, Design ref, no file outside the location); §4 'data structures consistent with the Data Models' and 'field names and types'; §6 'No test task cites a case ID that isn't in the table'. Every other item applies to all tasks.
+
 ### 1. Component coverage check
 
 - [ ] **Every Component** in design.md has corresponding tasks
@@ -146,10 +147,10 @@ Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec
 
 ### 2. Interface consistency check
 
-- [ ] The **file paths** in the tasks match the Components defined in design.md
+- [ ] Each task's files sit under the `Code location` design.md gives, or are files design.md names
 - [ ] The **Purpose** in the tasks is consistent with the Component Purpose in design.md
 - [ ] The **Design ref** in the tasks correctly points to the corresponding section in design.md
-- [ ] No task modifies a file not mentioned in design.md
+- [ ] No task modifies a file that is neither under design.md's `Code location` nor named in design.md
 
 ### 3. Dependency order check
 
@@ -161,7 +162,7 @@ Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec
 ### 4. Data model check
 
 - [ ] The data structures involved in the tasks are consistent with the **Data Models** in design.md
-- [ ] Field names and types all match the design
+- [ ] For models that cross a component boundary or persist, field names and types match design.md (internal shapes are not checked)
 - [ ] No important data model implementation is missing
 
 ### 5. Error handling check
@@ -325,6 +326,8 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 - [ ] Do the data models express their invariants: Data shape first (§9)?
 - [ ] Are there "fields that should be separate merged together" or "fields that should be merged split apart"?
 - [ ] Is the interface contract complete? Is returning None vs an empty list clearly defined?
+- [ ] **No restated internals** *(default Medium)*: the sections this cycle writes or edits don't restate what the code will hold (private helpers, internal field lists, signatures no boundary exposes); see the ❌ "Restated internals" row in `plan-content-guide.md`. Sections the cycle leaves alone are not graded. Applies to a Spec Mode design.md under Mode B review (`/create-spec`, or a substantive `/update-spec`); not to Quick Fix plan review
+- [ ] **Shared internals are boundaries** *(default Medium)*: an internal used by more than one component or task group is treated as a boundary, either named in design.md or given its own task in tasks.md ahead of the tasks that use it. Applies to a Spec Mode design.md under Mode B review (`/create-spec`, or a substantive `/update-spec`); not to Quick Fix plan review
 
 ### 5. Over / Under-Engineering
 

@@ -66,7 +66,7 @@ The main agent enters Plan Mode and runs the full flow directly — no slash com
 ```
 .spec/specs/{feature}/
 ├── requirements.md  # User Story + Acceptance Criteria
-├── design.md        # Architecture, components, data models (single source of truth for implementation)
+├── design.md        # Architecture, component boundaries, data models: the intent layer (the contract during a change; code is the truth after)
 ├── tasks.md         # Executable task list
 └── review-log.md    # Record of the review/resolve process (audit trail / decision / waiver / FP / steering updates)
 ```
@@ -295,7 +295,7 @@ Update a feature's spec documents.
 3. **Start the planning phase** — an ordinary session, no Plan Mode (see "Planning Phase and Approval Gate")
 4. Plan the changes (which parts of r/d/t to touch, and why); **(optional)** invite `design-reviewer` Mode A to challenge the direction
 5. **Plan Briefing (mandatory, delivered as the turn-final message)** — before any spec document is changed: per `briefing-guide.md`, with an actual use case / scenario, output "what's changing → what it becomes → where it affects the existing design / already-implemented code," ending with "anything that doesn't match what you expected?" → **end the turn and wait for the user's reply** (no tool in the same turn). This approves only the direction; there is nothing to record yet, so no approval script here
-6. Dispatch `spec-author` (Mode 1) with a brief of the agreed changes to apply them (to requirements / design / tasks); when it reports back, run the **fidelity challenge** against the brief (per `review-protocol.md`)
+6. Dispatch `spec-author` (Mode 1) with a brief of the agreed changes to apply them (to requirements / design / tasks); when it reports back, run the **fidelity challenge** against the brief (per `review-protocol.md`). The brief also tells `spec-author`: before a design.md section becomes this change's basis, compare it, the Test Cases rows anchored to it and the requirements.md acceptance criteria it realizes with the current code (found via the `Code location` line, or the files design.md names). Where they disagree, correct that existing text to match the code first, unless the user's requested change is exactly that behavior, and report each correction. Reconciliation only corrects existing text and existing rows; it never adds rows. Reconciliation compares only what completed (`[x]`) tasks built. Design text, Test Cases rows and acceptance criteria that only realize still-pending (`[ ]`/`[~]`) tasks are planned work, not drift, and are left as they are. In a section realized by both, only what the `[x]` tasks built is compared: doc text in that part that the code contradicts is corrected to the code, and code that simply lacks what pending tasks will add is not a disagreement. Only this /update-spec's agreed change may remove or edit a row that a pending test task claims; reconciliation never does. Behavior that exists only in code stays outside the spec until a change deliberately adds it. At the fidelity challenge, a correction that changes stated behavior the agreed change builds on is taken back to the user before the step-8 review loop; other corrections are reported in the Spec Briefing.
 7. **Steering sync check**: if the design change involves a shift in technical direction, update steering in sync
 8. **design.md changed substantively → mandatory `design-reviewer` Mode B multi-round review loop (until 0 issues)** — the **same protocol** as /create-spec step 11: persistent reviewer session + per-round challenge exchange, append the final post-challenge list to review-log §1, route Architecture Decisions through the advisor gate (advisor settles clear-cut technical ones → §2 `advisor-resolved`, confirmed at the briefing; genuine user calls → two-beat AskUserQuestion) then write §2 + promotion judgment, Critical/High fixed by resuming the `spec-author` session (Mode 2), Medium/Low defer-and-batch, Steering Candidates batched, false positives to §4, new Critical/High still present at Round 5 trips the fuse, 100% isolation of formal docs. **Pure requirements wording clarification (design untouched) or pure tasks status bookkeeping may skip this loop.**
 9. **Design-change impact assessment** (when implementation code already exists): identify the affected scope → update tasks.md markers (affected → `[~]`, deleted → `[-]`, add new tasks). Detailed flow in the "Design-change impact assessment" section of `references/checklists.md`
@@ -327,7 +327,7 @@ Run Spec completeness verification and Tasks vs Design alignment verification st
 2. **Stage 1: Spec completeness verification**
    - Run the completeness check via the `spec-verifier` agent
    - Verify requirements.md (content completeness + responsibility-boundary check + review-residue check)
-   - Verify design.md (content completeness + implementation-detail completeness + responsibility-boundary check + review-residue check)
+   - Verify design.md (content completeness + boundary-contract completeness + responsibility-boundary check + review-residue check)
    - Verify tasks.md (numbering format + content completeness + review-residue check)
    - **If any item fails, report the failures** (Stage 2's result is then discarded, per the rule above)
 3. **Stage 2: Tasks vs Design alignment check** (dispatched in the same message as Stage 1; its result counts only if Stage 1 passes)
@@ -346,6 +346,8 @@ Start implementing the feature.
 - The spec already exists (the `.spec/specs/{feature}/` directory contains requirements.md, design.md, tasks.md)
 
 **Important**: the implementation phase **must** run via agents; the main agent is **forbidden** from implementing code directly.
+
+**Pre-step (drift check)**: find the spec directory's last commit (`git log -1 --format=%H -- .spec/specs/{feature}/`), then list the commits since it that touch the pending (`[ ]` / `[~]`) tasks' `File:` paths or the paths under design.md's `Code location` (`git log --oneline <that commit>..HEAD -- <paths>`; a design.md without the line uses the `File:` paths only). If any exist, stop and ask the user whether to run `/update-spec` first, listing the hit commits. This is a question, not a block: the user may continue. Measuring from the spec directory's last commit means a committed `/update-spec` or a committed phase clears it, and a false positive costs one question. If the briefing pre-step also fires, ask both in the same turn. If the spec directory has never been committed, skip the check.
 
 **Pre-step (briefing check)**: if this session hasn't yet given a spec briefing for this feature (a typical case: running /implement in a later session), first output a **condensed briefing** per `briefing-guide.md` (10–20 lines: positioning / one use-case main-line walk-through / resolved Decisions / this run's task scope) to rebuild the user's context — **deliver it as the turn-final message and end the turn**; only after the user explicitly confirms do you run `approve.mjs <feature>` (first action of that turn; see "Planning Phase and Approval Gate") and enter Stage 1. A session that already recorded the approval for this feature (the Spec Briefing confirmation that ended `/create-spec` or `/update-spec`, or an earlier condensed briefing) needs neither the briefing nor the script again.
 
@@ -458,11 +460,33 @@ Resumes go through SendMessage, not the spawn tool, so they are not gated — th
 
 ---
 
+## Docs for Agents, Code as Truth
+
+This section is the one home for two rules; other files point here instead of restating them.
+
+**Two layers.** The doc layer (steering, specs, plan files, review logs) is written for agents: it keeps agents oriented in the architecture across many features and stops duplicated logic from accreting. The communication layer (briefings, and every message to the user, per "Calibrate for Cognitive Load") is written for humans. Humans steer through the communication layer, and the review loops to 0 issues are what let them skip reading every doc. Two guardrails:
+
+- **"For agents" never means verbose.** Docs are precise, easy to navigate and non-redundant, and say each thing once (cross-reference instead of copying), because an agent's context is finite and paid for.
+- **Docs stay human-auditable.** Plain Markdown prose and tables; no agent-only encodings. A human who comes back to audit a doc when something goes wrong can read it.
+
+**Code is the system's truth.** While a change is planned and implemented, its spec or plan file is the intent contract: the implementer follows it, the reviewer checks fidelity against it, and a mismatch is fixed in the code, or the basis is corrected by `spec-author`. Once the change ships, the code, tests included, is the truth of what the system is. Spec docs keep only the **intent layer**: intent, boundaries (public interfaces and the data that crosses them), decisions and their rationale, the behavior contract (the Test Cases table), and a map of where things live. They do not restate what the code already says. Tests derived from spec cases are part of the code truth: they are the executable behavior contract. design.md is therefore written at the intent / contract level from the start; there is no post-implementation distillation step.
+
+**Which docs are the intent layer.** requirements.md and design.md. tasks.md is a record of the change it was written for, maintained only by Spec Mode flows (`/update-spec` edits, `/implement` status markers) and never corrected against code; review-log.md is a per-change record. Neither record falls under the conflict rule below.
+
+**Conflict rule.** A reader that finds requirements.md or design.md disagreeing with the code, outside an in-flight change, treats the code as authoritative and never changes code to match the doc. It may note the conflict in its report; no backlog item is recorded. The doc is corrected at the next `/update-spec` on that spec (`/implement` asks whether to run it first); until then the code wins. Two points own that correction:
+
+- `/update-spec` step 6: `spec-author` compares each design.md section the change builds on, with the Test Cases rows and acceptance criteria tied to it, against the current code, comparing only what completed (`[x]`) tasks built, and corrects that existing text to the code first. It never adds rows.
+- `/implement` drift pre-step: before implementing, it asks the user whether to run `/update-spec` first when code under the spec has changed since the spec directory was last committed.
+
+A Quick Fix may leave a spec behind the code; that is expected, not a defect, and it is not required to keep a spec in sync. Inside an in-flight change the order flips: a mismatch between new code and that change's design basis is a fidelity issue in the code, or a basis defect routed to `spec-author`.
+
+---
+
 ## Calibrate for Cognitive Load (global communication principle)
 
 **Any output** the main agent produces for the user — mode declaration, progress report, problem explanation, review conclusion, summary, Decision escalation, briefing — must be **digested and abstracted** before it's presented; don't dump a raw flood of information at the user. This isn't the rule of one checkpoint; it's the communication baseline that runs through the entire flow.
 
-**Why**: the mental map an agent can hold up instantly is far larger than what a human can absorb in the moment. Dumping un-abstracted bulk on the user → cognitive overload → the important point gets buried → misunderstandings only surface after implementation, where fixing them costs an order of magnitude more. Lowering cognitive load isn't a courtesy; it moves "trigger the discussion" to the cheapest possible moment.
+**Why**: the mental map an agent can hold up instantly is far larger than what a human can absorb in the moment. Dumping un-abstracted bulk on the user → cognitive overload → the important point gets buried → misunderstandings only surface after implementation, where fixing them costs an order of magnitude more. Lowering cognitive load isn't a courtesy; it moves "trigger the discussion" to the cheapest possible moment. This is the communication layer; the docs themselves are the agent layer (see "Docs for Agents, Code as Truth"), so lowering the user's load never means making the docs longer.
 
 **Core practice — one lens serving both analysis and communication**: "**use cases + execution flow + data structures**" is one lens used two ways:
 
@@ -498,6 +522,8 @@ When writing a plan file (either mode) or design.md (Spec Mode), **focus on subs
 | Risk assessment | Mode comparison table ("why not the other mode") |
 | Architecture Decisions (Options + Trade-offs) | Estimating how many review rounds (the reviewer decides, not the plan) |
 | Verification approach | Definition of Done (the exit condition the skill runs automatically) |
+
+Write design.md at the intent / contract level; don't restate what the code will say (see "Docs for Agents, Code as Truth").
 
 **Why**: the reviewer / spec-implementer already know the skill flow; the plan needn't restate it. Verbose process narration = noise that blurs the substance the user actually needs to see.
 
@@ -557,7 +583,7 @@ Every spec / Quick Fix task has a review log recording the five kinds of artifac
 
 ### Why it's needed
 
-In the old review/resolve process, the agent would leave the review-process audit trail inside the formal docs — for instance an 8-line "SRP exception (known and accepted): ..." block tucked into a tasks.md task description. The content itself is reasonable, but it's **in the wrong place**: tasks.md should answer "what does this task do," not carry "we accept violating some principle." The review log keeps these artifacts together, returning the formal docs to single-source-of-truth readability.
+In the old review/resolve process, the agent would leave the review-process audit trail inside the formal docs — for instance an 8-line "SRP exception (known and accepted): ..." block tucked into a tasks.md task description. The content itself is reasonable, but it's **in the wrong place**: tasks.md should answer "what does this task do," not carry "we accept violating some principle." The review log keeps these artifacts together, keeping the formal docs readable as the intent contract.
 
 ### File location
 
@@ -871,14 +897,16 @@ Cleanup is part of Done: the Summary stage's "completed" report assumes the merg
 14. **Tests Anchor to the Spec, Never to the Code** — every test traces to a requirement or to a component's public interface, recorded as a case in design.md and reviewed by `design-reviewer` at design time, which is the only moment fixing it is free. A case that can be anchored to neither is not written; a test found later asserting internal structure is a Smell even when it is green. The writer is kept **blind to the implementation** so the coupling cannot form in the first place, and when a refactor turns the suite red the anchor decides the verdict mechanically — requirement → a real regression, fix the code; an interface this change deliberately redesigned → rewrite or delete, never patch back to green; untraceable → delete, repairing it buys nothing. Quick Fix Mode runs the lightweight version: the plan lists the tests, the implementer writes them, the anchoring discipline still holds (see "Test Anchoring Mechanism")
 
 15. **Don't Accrete — Design as if Built Right the First Time** — an agent follows the path of least resistance, and in design that path is bolting each new requirement onto the old structure. So every change to existing code is judged as if the design had been built with that requirement from the start. The rules live in one place, `references/design-principles.md`, and each fires only when a real scenario reaches it; the author applies them while designing, and the reviewers review against them and grade by the severity table
+16. **Docs Are Written for Agents** — the doc layer (steering, specs, plan files, review logs) is written for agents, to keep them oriented across features and stop duplicated logic accreting; the communication layer (briefings, every message to the user) is written for humans, who steer through it, and the review loops to 0 issues are what let them skip reading every doc. Two guardrails: "for agents" never means verbose (precise, easy to navigate, non-redundant, each thing said once), and docs stay human-auditable (plain Markdown prose and tables, no agent-only encodings). See "Docs for Agents, Code as Truth"
+17. **Code Is the System's Truth** — during a change the spec / plan file is the intent contract; once the change ships, the code, tests included, is the truth of what the system is, and spec docs keep only the intent layer (intent, boundaries, decisions and rationale, the Test Cases table, a map of where things live). When a doc and the code conflict outside an in-flight change, the code wins and the doc is corrected at the next `/update-spec`. See "Docs for Agents, Code as Truth"
 
 **Spec Mode specific**:
-16. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
-17. **Design is Truth** — design.md is the single source of truth
+18. **No Steering, No Spec Mode** — steering must exist before entering Spec Mode, and it evolves continuously with the project
+19. **Design Is the Change's Contract** — design.md is the contract while a Spec Mode change is planned and implemented (#17)
 
 **Quick Fix Mode specific**:
-18. **Plan File is Truth** — the plan file is the source of truth (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode, and the file lives outside the repo)
-19. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode; the user decides (`mode-selection.md`). This includes the case where a from-scratch design for the change (Don't bolt on in `design-principles.md`) would be much larger than the Quick Fix bar: the author flags it as needing escalation, and the main agent escalates it as an Architecture Decision, with the user deciding between extending now and upgrading
+20. **Plan File Is the Quick Fix's Contract** — the plan file is the contract while a quick fix is planned and implemented (including its embedded `## Review Log` section; the path is confirmed at EnterPlanMode, and the file lives outside the repo) (#17)
+21. **Escalate When Scope Grows** — when the scope is found to exceed range, stop and recommend upgrading to Spec Mode; the user decides (`mode-selection.md`). This includes the case where a from-scratch design for the change (Don't bolt on in `design-principles.md`) would be much larger than the Quick Fix bar: the author flags it as needing escalation, and the main agent escalates it as an Architecture Decision, with the user deciding between extending now and upgrading
 
 ---
 

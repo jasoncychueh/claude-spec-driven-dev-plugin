@@ -6,6 +6,8 @@ Claude Code plugin for spec-driven development workflow. Enforces "no spec, no c
 
 ## Philosophy
 
+Four ideas run through this plugin as one workflow: **spec-driven development** (decide what to build before building it), **spec-anchored testing** (tests come from the spec, not from the implementation — test-first in spirit), **clean architecture and code** (design principles applied while designing and enforced in review), and **low cognitive load** (everything the user reads is digested first). They share one aim: **lower the cost of understanding** — for the user making a decision today, and for whoever, human or agent, reads the code next. The cost is lowered in two layers. The docs (steering, specs, plan files, review logs) are written for agents, so that across many features they keep their bearings in the architecture and don't accrete duplicated logic: precise rather than long, and still plain enough for a human to audit when something goes wrong. Humans steer through briefings at a high level of abstraction, and the review loops to 0 issues are what let them skip reading every doc. And the spec is the contract only while a change is being made: once it ships, the code, tests included, is the truth of what the system is, and the spec keeps only the intent layer (intent, boundaries, decisions, where things live). That is the key difference from traditional SDD.
+
 The workflow has two jobs — catch design flaws while they're cheap to fix, and keep the human in the loop without drowning them — and both run on **one lens**: read every change through its **real use cases + execution flow + data structures**.
 
 - **Review uses the lens to find what matters.** A reviewer starts from "which real scenario does this serve?", not from a checklist — surfacing the *core design concepts* and ignoring theoretical edge cases no use case drives (those get fail-fast + an error log, not defensive code). Review runs multi-round until 0 issues; reviewers raise issues, never fix them.
@@ -28,6 +30,7 @@ A structural choice keeps the token economics honest too: **generation in subage
 - **Living Steering**: review loops surface unrecorded project principles as steering candidates; user-confirmed updates flow back into steering docs as development progresses. Steering stays a set of decisions, not an operations manual — a finding whose justification is a recurring incident is routed to CLAUDE.md instead, so the guardrails don't silt up with operating knowledge
 - **Backlog and Roadmap**: anything discovered mid-flow that can't be resolved now — deferred review issues, out-of-scope findings, unresolved discussion threads — is recorded silently as a ticket — one question per ticket — in the registry `.spec/backlog/backlog.json` (records are never deleted; closing adds how it closed), with one Markdown body per ticket, so it survives the session. The roadmap (`.spec/roadmap/roadmap.json`) holds only structure: an architecture-shaped tree with ordinals and dependencies that answers "what can start now?" exactly, referencing tickets by id. The unsorted basket is the open tickets no node references; `promote` adds a reference and loses nothing. Both are read and written only through `scripts/board.mjs`, which validates every edit, generates collision-free ids, handles claims, and always works on the main worktree's copy; `/backlog` and `/roadmap` drive it
 - **Design Principles**: eleven rules in one reference (anti-accretion; laziness and foundational thinking; boundary, idempotency and state), adapted from [ub-mode](https://github.com/unclebob/ub-mode), each with a review probe, a bad → good example, and a default severity. They fire only when a real scenario reaches them; the author applies them while designing, and the reviewers review against them and grade by the severity table
+- **Spec-Anchored Tests**: test cases are specified in design.md's Testing Strategy before any code exists, then written by a dedicated `spec-tester` agent in parallel with the implementer and kept blind to the implementation it tests — so the suite asserts the behavior the spec promises rather than the shape the code happened to take, and survives refactoring instead of rotting. Test runs are scoped to what changed; the full suite runs only on significant risk
 - **Brief Before Build**: before implementation starts, a conversational summary of key points, resolved decisions, and waivers gets the user oriented without reading the full spec — cheapest moment to catch misunderstandings
 - **Calibrate for Cognitive Load**: a global discipline — the main agent digests and abstracts before every message, narrates through real use cases + execution flow + data structures, and re-surfaces context from earlier turns; review and briefing use the same lens to find and explain the core design concepts
 
@@ -56,6 +59,7 @@ A structural choice keeps the token economics honest too: **generation in subage
 | `spec-author` | Author / revise planning & spec docs per the main agent's brief (persistent session) |
 | `design-reviewer` | Multi-round design review until 0 issues (review only) |
 | `spec-implementer` | Implement code per spec |
+| `spec-tester` | Write tests from design.md's Test Cases, blind to the implementation |
 | `implementation-reviewer` | Multi-round implementation review until 0 issues (review only) |
 
 ## Hooks
@@ -114,11 +118,14 @@ Then point the marketplace at the local path and install:
 1. **No Steering, No Development**
 2. **No Spec, No Code**
 3. **Research Before Design**
-4. **Design is Truth** (design.md is the single source of truth)
+4. **Code is Truth** — the spec / plan is the contract during a change; afterwards the code, tests included, is the system's truth, and specs keep only the intent layer
 5. **Steering Stays Current**
 6. **Self-Verify**
 7. **Verify Before Deliver**
 8. **Calibrate for Cognitive Load** — every message to the user is digested and abstracted first, narrated through real use cases + execution flow, never assuming the user remembers earlier-turn structures; review and briefing share this one lens
+9. **Tests Come from the Spec** — test cases are specified in design.md and written without reading the implementation, so they test behavior, not code shape
+10. **Clean by Design** — the design principles are applied while designing and reviewed against, graded by severity — not bolted on after the code exists
+11. **Docs for Agents** — process docs are written for agents (precise, not verbose) and stay human-auditable; humans steer through briefings
 
 ## Acknowledgments
 

@@ -97,7 +97,7 @@ Output a structured report containing:
 
 ### design.md
 ✅ Content completeness: {pass}/{total} items passed
-✅ Implementation detail completeness: {pass}/{total} items passed
+✅ Boundary-contract completeness: {pass}/{total} items passed
 ✅ Responsibility boundary check: {pass}/{total} items passed
 
 ### tasks.md

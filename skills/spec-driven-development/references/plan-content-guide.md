@@ -4,7 +4,7 @@ This document governs what a **design-type document** (the quick fix mode plan f
 
 ## Core principle: write substance, not process
 
-The document's readers (humans or the reviewer agent) care about "**what is being done this time, why, and what the risks are**". **Process details are guaranteed by the skill itself**, and don't need to be restated by the plan / design.
+The document's readers are agents first (the implementer and the reviewer), and it stays readable by a human auditing it later. They care about "**what is being done this time, why, and what the risks are**". **Process details are guaranteed by the skill itself**, and don't need to be restated by the plan / design.
 
 Writing process narration amounts to:
 - Repeating what SKILL.md already promises
@@ -17,7 +17,7 @@ Writing process narration amounts to:
 |---|---|---|
 | Quick Fix plan file | The implementer's **only design basis** | Enough that the implementer does not have to guess: the files to change, the behavior change in each, the tests to add or change |
 | Spec Mode plan file | Settle the **direction and the rough framework design** with the user | Boxes-and-responsibilities level. Interfaces, signatures, fields and error handling are not forbidden — when the discussion went there they can be written down — but they are not the plan's job |
-| design.md | The detail every implementer reads | Interfaces, data models, error handling, the Test Cases table; `design-reviewer` Mode B reviews it here |
+| design.md | The detail every implementer reads | Interfaces at component boundaries, data models, error handling, the Test Cases table (internals below the boundary are the implementer's and live in code); `design-reviewer` Mode B reviews it here |
 
 ### Quick Fix plan
 
@@ -48,6 +48,7 @@ The plan exists to settle the direction before any spec document is written. It 
 | **Verification method** — specific runnable commands / test list | **Estimated number of review rounds** — the reviewer decides; it shouldn't be estimated |
 | **Out-of-scope** (spec mode) — explicit boundaries | **Definition of Done** — the exit conditions the skill executes automatically |
 | **Neutral design rationale** (spec mode design.md) — if a Component design needs to explain "why it is designed this way", integrate it into the Component description using neutral prose about technical constraints / codebase conventions | **Agent invocation sequence** full narration |
+| | **Restated internals** in design.md: private helpers, internal field lists, signatures no boundary exposes; the code says them |
 | | **Any reviewer letter tag** (Decision X / Bug Y / Smell Z) / **Round process narrative** / **a reference / footnote pointer to review-log.md** — the formal doc is 100% isolated |
 
 ## Example comparison

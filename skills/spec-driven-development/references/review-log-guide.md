@@ -16,7 +16,7 @@ The detailed conventions the main agent follows when maintaining review-log.md d
 When a formal doc needs to explain "why this Component is designed this way" / "why this task looks large", use **neutral design rationale** (technical constraints / codebase conventions / adverse consequences) integrated into the corresponding passage — **without revealing** reviewer / Decision / review-log.
 
 **Why 100% isolation**:
-1. Formal docs are read far more often than the review log; preserving the readability of the single source of truth is a core KPI
+1. Formal docs are read far more often than the review log; keeping them readable as the intent contract is a core KPI
 2. A footnote pointer looks lightweight, but in practice it trains the agent into the habit of "I can mention the review-log in design.md", which gradually degenerates into an inline waiver block (empirically proven: once the pointer back door is opened, the agent naturally adds back ADR sections + reviewer letter tags + Round process narration)
 3. Design rationale can be expressed with neutral technical prose; there's no need to cite the reviewer just to "emphasize that this was discussed" — the reader doesn't need that layer of information, and whoever does need it goes to the review-log
 
@@ -289,4 +289,4 @@ to avoid subsequent reviewers raising it again
 
 ## Why Not Write MUST / NEVER
 
-This document uses "✅/❌" and "why it's designed this way" to explain, not hard prohibitions. The decision criterion is always: **can the formal doc keep its "single source of truth" readability? Can the review log let a future maintainer quickly answer "why is it designed this way here"?** If both questions pass, handle the details flexibly; if they fail, you need to come back to this guide to adjust the approach.
+This document uses "✅/❌" and "why it's designed this way" to explain, not hard prohibitions. The decision criterion is always: **can the formal doc keep its readability as the intent contract? Can the review log let a future maintainer quickly answer "why is it designed this way here"?** If both questions pass, handle the details flexibly; if they fail, you need to come back to this guide to adjust the approach.

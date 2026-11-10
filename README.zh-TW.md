@@ -6,6 +6,8 @@
 
 ## 理念
 
+這個 plugin 把四個概念融合成同一套工作流:**規格驅動開發**(先決定要做什麼,再動手做)、**錨定 spec 的測試**(測試來自 spec,而不是來自實作 —— 精神上是測試先行)、**乾淨的架構與程式寫法**(設計原則在設計時套用、在 review 時把關),以及**降低認知負荷**(使用者讀到的每樣東西都先經過消化)。四者的共同目標是**降低理解成本** —— 無論是今天要做決策的使用者,還是下一個讀這份 code 的人或 agent。降低的方式分成兩層。文件(steering、spec、plan file、review log)是寫給 agent 看的,讓 agent 在越來越多的 feature 之間仍掌握架構全貌、不重複堆積邏輯:要精確而不是冗長,也仍要讓人類在出問題時能回頭稽核。人類則透過 briefing 在高抽象層次掌舵,而 review 一路跑到 0 issues,正是人類不必逐份閱讀文件的保證。另外,spec 只在變更進行中是契約:變更完成之後,code(含測試)才是系統的真相,spec 只保留意圖層(意圖、邊界、決策、東西放在哪裡)。這是與傳統 SDD 最關鍵的差異。
+
 這套工作流有兩個任務 —— **在設計缺陷還便宜的時候抓出來**,以及**讓人類參與決策卻不被資訊淹沒** —— 兩者都建立在**同一副透鏡**上:用「**真實使用情境 + 執行流程 + 資料結構**」來閱讀每一個變更。
 
 - **Review 用這副透鏡找出真正重要的東西。** Reviewer 從「這段設計服務哪個真實情境?」出發,而不是從檢查清單出發 —— 浮現*核心設計概念*,忽略沒有任何使用情境驅動的理論性邊界案例(那些只需要 fail-fast + 錯誤日誌,不需要防禦性代碼)。Review 多輪執行直到 0 issues;reviewer 只提出問題,從不動手修。
@@ -25,9 +27,10 @@
 - **Agent 化實作**:平行實作 + 跨 agent review
 - **生成/仲裁分工**:主 agent 負責仲裁 —— 組織任務、提煉 brief、挑戰每一個 subagent 的結論 —— 所有長文生成(plan、文件、程式碼、review)由 persistent subagent session 承擔,判斷角色用 opus medium、執行者用 sonnet high 或 haiku xhigh:品質靠對抗式挑戰把關,token 省在大量寫作上
 - **Review Log 紀律**:Waivers / Decisions / 逐輪稽核軌跡住在 `review-log.md`;正式文件(requirements / design / tasks / code)保持乾淨
-- **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件
+- **活的 Steering**:review loop 會浮現未記錄的專案原則作為 steering 候選;使用者確認後隨開發進程回流到 steering 文件。Steering 是一組決策,而不是操作手冊 —— 若某個發現的理由是反覆發生的事故,就改記到 CLAUDE.md,避免護欄被操作知識淤積
 - **Backlog 與 Roadmap**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 會默默記成一張票(一張票只裝一個題目),存進票的總表 `.spec/backlog/backlog.json`(記錄永不刪除,結案只是加上結案資訊),每張票另有一個 Markdown 本體,不隨 session 結束蒸發。roadmap(`.spec/roadmap/roadmap.json`)只存結構:一棵照架構長的樹,帶順序與依賴,能精確回答「現在可以開工什麼」,用 id 引用票。未分類的籃子就是「還沒結案、也沒被任何節點引用的票」;`promote` 只是加一個引用,不會丟失任何資料。兩者都只透過 `scripts/board.mjs` 讀寫:它驗證每次修改、產生不會撞號的 id、處理認領,而且永遠操作 main 工作樹那份;`/backlog` 與 `/roadmap` 負責驅動它
 - **設計原則**:十一條規則集中在同一份參考文件(Anti-accretion、Laziness & Foundational Thinking、Boundary, Idempotency & State),改編自 [ub-mode](https://github.com/unclebob/ub-mode),每條都有審查探問、壞→好範例與預設嚴重度。它們只在真實情境碰到時才啟動;author 設計時就套用,reviewer 依原則審查並按嚴重度表分級
+- **錨定 spec 的測試**:測試案例在寫任何 code 之前就定義在 design.md 的 Testing Strategy,再由專責的 `spec-tester` agent 與 implementer 平行撰寫,且刻意不看它要測試的實作 —— 因此測試驗證的是 spec 承諾的行為,而不是 code 碰巧長成的樣子,重構之後依然有效,不會腐化。測試只跑變更涉及的範圍,只有風險顯著時才跑完整測試套件
 - **Brief Before Build**:實作開始前,以對話式摘要呈現重點、已決策事項與 waivers,讓使用者不必讀完整份 spec 就能進入狀況 —— 這是抓出誤解最便宜的時刻
 - **認知負荷校準**:全域紀律 —— 主 agent 在每則訊息前先消化與抽象,用真實使用情境 + 執行流程 + 資料結構敘事,並主動重述前幾輪的脈絡;review 與 briefing 用同一副透鏡找出並解釋核心設計概念
 
@@ -55,6 +58,7 @@
 | `spec-author` | 依主 agent 的 brief 撰寫/修訂規劃與 spec 文件(persistent session) |
 | `design-reviewer` | 多輪設計 review 直到 0 issues(只 review) |
 | `spec-implementer` | 依 spec 實作程式碼 |
+| `spec-tester` | 依 design.md 的 Test Cases 撰寫測試,不看實作 |
 | `implementation-reviewer` | 多輪實作 review 直到 0 issues(只 review) |
 
 ## Hooks
@@ -111,11 +115,14 @@ git clone https://github.com/jasoncychueh/claude-spec-driven-dev-plugin.git
 1. **No Steering, No Development** —— 沒有 steering 就不開發
 2. **No Spec, No Code** —— 沒有 spec 就不寫 code
 3. **Research Before Design** —— 設計前先研究
-4. **Design is Truth** —— design.md 是唯一真相來源
+4. **Code is Truth** —— 變更進行中,spec / plan 是契約;完成之後,code(含測試)才是系統的真相,spec 只保留意圖層
 5. **Steering Stays Current** —— steering 與專案同步演進
 6. **Self-Verify** —— 實作者自我驗證
 7. **Verify Before Deliver** —— 交付前必過驗證
 8. **Calibrate for Cognitive Load** —— 每則給使用者的訊息都先消化與抽象,用真實使用情境 + 執行流程敘事,從不假設使用者記得前幾輪的結構;review 與 briefing 共用這一副透鏡
+9. **Tests Come from the Spec** —— 測試案例定義在 design.md,撰寫時不讀實作,所以測的是行為而不是 code 的形狀
+10. **Clean by Design** —— 設計原則在設計時就套用、review 時依原則審查並按嚴重度分級,而不是 code 寫完才補救
+11. **Docs for Agents** —— 流程文件是寫給 agent 的(精確而不冗長),但仍可供人類稽核;人類透過 briefing 掌舵
 
 ## 致謝
 

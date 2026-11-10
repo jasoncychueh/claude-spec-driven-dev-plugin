@@ -1,0 +1,11 @@
+{
+  "tickets": [
+    {
+      "id": "bl-b69411",
+      "title": "Session-longevity retirement threshold assumes ~1M context; subagents here autocompact near 160K",
+      "type": "issue",
+      "date": "2026-11-10",
+      "source": "conversation"
+    }
+  ]
+}

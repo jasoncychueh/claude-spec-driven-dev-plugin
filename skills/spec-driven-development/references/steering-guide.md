@@ -2,6 +2,8 @@
 
 Steering documents are project-level guidance that define the product vision, technology choices, and how code is organized.
 
+Steering is the agents' map of the project: what every feature must stay consistent with. It is written precisely and briefly for agents and stays readable for a human auditing it.
+
 ## Refinement principle
 
 Steering documents are the project's "guardrails"; they should be refined and record only what truly matters:

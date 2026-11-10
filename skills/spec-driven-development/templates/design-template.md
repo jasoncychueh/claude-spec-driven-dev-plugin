@@ -12,7 +12,9 @@
 >
 > **If a Component's design needs to explain "why it was done this way"**: use **neutral design rationale** (technical constraints / codebase conventions / adverse consequences) integrated into the Component description. **Do not reveal** the reviewer source, Decision number, or review process. See `references/review-log-bad-examples.md` for examples.
 >
-> **Full rationale**: the review log is the single source of truth for "why this world"; design.md is the single source of truth for "what this world looks like". Physically isolating the two preserves the readability of each.
+> **Full rationale**: the review log holds "why this world"; design.md holds "what this world is meant to be". Physically isolating the two preserves the readability of each.
+>
+> **Altitude**: write at component boundaries and don't restate what the code will say (no private helpers, no internal field lists). An internal used by more than one component or task group counts as a boundary: name it in this document, or give it its own task in tasks.md ahead of the tasks that use it. Why: SKILL.md "Docs for Agents, Code as Truth".
 
 ## Overview
 
@@ -25,6 +27,9 @@
 
 ### Project Structure (structure.md)
 [How the implementation will follow project organization conventions]
+
+**Code location:** [repo-relative directories this feature lives in, plus the files it touches outside them; test directories included]
+<!-- No completeness check requires this line, but the Tasks-vs-Design §2 check compares open tasks' files against it, or against the files design.md names. -->
 
 ## Code Reuse Analysis
 [What existing code will be leveraged, extended, or integrated with this feature]
@@ -54,17 +59,19 @@ graph TD
 
 ### Component 1
 - **Purpose:** [What this component does]
-- **Interfaces:** [Public methods/APIs]
+- **Interfaces:** [Public methods/APIs at the component boundary]
 - **Dependencies:** [What it depends on]
 - **Reuses:** [Existing components/utilities it builds upon]
 
 ### Component 2
 - **Purpose:** [What this component does]
-- **Interfaces:** [Public methods/APIs]
+- **Interfaces:** [Public methods/APIs at the component boundary]
 - **Dependencies:** [What it depends on]
 - **Reuses:** [Existing components/utilities it builds upon]
 
 ## Data Models
+
+[Models that cross a component boundary or persist; internal shapes are left to the code]
 
 ### Model 1
 ```

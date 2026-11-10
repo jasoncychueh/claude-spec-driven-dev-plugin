@@ -37,15 +37,15 @@ Focus on the implementation approach from the **technical perspective**, answeri
 | System architecture and component relationships | Repeating User Stories |
 | Component design (Purpose, Interfaces, Dependencies) | Redefining business rules |
 | Data models and Schema | Business goals and value |
-| API specs and function signatures | Quantifiable business metrics |
-| Error handling strategy | |
-| Algorithms and processing flows | |
+| API specs and public signatures at component boundaries | Quantifiable business metrics |
+| Error handling strategy | Internals below the component boundary (the code holds them) |
+| Processing flow where the flow is itself a decision (ordering, keys, writers) | |
 | Testing strategy | |
 
 ### Decision Principle
 
 ```
-❓ Does this content involve technology selection, code structure, or implementation details?
+❓ Does this content involve technology selection, component boundaries, data that crosses a boundary, or a design decision?
    ├─ Yes → write it in design.md
    └─ No →
       ❓ Does this content describe user behavior, business rules, or feature expectations?
@@ -232,7 +232,7 @@ Content to define:
 - Identify reusable existing code
 - Ensure conformance to the technology selection in `steering/tech.md`
 - Ensure conformance to the naming conventions in `steering/structure.md`
-- **Include all implementation details**: API specs, function signatures, algorithm flows
+- **Include the boundary contract**: API specs, public signatures at component boundaries, processing flow where the flow is itself a decision; don't restate internals the code will hold
 - **Do not repeat** the User Stories from requirements.md, just reference the requirement numbers
 - Focus on "how the system realizes it" rather than "what the user can do"
 
@@ -264,18 +264,19 @@ Content to define:
 - Task size is moderate (completable in 0.5-2 days)
 - Tasks that are depended upon come first
 - Each task can be tested independently once complete
-- Design ref clearly points to the corresponding section in design.md; implementation details are read directly from design.md by the agent
+- Design ref clearly points to the corresponding section in design.md; design detail is read directly from design.md by the agent
 
 ---
 
-## Core Principle: Design as Single Source of Truth
+## Core Principle: Design Is the Change's Contract
 
-design.md is the single source of truth for implementation. tasks.md is responsible for defining "what to do" and "the order of doing it"; the concrete "how to do it" is read directly by the agent from the corresponding section in design.md.
+During a change, design.md is the contract for implementation. tasks.md is responsible for defining "what to do" and "the order of doing it"; the concrete "how to do it" is read directly by the agent from the corresponding section in design.md.
 
 This means:
-- tasks.md does not need to repeat the implementation details in design.md
+- tasks.md does not need to repeat the design detail in design.md
 - The `Design ref` field establishes a clear correspondence between tasks and the design
 - When design.md is updated, the implementation approach of the corresponding tasks automatically follows
+- design.md is written at the contract level (boundaries, decisions, behavior); see SKILL.md "Docs for Agents, Code as Truth".
 
 ---
 
