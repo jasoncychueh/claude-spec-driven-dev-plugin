@@ -15,12 +15,30 @@
 > **Full rationale**: the review log holds "why this world"; design.md holds "what this world is meant to be". Physically isolating the two preserves the readability of each.
 >
 > **Altitude**: write at component boundaries and don't restate what the code will say (no private helpers, no internal field lists). An internal used by more than one component or task group counts as a boundary: name it in this document, or give it its own task in tasks.md ahead of the tasks that use it. Why: SKILL.md "Docs for Agents, Code as Truth".
+>
+> Write these precisely:
+> - Components' Purpose and Interfaces.
+> - Data Models that cross a boundary or persist.
+> - Error Handling.
+> - The Test Cases table and the Test Approach seams (injection points, clock control, observable state).
+> - Shared internals (the rule above).
+> - The processing flow where the flow is itself a decision.
+> - Code location and the Visual design pointer.
+>
+> The reason: `spec-tester` writes tests blind, from the interfaces, the case table and the Test Approach, so a vague contract does not free the implementer: it makes the tests and the code disagree. A decision the design states binds; a description of unshared internals and the approach does not. The contract's full definition is in SKILL.md "Docs for Agents, Code as Truth".
 
 ## Overview
 
 [High-level description of the feature and its place in the overall system]
 
+**Code location:** [repo-relative directories this feature lives in, plus the files it touches outside them; test directories included]
+<!-- No completeness check requires this line, but the Tasks-vs-Design §2 check compares open tasks' files against it, or against the files design.md names. -->
+
+**Visual design:** [.spec/design/<feature>/ — only for a feature with UI; a pointer, not a description of the visuals]
+
 ## Steering Document Alignment
+
+*Optional — include only when it carries information the sections below don't.*
 
 ### Technical Standards (tech.md)
 [How the design follows documented technical patterns and standards]
@@ -28,12 +46,10 @@
 ### Project Structure (structure.md)
 [How the implementation will follow project organization conventions]
 
-**Code location:** [repo-relative directories this feature lives in, plus the files it touches outside them; test directories included]
-<!-- No completeness check requires this line, but the Tasks-vs-Design §2 check compares open tasks' files against it, or against the files design.md names. -->
-
-**Visual design:** [.spec/design/<feature>/ — only for a feature with UI; a pointer, not a description of the visuals]
-
 ## Code Reuse Analysis
+
+*Optional — include only when it carries information the sections below don't.*
+
 [What existing code will be leveraged, extended, or integrated with this feature]
 
 ### Existing Components to Leverage
@@ -45,6 +61,8 @@
 - **[Database/Storage]**: [How data will connect to existing schemas]
 
 ## Architecture
+
+*Optional — include only when it carries information the sections below don't.*
 
 [Describe the overall architecture and design patterns used]
 
@@ -63,13 +81,13 @@ graph TD
 - **Purpose:** [What this component does]
 - **Interfaces:** [Public methods/APIs at the component boundary]
 - **Dependencies:** [What it depends on]
-- **Reuses:** [Existing components/utilities it builds upon]
+- **Reuses:** [Existing components/utilities it builds upon — optional]
 
 ### Component 2
 - **Purpose:** [What this component does]
 - **Interfaces:** [Public methods/APIs at the component boundary]
 - **Dependencies:** [What it depends on]
-- **Reuses:** [Existing components/utilities it builds upon]
+- **Reuses:** [Existing components/utilities it builds upon — optional]
 
 ## Data Models
 

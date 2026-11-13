@@ -15,13 +15,19 @@ Writing process narration amounts to:
 
 | Document | Its job | Detail |
 |---|---|---|
-| Quick Fix plan file | The implementer's **only design basis** | Enough that the implementer does not have to guess: the files to change, the behavior change in each, the tests to add or change |
+| Quick Fix plan file | The implementer's **only design basis** | Per file: the behavior change, the contract others rely on, and the tests as behaviors to verify |
 | Spec Mode plan file | Settle the **direction and the rough framework design** with the user | Boxes-and-responsibilities level. Interfaces, signatures, fields and error handling are not forbidden — when the discussion went there they can be written down — but they are not the plan's job |
 | design.md | The detail every implementer reads | Interfaces at component boundaries, data models, error handling, the Test Cases table (internals below the boundary are the implementer's and live in code); `design-reviewer` Mode B reviews it here |
 
 ### Quick Fix plan
 
-The implementer reads this file and nothing else, so every choice it would otherwise make by guessing is written down. For each change: the file (and the function or section when the file is large), the behavior before and after, and why this shape. The tests to add or change are named by the behavior each verifies. A plan that says "handle the null case in the service" leaves the implementer to pick where and how; the example below names the route, the parse and the response.
+The implementer reads this file and nothing else, so the contract is written down and never left to a guess. For each change: the file (and the function or section when the file is large), the behavior before and after, the contract others rely on, and why this shape. The contract is the contract as `SKILL.md` "Docs for Agents, Code as Truth" defines it, not a list of this guide's own. In a quick fix it is typically public interfaces, CLI arguments, output an agent or user parses, and file formats. A decision the change states (an ordering, a writer, a key) belongs in the change list too. The tests to add or change are named by the behavior each verifies.
+
+The change list does not dictate internal function bodies, private helper names or internal step sequences. Exact strings and signatures appear only when they are contract. Its job is still that the implementer never guesses at the contract: a plan that says "handle the null case in the service" leaves the implementer to pick where and how; the example below names the route, the parse and the response.
+
+Over-specified: "routes/profile.py — add `_parse_user_id(raw)` that strips whitespace, returns `jsonify(error=...), 400` when empty, then constructs `UserId(raw)` and calls the service".
+
+Right altitude: "routes/profile.py — a missing or empty `user_id` returns 400 before the service is called; the service receives a `UserId`".
 
 ### Spec Mode plan
 
@@ -48,7 +54,7 @@ The plan exists to settle the direction before any spec document is written. It 
 | **Verification method** — specific runnable commands / test list | **Estimated number of review rounds** — the reviewer decides; it shouldn't be estimated |
 | **Out-of-scope** (spec mode) — explicit boundaries | **Definition of Done** — the exit conditions the skill executes automatically |
 | **Neutral design rationale** (spec mode design.md) — if a Component design needs to explain "why it is designed this way", integrate it into the Component description using neutral prose about technical constraints / codebase conventions | **Agent invocation sequence** full narration |
-| | **Restated internals** in design.md: private helpers, internal field lists, signatures no boundary exposes; the code says them |
+| | **Restated internals** in design.md or a Quick Fix change list: private helpers, internal field lists, signatures no boundary exposes, dictated function bodies, private helper names, internal step order; the code says them. Exemption: the root-cause fix mechanism the plan states and justifies is not noise. It binds the implementer as written (`SKILL.md` "Docs for Agents, Code as Truth"), and it must be the mechanism that removes the root cause named in the plan's Context. A "why this shape" added to any other step neither exempts it nor makes it binding, and helper names, function bodies and step order stay noise. The same applies to an approach `spec-author` settles into a plan or design.md for an escalated issue: it binds as written (`SKILL.md` "Docs for Agents, Code as Truth") |
 | | **Any reviewer letter tag** (Decision X / Bug Y / Smell Z) / **Round process narrative** / **a reference / footnote pointer to review-log.md** — the formal doc is 100% isolated |
 
 ## Example comparison

@@ -22,29 +22,26 @@
 | `[~]` | Needs rework | Affected by a design change, needs reimplementation |
 | `[-]` | Removed | Removed by a design change, code already cleaned up |
 
+> **What each field is for.** `File:` decides parallel grouping and what the tester must not read. Phases and `After:` decide order: `After:` lists only **earlier** task numbers **in the same phase**, so a cycle cannot be written, and only when the task depends on what another task in the phase writes while their `File:` sets are disjoint (with overlapping sets they are grouped together anyway, and list order sets the order inside a group). Test tasks never carry `After:`: they run in parallel, blind to the code. `Cases:` assigns test cases. The contract is read from design.md and the approach is the implementer's, so a task carries no steps and does not restate the design.
+
 ---
 
 ## Phase 1: [Phase name]
 
-- [ ] 1. [Task title]
-  - File: [file path]
-  - [Task description]
-  - Purpose: [the purpose of this task]
-  - Design ref: [corresponding section/component name in design.md]
-  - _Leverage: [existing code that can be reused]_
-  - _Requirements: [corresponding requirement number]_
+- [ ] 1. [Task title — names the component or public interface the task delivers, by its design.md name, e.g. "`SyncQueue.push` and `SyncQueue.drain`"]
+  - File: [the files the task writes]
+  - [One line: the outcome, not the steps, e.g. "concurrent pushes are drained in arrival order, none lost"]
+  - _Requirements: [optional trace — corresponding requirement number]_
 
 - [ ] 2. [Task title]
-  - File: [file path]
-  - [Task description]
-  - Purpose: [the purpose of this task]
-  - Design ref: [corresponding section/component name in design.md]
+  - File: [the files the task writes]
+  - [One line: the outcome]
+  - After: [optional — earlier task numbers in the same phase, e.g. 1]
 
 - [ ] 3. [Test task title]
   - File: [test file path — **test files only**; a test task's File: set must not overlap any implementation task's]
-  - [What this task covers]
+  - [One line: the outcome this task covers]
   - Cases: [the case IDs from design.md's Test Cases table this task implements, e.g. T-1, T-2, T-5]
-  - Design ref: [Testing Strategy]
 
 > **Test tasks** are dispatched to `spec-tester`, not `spec-implementer`, and run in parallel with the implementation groups **of the same phase** — put a test task in a later phase and the tester ends up writing against a finished implementation instead of against the contract, which is the coupling this whole arrangement exists to prevent. Every case ID in design.md's Test Cases table must be claimed by exactly one test task — none orphaned, none claimed twice — and no test task may cite an ID that isn't in the table.
 

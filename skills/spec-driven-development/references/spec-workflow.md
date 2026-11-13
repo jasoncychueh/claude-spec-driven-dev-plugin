@@ -218,18 +218,18 @@ WHEN [event] AND [condition] THEN [system] SHALL [behavior]
 
 Content to define:
 - Overview - high-level design overview
-- Steering Document Alignment - following tech.md and structure.md
-- Code Reuse Analysis - reusable existing components
-- Architecture - architecture diagram (Mermaid)
+- Steering Document Alignment - following tech.md and structure.md (*Optional — include only when it carries information the sections below don't.*)
+- Code Reuse Analysis - reusable existing components (*Optional — include only when it carries information the sections below don't.*)
+- Architecture - architecture diagram (Mermaid) (*Optional — include only when it carries information the sections below don't.*)
 - Components and Interfaces - component design, public API
 - Data Models - data structure definitions
 - Error Handling - error handling strategy
 - Testing Strategy - the **Test Cases table** (ID / Anchor / Level / Behavior to verify — every anchor is a requirement number or a component's public interface) plus Test Approach notes
 
 **Authoring points**:
-- The architecture diagram clearly expresses component relationships
+- When an Architecture section is included, it shows the component relationships
 - Each component has Purpose, Interfaces, Dependencies
-- Identify reusable existing code
+- Name reuse where it shapes a boundary
 - Ensure conformance to the technology selection in `steering/tech.md`
 - Ensure conformance to the naming conventions in `steering/structure.md`
 - **Include the boundary contract**: API specs, public signatures at component boundaries, processing flow where the flow is itself a decision; don't restate internals the code will hold
@@ -250,13 +250,16 @@ Content to define:
 #### Task Format
 
 ```markdown
-- [ ] {number}. {task title}
-  - File: {file path}
-  - {task description}
-  - Purpose: {the purpose of this task}
-  - Design ref: {the corresponding section/component in design.md}
-  - _Leverage: {reusable existing code}_
-  - _Requirements: {corresponding requirement numbers}_
+- [ ] {number}. {title naming the component or public interface delivered, by its design.md name}
+  - File: {files the task writes}
+  - {one line: the outcome, not the steps}
+  - After: {earlier task numbers in the same phase — optional}
+  - _Requirements: {corresponding requirement numbers — optional trace}_
+
+- [ ] {number}. {test task title}
+  - File: {test files only}
+  - {one line: the outcome}
+  - Cases: {case IDs from design.md's Test Cases table}
 ```
 
 **Authoring points**:
@@ -264,19 +267,20 @@ Content to define:
 - Task size is moderate (completable in 0.5-2 days)
 - Tasks that are depended upon come first
 - Each task can be tested independently once complete
-- Design ref clearly points to the corresponding section in design.md; design detail is read directly from design.md by the agent
+- The title or outcome line names the component or public interface the task delivers, by its design.md name
+- The description is one line stating the outcome, not steps
+- `After:` only for a dependency across disjoint `File:` sets
 
 ---
 
 ## Core Principle: Design Is the Change's Contract
 
-During a change, design.md is the contract for implementation. tasks.md is responsible for defining "what to do" and "the order of doing it"; the concrete "how to do it" is read directly by the agent from the corresponding section in design.md.
+During a change, design.md is the contract for implementation. tasks.md says what to do, where (`File:`) and in what order; design.md holds the contract. The approach is the implementer's.
 
 This means:
-- tasks.md does not need to repeat the design detail in design.md
-- The `Design ref` field establishes a clear correspondence between tasks and the design
-- When design.md is updated, the implementation approach of the corresponding tasks automatically follows
-- design.md is written at the contract level (boundaries, decisions, behavior); see SKILL.md "Docs for Agents, Code as Truth".
+- tasks.md does not carry steps and does not repeat the design detail in design.md
+- When design.md is updated, the contract the corresponding tasks read automatically follows
+- design.md is written at the contract level (boundaries, decisions, behavior), and the approach below the contract is the implementer's; see SKILL.md "Docs for Agents, Code as Truth".
 
 ---
 

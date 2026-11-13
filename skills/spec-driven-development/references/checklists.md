@@ -80,14 +80,11 @@ Before you start implementing, confirm the feature spec documents are complete.
 
 **Content completeness**:
 - [ ] Has an Overview (high-level design overview)
-- [ ] Describes Steering Document Alignment
-- [ ] Has a Code Reuse Analysis (reusable existing components)
-- [ ] Has an Architecture diagram (Mermaid)
 - [ ] Every Component has:
   - [ ] Purpose
   - [ ] Interfaces (public API)
   - [ ] Dependencies
-- [ ] Defines Data Models (data structures)
+- [ ] Defines the Data Models that cross a component boundary or persist (a feature with none says so in one line)
 - [ ] Defines an Error Handling strategy
 - [ ] Has a Testing Strategy containing a **Test Cases table**, every row carrying ID / Anchor / Level / Behavior to verify
 - [ ] Every case's **Anchor** is a requirement number or a component's **public** interface — never an internal function or private state
@@ -115,7 +112,9 @@ Before you start implementing, confirm the feature spec documents are complete.
 
 - [ ] **Every component** in design.md has a corresponding task
 - [ ] Task order accounts for **dependency relationships** (depended-upon items come first)
-- [ ] Every task has a **Design ref** field (pointing to the corresponding section in design.md)
+- [ ] Every task has a `File:` set
+- [ ] Every open (`[ ]` / `[~]`) task's title or outcome line names the component it delivers, by its design.md name. A component split over several tasks may name the public interface each one delivers instead. `[x]` and `[-]` tasks are records and are never retitled
+- [ ] Every `After:` points to an earlier task in the same phase, and no test task carries one
 - [ ] Includes **test tasks**, each listing the **case IDs** it covers and writing only test files (test tasks are what `spec-tester` is dispatched on, so their `File:` sets must not overlap any implementation task's)
 - [ ] Each task does only one thing (Single Responsibility)
 
@@ -137,19 +136,19 @@ Before you start implementing, confirm the feature spec documents are complete.
 
 Run this when `/create-spec` / `/update-spec` completes, or during `/verify-spec` Stage 2 (dispatched alongside Stage 1; its result is used only if Stage 1 passes), to verify the alignment between tasks.md and design.md.
 
-The items that check a task against design.md apply only to tasks still to be done (`[ ]` / `[~]`); `[x]` / `[-]` tasks are records of the change they belong to and are not checked against the current design.md. Those items are: §1 'No task references a component not defined in design.md'; all four §2 items (file location, Purpose, Design ref, no file outside the location); §4 'data structures consistent with the Data Models' and 'field names and types'; §6 'No test task cites a case ID that isn't in the table'. Every other item applies to all tasks.
+The items that check a task against design.md apply only to tasks still to be done (`[ ]` / `[~]`); `[x]` / `[-]` tasks are records of the change they belong to and are not checked against the current design.md. Those items are: §1 'No task references a component not defined in design.md'; both §2 items (file location, no file outside the location); the §4 'No task redefines a cross-boundary model differently from design.md's Data Models' item; §6 'No test task cites a case ID that isn't in the table'. Every other item applies to all tasks.
+
+Coverage is still guaranteed. For open tasks it is judged through the component name each task's title or outcome line carries (the design.md name), instead of a per-task pointer. For `[x]` and `[-]` records it is judged as before, from title, description and `File:`.
 
 ### 1. Component coverage check
 
-- [ ] **Every Component** in design.md has corresponding tasks
+- [ ] **Every Component** in design.md has corresponding tasks. Open tasks are judged through the component name they carry; `[x]` and `[-]` tasks are judged as before from title, description and `File:`, and a component whose tasks are all `[x]` is not re-judged by name. In a new spec every task is open at verification time, so every component must be named by some task
 - [ ] No task references a component **not defined** in design.md
 - [ ] All Data Models have corresponding implementation tasks
 
 ### 2. Interface consistency check
 
 - [ ] Each task's files sit under the `Code location` design.md gives, or are files design.md names
-- [ ] The **Purpose** in the tasks is consistent with the Component Purpose in design.md
-- [ ] The **Design ref** in the tasks correctly points to the corresponding section in design.md
 - [ ] No task modifies a file that is neither under design.md's `Code location` nor named in design.md
 
 ### 3. Dependency order check
@@ -157,18 +156,18 @@ The items that check a task against design.md apply only to tasks still to be do
 - [ ] The order of the tasks matches the **dependency relationships** described in design.md
 - [ ] Tasks for depended-upon components **come first**
 - [ ] No circular dependencies
+- [ ] Every `After:` points to an earlier task in the same phase
+- [ ] No pending (`[ ]` / `[~]`) task's `After:` names a `[-]` task — the dependency is gone, so the task likely needs re-authoring (an `After:` naming a `[x]` task passes)
 - [ ] **Advisory** — Foundation first (`design-principles.md`): the shared type, migration, or helper that several later tasks need comes before the tasks that use it. This item is Medium (waivable) and this check is a binary pass/fail gate for `/implement`, so a failure here is **reported with the suggested reorder and does not by itself fail the check or block `/implement`**; the main agent decides whether to dispatch `spec-author` to reorder tasks.md
 
 ### 4. Data model check
 
-- [ ] The data structures involved in the tasks are consistent with the **Data Models** in design.md
-- [ ] For models that cross a component boundary or persist, field names and types match design.md (internal shapes are not checked)
+- [ ] No task redefines a cross-boundary model differently from design.md's **Data Models**
 - [ ] No important data model implementation is missing
 
 ### 5. Error handling check
 
 - [ ] The **Error Scenarios** in design.md all have corresponding implementation tasks
-- [ ] The error handling strategy is mentioned in the relevant tasks
 
 ### 6. Test coverage check
 
@@ -216,8 +215,8 @@ When design.md is modified and implementation code already exists, handle it in 
 
 #### 2. Task status update
 
-- [ ] Mark completed tasks affected by "modified" as `[~]`
-- [ ] Mark tasks related to "deleted" as `[-]`
+- [ ] Mark completed tasks whose named component or interface is "modified" as `[~]` (a task written without such a name is matched by its title and `File:` set; a record is not retitled to make it match)
+- [ ] Mark tasks whose named component or interface is "deleted" as `[-]` (a task written without such a name is matched by its title and `File:` set; a record is not retitled to make it match)
 - [ ] Create new tasks for "added" components
 - [ ] Create or update tasks for the "modified" parts that need redoing
 - [ ] Confirm the task order still matches the dependency relationships
@@ -432,10 +431,11 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 
 ### 4. Design Fidelity (consistency with design.md — the behavior-depth version)
 
+- [ ] Fidelity is judged at the contract as SKILL.md "Docs for Agents, Code as Truth" defines it (boundaries, specified behavior, Test Approach seams, shared internals, stated decisions): a deviation there is a defect, and a departure from the design's description of unshared internals is not. An approach `spec-author` settled for an escalated issue, and a Quick Fix plan's stated root-cause mechanism, are checked as written, internals included
 - [ ] Are the aggregate invariants (I1, I2, ...) upheld on all write paths?
 - [ ] Does the interface contract behavior match the description in design.md (not just the signature)?
 - [ ] Are responsibility boundaries not quietly broken (something service A should do is not quietly done by B)?
-- [ ] Is the architecture consistent with the architecture diagram in design.md?
+- [ ] Where design.md has an Architecture section, are the component relationships consistent with it?
 - [ ] **Boards match the altered elements**: when design.md has a `Visual design:` line, the elements the change alters (per requirements.md and the change's tasks) match the boards in layout, copy and states; elements the change does not alter are judged against the shipped code, not the boards
 
 ### 5. Test Completeness

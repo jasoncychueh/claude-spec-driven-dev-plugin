@@ -43,8 +43,9 @@ Common noise patterns (worth opening as a Smell issue):
 - Restating skill discipline (review-protocol.md clauses dragged into the plan)
 - Comparison tables with other modes (mode-selection.md already covers this; no need to restate it in the plan)
 - Estimating how many review rounds, Definition of Done checklists (things the skill executes automatically)
+- A Quick Fix change list that dictates internals: function bodies, private helper names, internal step order that is not contract. Medium, like the other noise. The one exemption is the mechanism the plan states and justifies to remove the root cause named in its Context, and nothing else: that mechanism binds the implementer as written (`${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/SKILL.md` "Docs for Agents, Code as Truth"). A "why this shape" added to any other step neither exempts it nor makes it binding
 
-The opposite miss matters for a **Quick Fix plan**, which is the implementer's only design basis: a change list too vague for the implementer to act on without guessing (no file, no behavior change, no tests to add or change) is a Smell too — see "Altitude" in plan-content-guide.md.
+The opposite miss matters for a **Quick Fix plan**, which is the implementer's only design basis: a change list the implementer cannot act on without guessing at the contract (no file, no behavior change, no contract, no tests to add or change) is a Smell too — see "Altitude" in plan-content-guide.md.
 
 This noise blurs the real substance; treat it as a **Medium Smell** (not Critical/High, but it accumulates and lowers plan readability).
 
