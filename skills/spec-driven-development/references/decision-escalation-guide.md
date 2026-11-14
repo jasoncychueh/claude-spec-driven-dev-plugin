@@ -349,7 +349,7 @@ This flow is also a signal: next time you handle a similar Decision, the backgro
 
 ## Write into the Review Log after resolving a Decision
 
-After the user answers a Decision via `AskUserQuestion`, the main agent must immediately write the conclusion into `review-log.md` §2 Architecture Decisions section. For the write-in rules see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`; the key points:
+After the user answers a Decision via `AskUserQuestion`, the main agent must immediately write the conclusion into `review-log.md` §2 Architecture Decisions section. For the write-in rules see `references/review-log-guide.md`; the key points:
 
 - The Decision title uses the reviewer's original letter ID (e.g. `### Decision D (raised at D2)`), not renumbered
 - Required fields: `Problem` / `Options considered` / `Chosen` / `Rationale (user, YYYY-MM-DD)` / `Affects`
@@ -399,7 +399,7 @@ The user resolves Decision D as "TTL invalidation, 60s".
 
 The two are **complementary in content but don't cite each other**: design.md is the technical description, review-log.md is the decision audit, physically isolated.
 
-**Why 100% isolation**: design.md / tasks.md are the repeatedly-read truth source; mixing in a Decision audit trail dilutes the density of the technical description. In practice, once a footnote pointer is allowed the agent drifts into an ADR section + reviewer letter tags — the only reliable discipline is to fully forbid any review-log reference. Full bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+**Why 100% isolation**: design.md / tasks.md are the repeatedly-read truth source; mixing in a Decision audit trail dilutes the density of the technical description. In practice, once a footnote pointer is allowed the agent drifts into an ADR section + reviewer letter tags — the only reliable discipline is to fully forbid any review-log reference. Full bad/good comparison: `references/review-log-bad-examples.md`
 
 ---
 

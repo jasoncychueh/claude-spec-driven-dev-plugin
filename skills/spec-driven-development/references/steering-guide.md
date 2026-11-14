@@ -26,15 +26,15 @@ Steering documents should be "living documents", continuously updated as the pro
 
 | Order | Document | Purpose | Template |
 |------|------|------|------|
-| 1 | `product.md` | What to build, and why | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md` |
-| 2 | `tech.md` | What technology to use | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md` |
-| 3 | `structure.md` | How to organize the code | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md` |
+| 1 | `product.md` | What to build, and why | `templates/product-template.md` |
+| 2 | `tech.md` | What technology to use | `templates/tech-template.md` |
+| 3 | `structure.md` | How to organize the code | `templates/structure-template.md` |
 
 ## Writing workflow
 
 ### 1. product.md - Product guidance
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/product-template.md`.
 
 Content to define:
 - Product Purpose - the product's purpose, the problem it solves
@@ -54,7 +54,7 @@ Content to define:
 
 ### 2. tech.md - Technology guidance
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/tech-template.md`.
 
 Content to define:
 - Project Type - the project type
@@ -62,7 +62,7 @@ Content to define:
 - Application Architecture - architecture patterns
 - Data Storage - database, cache
 - External Integrations - external APIs
-- Development Environment - development tools; includes an optional Build and test scope subsection with the build and test commands per scope (a project / module build; targeted / affected / full-suite tests), see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/verification-scope.md`
+- Development Environment - development tools; includes an optional Build and test scope subsection with the build and test commands per scope (a project / module build; targeted / affected / full-suite tests), see `references/verification-scope.md`
 - Deployment - deployment method
 
 **Writing points**:
@@ -75,7 +75,7 @@ Content to define:
 
 ### 3. structure.md - Structure guidance
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/structure-template.md`.
 
 Content to define:
 - Directory Organization - directory structure

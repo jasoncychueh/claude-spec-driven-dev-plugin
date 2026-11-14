@@ -123,14 +123,14 @@ graph TD
 
 ### Test Cases
 
-The table lists only the **E2E** and **integration** tests. Unit tests are not listed: every public interface in Components and Interfaces is unit-tested for its normal result and each error behavior stated above, and `spec-tester` derives those cases from the interface contract. Kinds, bounds and reasons: `references/testing-guide.md`.
+The table lists only the **E2E** tests and the **integration** tests anchored to an assumption about an external system. Two kinds of test are not listed, because `spec-tester` derives their cases from the interface contracts: unit tests (every public interface in Components and Interfaces, offline: its normal result and each error behavior stated above) and integration tests of the public interfaces bound to an external system (named in the Test Approach below: each one's normal result plus the errors the system itself produces). Kinds, bounds and reasons: `references/testing-guide.md`.
 
 | ID | Kind | Anchor | Behavior to verify |
 |----|------|--------|--------------------|
 | T-1 | e2e | [Requirement 2] | [the use case's main success flow, end to end, as an outside observer sees it] |
 | T-2 | integration | [the external assumption, e.g. "the CAD API returns an empty list, not null, for an unsaved document"] | [what the adapter observes when the assumption holds] |
 
-- **ID**: `T-{n}`, stable for the life of the spec. A removed case's number is never reused.
+- **ID**: `T-{n}`, stable for the life of the spec. A removed case's number is never reused. Numbers are unique across every spec in the repo, not just this one (take the next number no spec uses), because tests are often selected by case ID with one global filter.
 - **Kind**: `e2e` (anchored to a use case, a requirement's user story) or `integration` (anchored to an assumption about an external system, tested at the adapter that wraps it).
 - **Anchor**: the requirement whose user story the flow walks, or the external assumption stated in one sentence. Never an internal function, private state, or a description of how the code works.
 - **Behavior to verify**: the observable outcome, not the mechanism.
@@ -143,4 +143,5 @@ Coverage this table must satisfy, and its cap: one `e2e` row per requirement's u
 - [Fixture and test-data strategy; for a fixture against a live system, the smoke test that validates it first]
 - [Which runtime the integration and E2E tests need, and whether it is available during implementation]
 - [What must NOT be mocked — the seams whose real behavior is the point of the test]
+- [The public interfaces bound to an external system, which cannot be exercised without it: their tests are integration tests. Errors our own code decides before calling the system stay offline unit tests]
 - [Anything that needs a design affordance to be testable at all: injection points, observable state, clock control]

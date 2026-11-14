@@ -41,7 +41,7 @@
 - [ ] 3. [Test task title]
   - File: [test file path — **test files only**; a test task's File: set must not overlap any implementation task's]
   - [One line: the outcome this task covers]
-  - Interfaces: [the public interfaces this task unit-tests, by their design.md names, e.g. SyncQueue.push, SyncQueue.drain]
+  - Interfaces: [the public interfaces this task tests, by their design.md names, e.g. SyncQueue.push, SyncQueue.drain; an interface the Test Approach names as bound to an external system gets integration tests, the rest unit tests]
   - Cases: [the E2E and integration case IDs from design.md's Test Cases table this task implements, e.g. T-1, T-2]
 
 > **Test tasks** are dispatched to `spec-tester`, not `spec-implementer`, and run in parallel with the implementation groups **of the same phase**. A test task in a later phase has the tester writing against a finished implementation instead of against the contract, which is the coupling this arrangement exists to prevent. A test task carries `Interfaces:` (unit tests, whose cases the tester derives from each interface's contract), `Cases:` (E2E and integration rows), or both. Every public interface in design.md's Components and Interfaces is named by exactly one test task's `Interfaces:`, and every case ID in the Test Cases table by exactly one test task's `Cases:`: none orphaned, none claimed twice, none that design.md doesn't have. When a phase has integration or E2E tests on a shared live fixture and the runtime is available, its test task builds the fixture and one smoke test first (`references/testing-guide.md`).

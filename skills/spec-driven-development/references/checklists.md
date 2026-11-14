@@ -64,7 +64,8 @@ Before you start implementing, confirm the feature spec documents are complete.
 **Content completeness**:
 - [ ] Has an Introduction (feature overview, the problem it solves)
 - [ ] Describes Alignment with Product Vision
-- [ ] Every requirement has a **User Story** (role, feature, value) and a **Main flow** from trigger to outcome (the path its E2E test walks)
+- [ ] Every requirement has a **User Story** (role, feature, value)
+- [ ] Every requirement written or changed in this change has a **Main flow** from trigger to outcome (the path its E2E test walks). A requirement untouched since before the Main flow line existed stays valid without one; the next change that touches it adds it
 - [ ] Every requirement has **verifiable Acceptance Criteria**
 - [ ] Lists Non-Functional Requirements (performance, security, reliability)
 
@@ -348,6 +349,7 @@ The table lists only E2E and integration rows; unit tests are derived by `spec-t
 - [ ] Does every requirement's user story have an `e2e` row?
 - [ ] Does every assumption the design makes about an external system (a runtime, an API, a database, a file format) have an `integration` row?
 - [ ] Does every component's public interface state its normal result and its error behaviors precisely enough for `spec-tester` to derive unit tests blind? An interface whose errors are not stated cannot be tested for them; that is a gap in the interface, not in the table
+- [ ] Does the Test Approach name the public interfaces bound to an external system (their tests are integration tests), and does each bound interface say which of its errors the system produces and which its own code decides (those stay offline unit tests)?
 
 **Coverage, backward and excess** (Medium — excess is a defect too: every extra row is a slow test that has to be written, run and maintained):
 - [ ] Does every row's anchor still exist — no row citing a removed requirement or a dropped assumption?
@@ -445,11 +447,11 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 ### 5. Test Completeness
 
 **Against what specified the tests** — **Spec Mode**: the public interfaces (unit tests) and design.md's Test Cases table (E2E and integration rows), already reviewed at design time, so here you check the tests honor them; kinds and bounds in `testing-guide.md`. **Quick Fix Mode**: the plan file's change list; there is no case table, so read "case" as "the test the plan named":
-- [ ] Does every public interface a test task names have unit tests for its normal result and each error behavior the design states for it?
+- [ ] Does every public interface a test task names have unit tests for its normal result and each error behavior the design states for it? For an interface the Test Approach names as bound to an external system: integration tests of its normal result and the errors the system produces, against the real system, with the errors its own code decides tested offline
 - [ ] Is every assigned case ID implemented by a test that actually verifies the stated behavior — not a test that shares its name and asserts something weaker?
 - [ ] Does the test suite contain **no test that asserts internal structure** — private attributes, call order, a private helper's existence, a private method tested directly? Such a test is a **Smell** even when it passes: it will break at the next refactor and cost time to repair for no protection in return
 - [ ] Can every test in the changed suite be traced to a public interface or a case-table row? A test that cannot is an internals assertion or an invented live test (Smell)
-- [ ] **No excess** (Medium): no integration or E2E test beyond the table's rows, no behavior tested at a costlier kind than it needs, no near-duplicate tests of one behavior. A missing-test finding names the behavior and the risk it leaves unverified
+- [ ] **No excess** (Medium): no integration or E2E test beyond the table's rows and the bound interfaces' normal results and system-produced errors, no error our own code decides tested against the live system instead of offline, no behavior tested at a costlier kind than it needs, no near-duplicate tests of one behavior. A missing-test finding names the behavior and the risk it leaves unverified
 
 **Test quality**:
 - [ ] Do the added callbacks / events / paths have tests?
@@ -457,6 +459,7 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 - [ ] Are the stated failure paths tested, not just the happy path?
 - [ ] Are the mocks reasonable? Not so much mocking that it is effectively meaningless — in particular, is the seam the case is *about* left unmocked?
 - [ ] Are the tests deterministic (no race / sleep-based flakiness)?
+- [ ] Is every test-support seam the change adds (a fault-injection hook, a debug-only switch, a test double) used by some test? One that nothing runs is dead code (Smell)
 - [ ] Does any test pass for the wrong reason — an assertion so weak it would hold against a broken implementation, or one that was softened to reach green?
 
 ### 6. Steering Alignment (alignment with the steering documents, if steering exists)

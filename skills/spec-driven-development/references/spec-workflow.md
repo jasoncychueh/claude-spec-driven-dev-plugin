@@ -6,9 +6,9 @@ Before implementing any feature, three spec documents must be completed: require
 
 | Order | Document | Purpose | Template |
 |------|------|------|------|
-| 1 | `requirements.md` | Defines what to build (What) | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md` |
-| 2 | `design.md` | Defines how to build it (How) | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md` |
-| 3 | `tasks.md` | Breaks it down into executable tasks | `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md` |
+| 1 | `requirements.md` | Defines what to build (What) | `templates/requirements-template.md` |
+| 2 | `design.md` | Defines how to build it (How) | `templates/design-template.md` |
+| 3 | `tasks.md` | Breaks it down into executable tasks | `templates/tasks-template.md` |
 
 ---
 
@@ -180,7 +180,7 @@ The two modes differ only in **the document layer** (plan file vs steering+spec 
 
 ### 1. requirements.md - Requirements Document
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/requirements-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/requirements-template.md`.
 
 Content to define:
 - Introduction - feature overview, the problem solved
@@ -214,7 +214,7 @@ WHEN [event] AND [condition] THEN [system] SHALL [behavior]
 
 ### 2. design.md - Design Document
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/design-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/design-template.md`.
 
 Content to define:
 - Overview - high-level design overview
@@ -240,7 +240,7 @@ Content to define:
 
 ### 3. tasks.md - Task List
 
-**MANDATORY**: Use the Read tool to read the full content of `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`.
+**MANDATORY**: Use the Read tool to read the full content of `templates/tasks-template.md`.
 
 Content to define:
 - Break the design down into executable tasks

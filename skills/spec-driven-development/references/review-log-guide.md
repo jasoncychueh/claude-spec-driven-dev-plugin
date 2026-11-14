@@ -31,7 +31,7 @@ When a formal doc needs to explain "why this Component is designed this way" / "
 
 The reviewer/main-agent handshake protocol is the "Review Log integration" section of `review-protocol.md`.
 
-Detailed bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+Detailed bad/good comparison: `references/review-log-bad-examples.md`
 
 ---
 
@@ -193,7 +193,7 @@ Use **neutral design rationale** integrated into the Component / docstring / tas
 - Whole `## Architecture Decisions Record` / `## ADR` / `## Decisions` sections
 - Invoking a design principle by name as authority, or citing `design-principles.md` ("Per One decision, one place, …") — principle names live only in the review; state the reason itself
 
-Full bad/good comparison (6 patterns + a general rewrite formula): `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
+Full bad/good comparison (6 patterns + a general rewrite formula): `references/review-log-bad-examples.md`
 
 ### Review Log Internal Structure
 

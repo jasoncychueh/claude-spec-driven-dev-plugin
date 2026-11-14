@@ -330,7 +330,7 @@ When the main agent drives the review loop:
 
 ## Review Log integration (the handshake with the reviewer)
 
-After each review round ends, the main agent must integrate the reviewer's issue list into the review log. For detailed write-in rules see `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-guide.md`.
+After each review round ends, the main agent must integrate the reviewer's issue list into the review log. For detailed write-in rules see `references/review-log-guide.md`.
 
 ### Reviewer-side responsibilities
 

@@ -9,7 +9,7 @@ Two routing modes, both backed by multi-round architecture review: **Quick Fix M
 
 The main agent is orchestrator, arbiter and the user's single interlocutor: it discusses requirements, distills briefs, challenges subagent conclusions, escalates decisions and maintains the review log. It never writes production code or long-form documents, in either mode. Long-form generation lives in persistent subagent sessions, each tier pinned in its agent's frontmatter: `spec-author` and the two reviewers on opus at medium effort, `spec-implementer` and `spec-verifier` on sonnet at high, `spec-tester` and `tasks-design-verifier` on haiku at xhigh, `spec-researcher` on haiku at high. A session is spawned once per loop and resumed via SendMessage across rounds, so nothing already in its context is re-read. A resume is justified by a named asset (tacit knowledge, or a corpus this dispatch re-reads), not by the session merely existing; and a new spec, a new quick fix or an unrelated task always spawns fresh (`review-protocol.md` "Persistent sessions"). The arbiter's per-round scrutiny, with a challenge when the round warrants one, is what keeps review deep at whatever effort it runs (`review-protocol.md` "Persistent sessions and the challenge exchange").
 
-Reference paths in this file are relative to `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/`. The "Reference Documents" table at the end says when to read each one.
+Reference paths in this file, and every path inside the reference and template files, are relative to `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/` (those files are read as plain text, so the variable would not be filled in there). The "Reference Documents" table at the end says when to read each one.
 
 ## Route first (before anything else)
 
@@ -23,24 +23,27 @@ On any request to write or modify code, decide the mode first (`references/mode-
 
 Then tell the user which route you are taking and why, e.g. "I'm planning to run this as a quick fix — scope is a single-component bug fix. Tell me if you'd rather go through the spec-level flow."
 
-Quick Fix Mode has no slash command: the main agent runs its flow directly (below). Spec Mode needs steering: without it, `/create-steering` first; then `/create-spec` (or `/load-spec`) → `/implement`.
+Quick Fix Mode runs its flow directly (below). Spec Mode needs steering: without it, the create-steering flow runs first; then `/create-spec` (or `/load-spec`) → `/implement`.
 
-## Commands
+## Flows and commands
 
-| Command | Description | Flow |
-|------|------|------|
-| `/load-spec <feature>` | Load spec, verify, then show progress | `references/commands.md` |
-| `/create-steering` | Create the three steering documents | `references/commands.md` |
-| `/create-spec <feature>` | Create the three spec documents for a feature | below |
-| `/update-steering <type>` | Update steering (product/tech/structure) | `references/commands.md` |
-| `/update-spec <feature>` | Update a feature spec | below |
-| `/verify-spec <feature>` | Verify spec completeness + tasks vs design alignment | `references/commands.md` |
-| `/implement <feature>` | Start implementation | below |
-| `/backlog [args]` | List / pick up / close items in the unsorted backlog basket (works in both modes) | `references/commands.md` |
-| `/roadmap [args]` | Show the scheduled roadmap tree, what can start next, and promote items onto it | `references/commands.md` |
-| `/design-view [feature]` | Serve the visual designs locally and open them in the browser: one feature's canvas, or a home page of every design (either mode, but not inside Quick Fix Plan Mode, where the background server and the viewer install cannot run) | `references/commands.md` |
+The flows below are named like commands (`/create-spec`, `/implement` …) because the docs refer to them by those names, but **only the four marked "slash" are typed commands**. The rest start from what the user asks for, in plain words: the main agent recognizes the request and runs the flow.
 
-Read `references/commands.md` when one of the commands it holds is invoked, or before doing what one of them does (listing or picking backlog items, editing the roadmap, serving the designs).
+| Flow | Starts when | Description | Where |
+|------|------|------|------|
+| `/create-spec <feature>` | the user asks for a new feature (Spec Mode route) | Create the three spec documents for a feature | below |
+| `/update-spec <feature>` | the user asks to change a feature that has a spec | Update a feature spec | below |
+| `/implement <feature>` | the user asks to build a feature whose spec is approved | Implement it phase by phase | below |
+| `/load-spec <feature>` | the user asks where a feature stands | Load a spec and show its progress (no verification) | `references/commands.md` |
+| `/verify-spec <feature>` | the user asks to check a spec | Spec completeness + tasks vs design alignment | `references/commands.md` |
+| `/create-steering` | Spec Mode is needed and `.spec/steering/` doesn't exist, or the user asks for it | Create the three steering documents | `references/commands.md` |
+| `/update-steering <type>` | the user asks to change product / tech / structure steering | Update a steering document | `references/commands.md` |
+| `/backlog [args]` | slash, or the user asks about the backlog | List / pick up / close items in the unsorted backlog basket (works in both modes) | `references/commands.md` |
+| `/roadmap [args]` | slash, or the user asks about the roadmap or what to do next | Show the scheduled roadmap tree, what can start next, and promote items onto it | `references/commands.md` |
+| `/design-view [feature]` | slash, or the user asks to see the designs | Serve the visual designs locally and open them in the browser: one feature's canvas, or a home page of every design (either mode, but not inside Quick Fix Plan Mode, where the background server and the viewer install cannot run) | `references/commands.md` |
+| `/advise [topic]` | slash only | Form a position, take it to the advisor, then answer | `commands/advise.md` |
+
+Read `references/commands.md` when one of the flows it holds starts, whether by slash command or by request.
 
 ---
 
@@ -167,7 +170,7 @@ For a task that meets the Quick Fix bar (`mode-selection.md`), run the steps bel
 12. Once design.md has converged, have the same `spec-author` session write `tasks.md` (template `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tasks-template.md`).
 13. **`spec-verifier`**: the Spec completeness check, including the cross-file Review-Residue check that keeps inline waiver / decision blocks out of formal docs. Dispatch it **in the same message** as step 14's verifier; both are cheap, and waiting for one before starting the other buys nothing.
 14. **`tasks-design-verifier`**: the Tasks vs Design alignment check. A Foundation-first finding is advisory: it comes with a suggested reorder and does not block; decide whether to resume `spec-author` to reorder tasks.md. If `spec-verifier` fails, report its failures and discard this result, because its input (the spec files) may change when the fixes land; if it passes, use both reports.
-15. **Spec Briefing (mandatory, turn-final)** after both verifiers pass, per `briefing-guide.md`: walk through 1–2 actual use cases to surface the architecture highlights, new concepts, the scenario consequences of the resolved Decisions, the Waivers and their cost, and the implementation outlook, ending with "anything here that doesn't match what you expected?". State the test plan in one line: how many E2E and integration rows, the runtime they need, and whether it is available during implementation; the user may cut rows here, the cheapest moment. For a feature with a design, name the boards changed since the Plan Briefing and point at `/design-view <feature>`. End the turn right after it. Only after the user replies with no objection is /create-spec complete, and **that confirmation is the approval the gate records**: run `approve.mjs <feature>` as the first action of the turn that answers it. If there are issues, clarify, or fix the spec (re-triggering the corresponding verifier), and run the script only after a later confirmation.
+15. **Spec Briefing (mandatory, turn-final)** after both verifiers pass, per `briefing-guide.md`: walk through 1–2 actual use cases to surface the architecture highlights, new concepts, the scenario consequences of the resolved Decisions, the Waivers and their cost, and the implementation outlook, ending with "anything here that doesn't match what you expected?". State the test plan in one line: how many E2E rows, integration rows and bound interfaces, the runtime they need, and whether it is available during implementation; the user may cut rows here, the cheapest moment. For a feature with a design, name the boards changed since the Plan Briefing and point at `/design-view <feature>`. End the turn right after it. Only after the user replies with no objection is /create-spec complete, and **that confirmation is the approval the gate records**: run `approve.mjs <feature>` as the first action of the turn that answers it. If there are issues, clarify, or fix the spec (re-triggering the corresponding verifier), and run the script only after a later confirmation.
 
 ---
 
@@ -242,7 +245,7 @@ The implementer's self-verification can't catch what only blows up in production
 
 Only `spec-implementer` writes or fixes production code, and only `spec-tester` writes or fixes tests; neither the reviewer nor the main agent touches either. Keep the two dispatches separate even when an issue spans both: an implementer that "just fixes the test" destroys the independence the test was worth having.
 
-**Production code discipline**: a Mode 2 fix may not leave review-residue comments (`// WAIVED:`, `# HACK: reviewer accepted`, `# ⓘ ... — see review-log`; footnote pointers are abolished too). The waiver rationale lives in `review-log.md` §3; code that needs to explain a design choice uses a neutral semantic comment (system invariant / precondition / dependency pointer) that doesn't reveal the reviewer source (`review-log-bad-examples.md` Pattern E). The next review round opens a violation as a new Smell.
+**Production code discipline**: a Mode 2 fix may not leave review-residue comments (`// WAIVED:`, `# HACK: reviewer accepted`, `# ⓘ ... — see review-log`; footnote pointers are abolished too). The waiver rationale lives in `review-log.md` §3; code that needs to explain a design choice uses a neutral semantic comment (system invariant / precondition / dependency pointer) that doesn't reveal the reviewer source (`review-log-bad-examples.md` Pattern E). The next review round opens a violation as a new Medium Smell.
 
 ### Stage 3: Test Run (after the review loop converges)
 
@@ -377,7 +380,7 @@ Read `references/dispatch-guide.md` before grouping fix items, when a fix isn't 
 
 ### Testing
 
-Tests come in three kinds, each with a coverage rule that also caps it, so the suite grows with the system's shape rather than with how detailed the design is: **unit** tests of every public interface (normal result and each stated error; nothing private), derived by the tester and not listed; one **integration** test per assumption about an external system; one **E2E** test per requirement's user story. design.md's Test Cases table lists only the integration and E2E rows. Reviewers grade excess as well as gaps. The tester writes blind to the implementation; a live fixture is validated by a smoke run before tests are stacked on it; when a refactor turns tests red, the anchor decides what happens. Quick Fix runs the lightweight version. Read `references/testing-guide.md` when writing or reviewing a Testing Strategy or test tasks, when dispatching `spec-tester`, and when tests go red after a refactor or a design change.
+Tests come in three kinds, each with a coverage rule that also caps it, so the suite grows with the system's shape rather than with how detailed the design is: **unit** tests of our own code alone, offline: every public interface's normal result and each stated error, nothing private, derived by the tester and not listed; **integration** tests against the real external system: one per assumption about it (listed), plus each bound interface's normal result and the errors the system itself produces (derived, not listed); one **E2E** test per requirement's user story. design.md's Test Cases table lists only the assumption and E2E rows. Reviewers grade excess as well as gaps. The tester writes blind to the implementation; a live fixture is validated by a smoke run before tests are stacked on it; when a refactor turns tests red, the anchor decides what happens. Quick Fix runs the lightweight version. Read `references/testing-guide.md` when writing or reviewing a Testing Strategy or test tasks, when dispatching `spec-tester`, and when tests go red after a refactor or a design change.
 
 ### Verification Scope
 
@@ -392,7 +395,7 @@ Every build names a scope (executors build what they touched; only the main agen
 | Steering doesn't exist | Block /create-spec, guide to /create-steering |
 | Spec doesn't exist | Block /load-spec, guide to /create-spec |
 | Tasks vs Design verification fails | Show the inconsistencies, ask how to fix |
-| Design flaw found during implementation | Pause, recommend updating design.md |
+| Design flaw found during implementation | Route it by the fix escalation ladder (`dispatch-guide.md`): a fix within the existing architecture is settled into design.md by `spec-author`; one that changes structure or a public interface goes through `/update-spec` |
 | New feature inconsistent with Steering | Prompt to update steering first, then continue |
 | Design change affects completed tasks | Run the implementation-sync flow, mark affected tasks `[~]` |
 | Design change deletes a feature | Mark tasks `[-]`; `spec-implementer` removes the code, and the reviewer checks it is gone |
@@ -422,7 +425,7 @@ Every row that stops to ask or clarify runs through the Advisor Gate first (advi
 11. **Implementation by Agent Only** — the main agent never writes production code, but it does diagnose; implementer count is mechanical (disjoint `File:` sets fan out, ≤4 groups in one message); test tasks go to `spec-tester`.
 12. **Backlog the Residual, Absorb the Adjacent** — walk the triage ladder; only the honest residual is recorded, silently; a deferral is a debt, unlike a waiver (`backlog-guide.md`).
 13. **Consult the Advisor Before a Consequential Call** — before asking the user and before consequentially overriding a reviewer or declaring convergence; the user is the last resort, never the reflex (refines #5; `advisor-gate-guide.md`).
-14. **Tests Anchor to the Spec, Never to the Code** — unit tests to public interfaces, integration tests to external assumptions, E2E tests to use cases, each kind capped by its anchor; a blind writer; the anchor decides a red test's fate (`testing-guide.md`).
+14. **Tests Anchor to the Spec, Never to the Code** — unit tests to public interfaces (offline), integration tests to external assumptions and bound interfaces (against the real system), E2E tests to use cases, each kind capped by its anchor; a blind writer; the anchor decides a red test's fate (`testing-guide.md`).
 15. **Don't Accrete — Design as if Built Right the First Time** — judge every change as if the design had the requirement from the start; the rules live in `design-principles.md` and fire only when a real scenario reaches them.
 16. **Docs Are Written for Agents** — precise, non-redundant, human-auditable; humans steer through the communication layer ("Docs for Agents, Code as Truth").
 17. **Code Is the System's Truth** — the spec or plan is the contract during a change; after it ships the code wins and the doc is corrected at the next `/update-spec` ("Docs for Agents, Code as Truth").

@@ -1,6 +1,6 @@
-# Command Flows (the less frequent commands)
+# Flows (the less frequent ones)
 
-The full flows for `/load-spec`, `/create-steering`, `/update-steering`, `/verify-spec`, `/backlog`, `/roadmap` and `/design-view`. The flows the main agent runs constantly (Quick Fix Mode, `/create-spec`, `/update-spec`, `/implement`) stay in SKILL.md. Read this file when one of these commands is invoked, or when you are about to do what one of them does (list the backlog, pick a ticket, edit the roadmap, serve the designs).
+The full flows for `/load-spec`, `/create-steering`, `/update-steering`, `/verify-spec`, `/backlog`, `/roadmap` and `/design-view`. The flows the main agent runs constantly (Quick Fix Mode, `/create-spec`, `/update-spec`, `/implement`) stay in SKILL.md. Only `/backlog`, `/roadmap` and `/design-view` are typed slash commands; the others start from what the user asks for in plain words (SKILL.md "Flows and commands"). Read this file when one of these flows starts, by command or by request, or when you are about to do what one of them does (list the backlog, pick a ticket, edit the roadmap, serve the designs).
 
 > **`board` and `design` below are shorthand** for the board command and the design command stated in SKILL.md "File Structure" (`node "<plugin root>/scripts/board.mjs"`, `node "<plugin root>/scripts/design.mjs"`). Use the absolute paths SKILL.md and the slash command give, exactly. `${CLAUDE_PLUGIN_ROOT}` is **not** set in the shell — it is only substituted inside SKILL.md and the slash commands — so never type the variable into a Bash call.
 
@@ -49,14 +49,14 @@ Create the project steering documents.
 **Preconditions**: none
 
 **Flow**:
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/steering-guide.md`
+1. Read `references/steering-guide.md`
 2. **Plan in an ordinary session** — no Plan Mode (see SKILL.md "Planning Phase and Approval Gate")
 3. Plan the steering content and confirm it with the user before writing: a briefing as the turn-final message, then wait for the reply (no approval script — no implementer or tester follows)
 4. Create the `.spec/steering/` directory
 5. Write in order (first Read the template, then write to the template's format):
-   - `product.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/product-template.md`
-   - `tech.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/tech-template.md`
-   - `structure.md` — template: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/templates/structure-template.md`
+   - `product.md` — template: `templates/product-template.md`
+   - `tech.md` — template: `templates/tech-template.md`
+   - `structure.md` — template: `templates/structure-template.md`
 6. Run the Steering completeness check
 
 ---

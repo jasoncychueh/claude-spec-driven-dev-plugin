@@ -31,21 +31,16 @@
 - **Backlog 與 Roadmap**:流程中發現、當下無法解決的事 —— 延後處理的 review issue、範圍外的發現、懸而未決的討論 —— 會默默記成一張票(一張票只裝一個題目),存進票的總表 `.spec/backlog/backlog.json`(記錄永不刪除,結案只是加上結案資訊),每張票另有一個 Markdown 本體,不隨 session 結束蒸發。roadmap(`.spec/roadmap/roadmap.json`)只存結構:一棵照架構長的樹,帶順序與依賴,能精確回答「現在可以開工什麼」,用 id 引用票。未分類的籃子就是「還沒結案、也沒被任何節點引用的票」;`promote` 只是加一個引用,不會丟失任何資料。兩者都只透過 `scripts/board.mjs` 讀寫:它驗證每次修改、產生不會撞號的 id、處理認領,而且永遠操作 main 工作樹那份;`/backlog` 與 `/roadmap` 負責驅動它
 - **視覺設計**:有 UI 的 feature 會由 agent 把 Design canvas 畫進 `.spec/design/<feature>/`,與 spec 一起提交,作為「變更所改動之處」的視覺契約,並可用 `/design-view` 離線檢視完整的 canvas(首頁列出所有設計,並以下拉選單在設計之間切換)。設計也可以選擇性地發布到 claude.ai 來分享。檢視用的 runtime 每個專案只需從你自己擁有的 Design canvas 安裝一次,且不會被提交。開始一份設計需要 claude.ai Artifacts 且你的帳號有 Design 類型;沒有的話,feature 就沒有視覺設計,其他一切照舊。Artifacts 只用於確認該類型可用、安裝檢視 runtime、在已安裝的 runtime 沒有繪製格式時準備繪製格式,以及選擇性的發布
 - **設計原則**:十一條規則集中在同一份參考文件(Anti-accretion、Laziness & Foundational Thinking、Boundary, Idempotency & State),改編自 [ub-mode](https://github.com/unclebob/ub-mode),每條都有審查探問、壞→好範例與預設嚴重度。它們只在真實情境碰到時才啟動;author 設計時就套用,reviewer 依原則審查並按嚴重度表分級
-- **錨定 spec 的測試**:測試分三類,每類的數量由它錨定的對象決定,所以測試套件跟著系統的形狀長,而不是跟著設計寫得多細長 —— 每個公開介面都有 unit test(私有方法不測)、每個對外部系統的假設一個整合測試、requirements.md 的每個 use case 一個 E2E 測試。整合與 E2E 案例在寫任何 code 之前就列在 design.md 的 Testing Strategy,再由專責的 `spec-tester` agent 與 implementer 平行撰寫,且刻意不看它要測試的實作 —— 因此測試驗證的是 spec 承諾的行為,而不是 code 碰巧長成的樣子,重構之後依然有效,不會腐化。測試只跑變更涉及的範圍,只有風險顯著時才跑完整測試套件
+- **錨定 spec 的測試**:測試分三類,每類的數量由它錨定的對象決定,所以測試套件跟著系統的形狀長,而不是跟著設計寫得多細長 —— unit test 離線測我們自己的程式(每個公開介面,私有方法不測)、整合測試接上真的外部系統(每個對它的假設一個,加上綁定它的公開介面)、requirements.md 的每個 use case 一個 E2E 測試。外部假設與 E2E 案例在寫任何 code 之前就列在 design.md 的 Testing Strategy,再由專責的 `spec-tester` agent 與 implementer 平行撰寫,且刻意不看它要測試的實作 —— 因此測試驗證的是 spec 承諾的行為,而不是 code 碰巧長成的樣子,重構之後依然有效,不會腐化。測試只跑變更涉及的範圍,只有風險顯著時才跑完整測試套件
 - **Brief Before Build**:實作開始前,以對話式摘要呈現重點、已決策事項與 waivers,讓使用者不必讀完整份 spec 就能進入狀況 —— 這是抓出誤解最便宜的時刻
 - **認知負荷校準**:全域紀律 —— 主 agent 在每則訊息前先消化與抽象,用真實使用情境 + 執行流程 + 資料結構敘事,並主動重述前幾輪的脈絡;review 與 briefing 用同一副透鏡找出並解釋核心設計概念
 
 ## 指令
 
+平常幾乎不需要打指令:直接描述你要做的事(修一個 bug、做一個新功能、改某個 spec、問某個功能做到哪),skill 會自己判斷走哪條流程 —— Quick Fix、建立或更新 spec、實作、驗證、steering。下面四個是值得直接打的指令。
+
 | 指令 | 說明 |
 |---------|-------------|
-| `/create-steering` | 建立專案 steering 文件 |
-| `/create-spec <feature>` | 建立 feature spec(requirements、design、tasks) |
-| `/load-spec <feature>` | 載入 spec 並顯示進度 |
-| `/update-steering <type>` | 更新 steering 文件(product/tech/structure) |
-| `/update-spec <feature>` | 更新 feature spec |
-| `/verify-spec <feature>` | 驗證 spec 完整性 + tasks 與 design 對齊 |
-| `/implement <feature>` | 透過 agents 開始實作 |
 | `/backlog [args]` | 列出 / 撿起 / 結案未分類籃子裡的項目 |
 | `/roadmap [args]` | 顯示排程中的 roadmap 樹、下一步可開工的項目、把項目放上樹、逐枝討論 |
 | `/design-view [feature]` | 在瀏覽器中離線開啟視覺設計(由本機提供服務):所有設計的首頁,或單一 feature 的 canvas |
@@ -61,7 +56,7 @@
 | `spec-author` | 依主 agent 的 brief 撰寫/修訂規劃與 spec 文件(persistent session) |
 | `design-reviewer` | 多輪設計 review 直到 0 issues(只 review) |
 | `spec-implementer` | 依 spec 實作程式碼 |
-| `spec-tester` | 依 design.md 的公開介面寫 unit test,依 Test Cases 表寫整合 / E2E 測試,不看實作 |
+| `spec-tester` | 依 design.md 的公開介面寫 unit 與整合測試,依 Test Cases 表寫外部假設 / E2E 測試,不看實作 |
 | `implementation-reviewer` | 多輪實作 review 直到 0 issues(只 review) |
 
 ## Hooks

@@ -2,6 +2,18 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.32.0 (2026-11-14)
+
+**Commands only where they are typed.** In practice the spec flows start from what the user says, not from a slash command.
+
+- **Seven command files removed:** `/create-spec`, `/update-spec`, `/implement`, `/load-spec`, `/verify-spec`, `/create-steering`, `/update-steering`. Their flows are unchanged and keep those names in the docs; SKILL.md's "Flows and commands" table says what request starts each one. `/backlog`, `/roadmap`, `/design-view` and `/advise` stay as commands, because those are the ones actually typed.
+- **Paths inside reference and template files are relative to the skill directory.** Those files are read as plain text, so `${CLAUDE_PLUGIN_ROOT}` is never filled in there; SKILL.md states the base once.
+- **Existing specs stay valid under 1.31's new checks.** A requirement untouched since before the Main flow line existed passes without one; the next change that touches it adds it.
+- **Integration means "against the real external system".** The three kinds are now decided by what a test runs against: unit tests run our own code alone, offline; integration tests run it with the real external system; E2E tests run a whole use case. A public interface bound to an external system (one that cannot be exercised without it) is therefore integration-tested: its normal result plus each error the system itself produces, while every error our own code decides before the call stays an offline unit test. A real project had invented a fourth "unit, run live" bucket for these; it was the largest share of its live tests. The design's Test Approach names the bound interfaces; they are not listed in the Test Cases table. A bound interface's normal-result test is skipped when an assumption or E2E test already asserts it.
+- **A test-support seam that no test runs is dead code**, flagged like any excess test: after one migration about 20 fault-injection hooks were left that nothing ran.
+- **Test case IDs are unique across the repo**, not just within a spec: tests are often selected by case ID with one global filter, and two specs' `T-3179` collided in a real project.
+- **Stale lines corrected:** `/load-spec` does not verify; a design flaw found during implementation is routed by the fix escalation ladder; a review-residue comment is a Medium Smell.
+
 ## 1.31.0 (2026-11-14)
 
 **Effort follows the system's shape and risk, not the volume of the documents.** A field report from a real Spec Mode run found about 180 test cases where 40–50 were needed: every rule added cases and none removed them, so the count followed how detailed the design was. In this repo, a docs-only release took six design rounds, mostly fixing copies of one rule that had drifted from its home.
