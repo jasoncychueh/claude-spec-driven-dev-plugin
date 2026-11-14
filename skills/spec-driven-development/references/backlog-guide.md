@@ -170,7 +170,7 @@ The claim lands **the moment the item enters focused discussion** — on `/backl
 board backlog claim bl-7d2e04 --branch TBD --note "under discussion"
 ```
 
-The claim carries three things, and each earns its place: **the date** (is this claim minutes old or a month stale?), **the branch** (where the work lives — the reader can go look at it), and **one sentence on what's being done** (whether it overlaps with what *this* session was about to do). Update branch and note by claiming again with `--force` once they exist.
+The claim carries three things, and each earns its place: **the date** (is this claim minutes old or a month stale?), **the branch** (where the work lives — the reader can go look at it), and **one sentence on what's being done** (whether it overlaps with what *this* session was about to do). Update branch and note by claiming again with `--force` once they exist: re-claiming keeps the fields you don't pass, so `--branch` alone leaves the note as it was. The date stays the day the work started, so a stale claim stays visible; it resets only on a new claim or a change of branch (a takeover).
 
 **Mark first, everything second — "the work" starts at discussion, not planning, and certainly not implementation.** A claim written after the collision window opens protects nothing — and the window opens as soon as the user engages with the item. At claim time nothing may be decided yet — that's fine: `--branch TBD` and "under discussion", then update once the direction and branch exist. A cheap, early, vague claim beats a precise, too-late one; its whole job is making the second session stop and ask.
 
@@ -205,11 +205,4 @@ Tickets on the roadmap are not closed with these commands — they close when th
 
 ## Migrating a project from the old layout
 
-Projects that still have `.spec/backlog/BACKLOG.md` and per-item frontmatter move to this layout with one command, run from the main worktree:
-
-```
-board migrate --dry-run [--roadmap-from <path>]
-board migrate [--roadmap-from <path>]
-```
-
-Every old item file — open ones in `.spec/backlog/` and closed ones in `archive/` — becomes a record in `backlog.json`, and its frontmatter is removed from the body once transferred. Fields are read from whatever the file has: documented frontmatter keys, aliases such as `created` / `origin`, or a `# id: title` heading with bold label lines (`**Status**:` / `**狀態**:`), with the old `BACKLOG.md` line as a fallback for title, type and date. A `[~]` in the old index becomes a claim even when the file itself says open. Nothing is dropped: a field the record has no slot for — a non-standard status such as `merged-into-…`, an extra `completed` date — is kept verbatim in the record's `legacy`. A ticket on a roadmap node that is already done is closed and archived. An index line with no body file anywhere becomes a ticket whose body is that line. **If a required field (title, type, date, source) cannot be found anywhere, the migration refuses and lists them**; `--force` accepts the fallback values. `--roadmap-from` copies an existing roadmap JSON into `.spec/roadmap/`. Always read the dry run first — every claim carried over, every legacy field and every closing is listed there — then run `check`.
+A project with the old layout (a `BACKLOG.md` index plus per-item files carrying frontmatter) is migrated by the agent itself; the script has no migration command. Read the old files against the format this guide and `roadmap-guide.md` describe, then create one record per ticket with `board backlog add` (or write `backlog.json` by hand once and run `board check` until it passes). Move each body into place without its frontmatter: open tickets in `.spec/backlog/`, closed ones in `archive/`. A field the record has no slot for goes verbatim into the record's `legacy` object. Finish with `board check`.

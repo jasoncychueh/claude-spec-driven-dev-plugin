@@ -2,6 +2,22 @@
 
 Version history and decision rationale are collected here. The skill / reference / agent docs describe only the **current rules + technical rationale**; they do not narrate version evolution — consistent with this plugin's own principle that "formal docs describe the world after the decisions are made".
 
+## 1.33.0 (2026-11-14)
+
+**The board is safe to share between sessions.** A review of `scripts/board.mjs` found that concurrent writers lost data and that several guards could be bypassed.
+
+- **Writers take a lock.** Every command that writes holds `.spec/.board.lock` in the main worktree for its whole read-validate-write, so two parallel `claim`s can no longer both succeed and parallel `add`s no longer drop records. A writer waits up to 10 s for the lock, then exits 1 with an error that names the lock file. A lock older than 60 s is treated as left by a crashed command and removed. Read-only commands (`check`, `backlog list|show`, `roadmap show|next|render` without `--out`) take no lock.
+- **Crash-safe writes.** `backlog.json` and `roadmap.json` are written to a temp file and renamed into place. A command writes new bodies first, then the two stores, and removes old bodies last, so an interrupted command leaves a board whose problems `check` names. `check` also reports an orphan body (a `bl-*.md` with no record) and a body present both in `.spec/backlog/` and in `archive/`.
+- **A design question holding a ticket can be settled.** The "finished node with an open ticket" rule now applies only to work items. A decided question keeps its tickets open until its parent work item is finished, and `roadmap finish` closes them, including the tickets of a decided question that stays on the tree because it holds work.
+- **`done` comes only from `roadmap finish`.** `roadmap set … status done` is refused whatever the current status is (clearing the status first no longer gets around it), and so is `--status done` on `roadmap add` and `promote`.
+- **`claim --force` keeps what you don't pass.** `--force --branch x` no longer resets the note to "under discussion", and the date stays the day the work started unless the branch changes (a takeover), so a stale claim stays visible.
+- **Unknown options are usage errors (exit 2).** Each command accepts only its own options, so a typo such as `--brnach` no longer silently claims on branch `TBD`.
+- **`roadmap render --out` refuses `.spec/backlog/` and `roadmap.json`**, so it cannot overwrite a ticket body.
+- **`roadmap remove` refuses a branch that holds a done item**, which matches the documented "unfinished branch only". `roadmap note` and `roadmap move` now set `updated` like every other node edit.
+- **The old-layout migration is removed** (`board migrate`, `--dry-run`, `--roadmap-from`, and the frontmatter stripping when a body is archived, which also deleted a body's leading `---` paragraph). The agent migrates an old-layout project itself, as `backlog-guide.md` describes. The `legacy` ticket key stays valid, since migrated boards carry it.
+- **`/load-spec` finds the feature's roadmap node with commands that exist** (`roadmap show --full --done`, `roadmap next --all`). The board's exit codes are documented in `commands.md`.
+- **`scripts/board.test.mjs`** covers the board end to end, including a six-way concurrent `add` and a concurrent `claim`.
+
 ## 1.32.0 (2026-11-14)
 
 **Commands only where they are typed.** In practice the spec flows start from what the user says, not from a slash command.

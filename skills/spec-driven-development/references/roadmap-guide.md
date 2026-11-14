@@ -54,7 +54,7 @@ board roadmap <command> ...
 
 **The two do different jobs.** `dependsOn` decides whether something *can* start; `ordinal` decides what goes *first* among the things that can. Validation enforces that they agree: a node's ordinal must be greater than every dependency's, and a node with an ordinal cannot depend on one without.
 
-**Other fields**: `tickets` (ticket ids in `backlog.json` — set only by `promote`), `spec` (the feature spec once one exists), `summary` (one line), `detail` (where it landed, short), `updated` (set to today by any edit), `notes` (history). The root carries `title`, `intro` (what this roadmap covers) and `now` — a paragraph or two on what is currently being worked on; `roadmap root` edits them, and `show` opens with `now`.
+**Other fields**: `tickets` (ticket ids in `backlog.json` — set only by `promote`), `spec` (the feature spec once one exists), `summary` (one line), `detail` (where it landed, short), `updated` (set to today by any command that edits a node with a status: `set`, `add`, `promote`, `demote`, `move`, `rename`, `note`, `finish`; a grouping node without a status carries none), `notes` (history). The root carries `title`, `intro` (what this roadmap covers) and `now` — a paragraph or two on what is currently being worked on; `roadmap root` edits them, and `show` opens with `now`.
 
 ---
 
@@ -70,7 +70,7 @@ roadmap finish <id> --resolution <text>      a work item is done — see "Finish
 roadmap add <parentId> <id> <title> [...]    a grouping node, a design question, or a work item with no ticket yet
 roadmap move <id> <newParentId> [--before s] re-parent or reorder; the root's id is "root"
 roadmap rename <id> <newId>                  change a node's id — every dependsOn on it follows
-roadmap remove <id> [--force]                an unfinished branch only; --force when it has children or tickets, which return to the basket
+roadmap remove <id> [--force]                an unfinished branch only (refused if it holds a done item); --force when it has children or tickets, which return to the basket
 roadmap note <id> <text>                     append a history note
 roadmap render [--out <path>]                a Markdown document on demand — not committed
 roadmap format                               canonical key order after a hand edit

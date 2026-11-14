@@ -21,6 +21,10 @@
 // Every command validates both stores and every cross-reference first, and an edit that would
 // leave any problem behind is refused without saving.
 //
+// A command that writes holds an exclusive lock (.spec/.board.lock) for its whole
+// read-validate-write, so concurrent sessions queue rather than overwrite each other; each JSON
+// store is replaced atomically (temp file + rename). Read-only commands take no lock.
+//
 // Ordering on the tree:
 //   ordinal    - the order we want; smaller first, equal means "can run in parallel".
 //                A node without one takes its parent's. Ties break by depth, then tree position.
@@ -67,10 +71,44 @@ const TICKET_ID = /^bl-[0-9a-f]{6}$/;
 const TYPE_NAME = /^[a-z][a-z-]*$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-const BOOLEAN_OPTIONS = new Set(['all', 'closed', 'full', 'force', 'help', 'dry-run', 'done']);
+const BOOLEAN_OPTIONS = new Set(['all', 'closed', 'full', 'force', 'help', 'done']);
+
+// The options each command takes (besides --root and --help, which every command takes).
+// Anything else is a usage error, so a typo such as --brnach cannot silently become a default.
+const NODE_OPTIONS = ['status', 'ordinal', 'depends', 'summary', 'detail', 'spec', 'before'];
+const COMMAND_OPTIONS = {
+  'check': [],
+  'backlog list': ['all', 'closed'],
+  'backlog show': [],
+  'backlog add': ['type', 'source', 'feature', 'slug'],
+  'backlog claim': ['branch', 'note', 'force'],
+  'backlog release': [],
+  'backlog set': [],
+  'backlog close': ['resolution'],
+  'backlog drop': ['resolution'],
+  'promote': [...NODE_OPTIONS, 'title', 'into'],
+  'demote': [],
+  'roadmap init': [],
+  'roadmap show': ['full', 'done'],
+  'roadmap next': ['all'],
+  'roadmap root': [],
+  'roadmap set': [],
+  'roadmap add': [...NODE_OPTIONS, 'tickets'],
+  'roadmap move': ['before'],
+  'roadmap rename': [],
+  'roadmap remove': ['force'],
+  'roadmap finish': ['resolution'],
+  'roadmap note': [],
+  'roadmap render': ['out'],
+  'roadmap format': [],
+};
+
+const LOCK_TIMEOUT_MS = 10_000;
+const STALE_LOCK_MS = 60_000;
 
 class UsageError extends Error {}
 class RefusedError extends Error {} // a deliberate refusal the caller must act on (e.g. an existing claim)
+class LockError extends Error {} // another command held the board's lock for longer than LOCK_TIMEOUT_MS
 
 const USAGE = `Usage: node board.mjs <area> <command> [args] [--root <projectDir>]
 
@@ -82,7 +120,8 @@ Backlog — the ticket registry
                                                  Record a ticket; prints the body file to fill in.
   backlog claim <id> [--branch b] [--note n] [--force]
                                                  Mark a basket ticket as being worked on. Refuses
-                                                 (exit 3) if someone else holds it, unless --force.
+                                                 (exit 3) if someone else holds it, unless --force;
+                                                 re-claiming keeps the fields not passed.
   backlog release <id>                           Drop a claim.
   backlog set <id> <field> <value>               Fields: ${TICKET_SETTABLE.join(', ')}. "-" clears feature.
                                                  resolution: a closed ticket's, e.g. after a commit hash changed.
@@ -110,21 +149,24 @@ Roadmap — the scheduled tree
   roadmap move <id> <newParentId> [--before siblingId]
                                                  Re-parent or reorder; the root's id is "root".
   roadmap rename <id> <newId>                    Change a node's id; every dependsOn on it follows.
-  roadmap remove <id> [--force]                  --force is required when the node has children or tickets;
-                                                 its live tickets return to the basket.
+  roadmap remove <id> [--force]                  An unfinished branch only. --force is required when the node
+                                                 has children or tickets; its live tickets return to the basket.
   roadmap finish <id> --resolution <text>        Mark a work item done: its tickets close, bodies go to
                                                  archive/, settled question nodes fold away, the node stays.
   roadmap note <id> <text>                       Append a history note.
-  roadmap render [--out <path>]                  Markdown view to stdout (or a file). Not meant to be committed.
+  roadmap render [--out <path>]                  Markdown view to stdout (or a file outside .spec/backlog/).
+                                                 Not meant to be committed.
   roadmap format                                 Rewrite roadmap.json in canonical key order.
 
 Whole board
   check                                          Validate both stores and their cross-references.
-  migrate [--dry-run] [--force] [--roadmap-from <path>]
-                                                 Convert a BACKLOG.md + per-file backlog to this layout.
 
 The board lives under the main worktree of the git repository containing the current directory.
---root <dir> points it somewhere else explicitly.`;
+--root <dir> points it somewhere else explicitly.
+
+Exit codes: 0 ok; 1 not saved (the board or the change failed validation, or the board stayed
+locked by another command for ${LOCK_TIMEOUT_MS / 1000} s); 2 usage error; 3 refused (a claim is held, or finish found
+unfinished parts).`;
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -136,29 +178,39 @@ function boardPaths(root) {
     backlogDir,
     backlogJson: path.join(backlogDir, 'backlog.json'),
     archiveDir: path.join(backlogDir, 'archive'),
-    legacyIndex: path.join(backlogDir, 'BACKLOG.md'),
     roadmapJson: path.join(root, '.spec', 'roadmap', 'roadmap.json'),
+    lock: path.join(root, '.spec', '.board.lock'),
   };
 }
 
 // Body files are "<id>.md" or "<id>-<slug>.md", live in .spec/backlog/ or closed in archive/.
 // `view` lets validation see the files an edit is about to create or remove, so a change is
 // checked as it will be on disk without writing anything first.
+const BODY_NAME = /^bl-.*\.md$/;
+const bodyId = (name) => (name.match(/^(bl-[0-9a-f]{6})(?:-.*)?\.md$/) ?? [])[1];
+
+function bodyFiles(dir, view) {
+  let names;
+  try { names = fs.readdirSync(dir); } catch (_) { names = []; }
+  if (view) {
+    names = names.filter((n) => !view.removed.has(path.join(dir, n)));
+    for (const f of view.added) if (path.dirname(f) === dir && !names.includes(path.basename(f))) names.push(path.basename(f));
+  }
+  return names.filter((n) => BODY_NAME.test(n));
+}
+
+// Every body file of a ticket: normally one; two means a move was interrupted.
+function findBodies(paths, id, view) {
+  const found = [];
+  for (const [dir, archived] of [[paths.backlogDir, false], [paths.archiveDir, true]]) {
+    for (const name of bodyFiles(dir, view)) if (bodyId(name) === id) found.push({ file: path.join(dir, name), archived });
+  }
+  return found;
+}
+
 function findBody(paths, id, view) {
-  const match = (dir) => {
-    let names;
-    try { names = fs.readdirSync(dir); } catch (_) { names = []; }
-    if (view) {
-      names = names.filter((n) => !view.removed.has(path.join(dir, n)));
-      for (const f of view.added) if (path.dirname(f) === dir && !names.includes(path.basename(f))) names.push(path.basename(f));
-    }
-    const name = names.find((n) => n === `${id}.md` || (n.startsWith(`${id}-`) && n.endsWith('.md')));
-    return name ? path.join(dir, name) : null;
-  };
-  const live = match(paths.backlogDir);
-  if (live) return { file: live, archived: false };
-  const old = match(paths.archiveDir);
-  return old ? { file: old, archived: true } : null;
+  const found = findBodies(paths, id, view);
+  return found.find((b) => !b.archived) ?? found[0] ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,9 +223,66 @@ function readJson(file) {
   try { return JSON.parse(text); } catch (error) { throw new UsageError(`${file} is not valid JSON: ${error.message}`); }
 }
 
+const sleeper = new Int32Array(new SharedArrayBuffer(4));
+const sleep = (ms) => Atomics.wait(sleeper, 0, 0, ms);
+const BUSY = new Set(['EEXIST', 'EPERM', 'EACCES', 'EBUSY']); // Windows reports a contended file as EPERM/EBUSY
+
+// Written to a temp file beside the target and renamed over it, so a reader or a crash sees
+// either the old store or the new one, never half of one.
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(value, null, 2) + '\n', 'utf8');
+  const temp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
+  fs.writeFileSync(temp, JSON.stringify(value, null, 2) + '\n', 'utf8');
+  for (let attempt = 0; ; attempt++) {
+    try { fs.renameSync(temp, file); return; } catch (error) {
+      if (!BUSY.has(error.code) || attempt >= 20) { fs.rmSync(temp, { force: true }); throw error; }
+      sleep(25);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The board lock
+
+// Held for a writing command's whole read-validate-write. Returns the release function.
+function acquireLock(file) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const token = `${process.pid} ${crypto.randomBytes(8).toString('hex')} ${new Date().toISOString()}\n`;
+  const deadline = Date.now() + LOCK_TIMEOUT_MS;
+  let delay = 5;
+  for (;;) {
+    try {
+      const fd = fs.openSync(file, 'wx');
+      try { fs.writeSync(fd, token); } finally { fs.closeSync(fd); }
+      return () => {
+        try { if (fs.readFileSync(file, 'utf8') === token) fs.rmSync(file, { force: true }); } catch (_) { /* already gone */ }
+      };
+    } catch (error) {
+      if (!BUSY.has(error.code)) throw error;
+    }
+    if (removeStaleLock(file)) continue;
+    if (Date.now() >= deadline) {
+      throw new LockError(`the board is locked by another command: ${file}. If no board command is running, delete that file and retry.`);
+    }
+    sleep(delay + Math.floor(Math.random() * delay));
+    delay = Math.min(delay * 2, 100);
+  }
+}
+
+// A lock older than STALE_LOCK_MS belongs to a command that died. It is renamed aside before it
+// is deleted, so of two processes that both find it stale only one removes it; if what was
+// renamed turns out to be fresh (a new holder got in between), it is put back.
+function removeStaleLock(file) {
+  let age;
+  try { age = Date.now() - fs.statSync(file).mtimeMs; } catch (_) { return true; } // released meanwhile: retry now
+  if (age <= STALE_LOCK_MS) return false;
+  const grave = `${file}.${process.pid}.stale`;
+  try { fs.renameSync(file, grave); } catch (_) { return true; }
+  try {
+    if (Date.now() - fs.statSync(grave).mtimeMs <= STALE_LOCK_MS) fs.linkSync(grave, file);
+  } catch (_) { /* the original is back, or someone else holds a new lock */ }
+  fs.rmSync(grave, { force: true });
+  return true;
 }
 
 function ordered(obj, keys) {
@@ -437,19 +546,42 @@ function validateCross(board, view) {
         if (!t) { errors.push(`roadmap node "${entry.node.id}": ticket "${id}" is not in backlog.json.`); continue; }
         if (holders.has(id)) errors.push(`ticket "${id}" is on two roadmap nodes, "${holders.get(id)}" and "${entry.node.id}".`);
         else holders.set(id, entry.node.id);
-        if (FINISHED.has(entry.node.status) && isLive(t)) errors.push(`roadmap node "${entry.node.id}" is done but its ticket "${id}" is still open — finish nodes with \`roadmap finish\`.`);
-        if (!FINISHED.has(entry.node.status) && !isLive(t)) errors.push(`ticket "${id}" is closed but its roadmap node "${entry.node.id}" is not done.`);
+        // A work item's tickets close when it is finished. A settled design question's tickets
+        // close with its parent work item (`finish` collects them), so until that item is
+        // finished a decided question may hold open tickets.
+        if (isLive(t)) {
+          if (entry.node.status === 'done') errors.push(`roadmap node "${entry.node.id}" is done but its ticket "${id}" is still open — finish nodes with \`roadmap finish\`.`);
+          else if (entry.node.status === 'decided') {
+            const owner = workAncestor(entry);
+            if (owner?.node.status === 'done') errors.push(`roadmap node "${entry.node.id}" is a settled question under finished item "${owner.node.id}", but its ticket "${id}" is still open.`);
+          }
+        } else if (!FINISHED.has(entry.node.status)) errors.push(`ticket "${id}" is closed but its roadmap node "${entry.node.id}" is not done.`);
       }
     }
   }
+  const known = new Set();
   for (const t of board.backlog.tickets) {
-    const body = findBody(board.paths, t.id, view);
+    known.add(t.id);
+    const bodies = findBodies(board.paths, t.id, view);
+    const body = bodies.find((b) => !b.archived) ?? bodies[0];
     if (!body) errors.push(`ticket "${t.id}": no body file ${t.id}-<slug>.md in .spec/backlog/ or archive/.`);
+    else if (bodies.length > 1) errors.push(`ticket "${t.id}": ${bodies.length} body files (${bodies.map((b) => path.relative(board.paths.backlogDir, b.file)).join(', ')}) — an interrupted move; keep the one that matches its ${isLive(t) ? 'open' : 'closed'} state (${isLive(t) ? '.spec/backlog/' : 'archive/'}) and delete the other.`);
     else if (isLive(t) && body.archived) errors.push(`ticket "${t.id}": open, but its body is in archive/.`);
     else if (!isLive(t) && !body.archived) errors.push(`ticket "${t.id}": closed, but its body is still in .spec/backlog/ rather than archive/.`);
     if (t.claim && holders.has(t.id)) errors.push(`ticket "${t.id}": claimed, but it is on roadmap node "${holders.get(t.id)}" — on the tree, "active" is the claim.`);
   }
+  for (const [dir, label] of [[board.paths.backlogDir, '.spec/backlog/'], [board.paths.archiveDir, '.spec/backlog/archive/']]) {
+    for (const name of bodyFiles(dir, view)) {
+      if (!known.has(bodyId(name))) errors.push(`orphan body ${label}${name}: no ticket in backlog.json has its id — record it (\`backlog add\`) or delete the file.`);
+    }
+  }
   return errors;
+}
+
+// The nearest ancestor that is a work item: the item a design question belongs to.
+function workAncestor(entry) {
+  for (let e = entry.parent; e; e = e.parent) if (e.node.status in WORK_STATUS) return e;
+  return null;
 }
 
 function validateBoard(board, view) {
@@ -511,30 +643,13 @@ function requireRoadmap(board) {
 
 const claimText = (claim) => `claimed ${claim.date}, branch ${claim.branch} — ${claim.note}`;
 
-// Moving a body into archive/, dropping any frontmatter it still carries (the record is in JSON).
+// Moving a body into archive/, byte for byte: written there first, removed from .spec/backlog/
+// only after both stores are saved (see `apply`).
 function archiveMove(paths, id) {
   const body = findBody(paths, id);
   if (!body || body.archived) return { files: [], remove: [] };
-  const text = splitFrontmatter(fs.readFileSync(body.file, 'utf8')).body;
+  const text = fs.readFileSync(body.file);
   return { files: [{ file: path.join(paths.archiveDir, path.basename(body.file)), text }], remove: [body.file] };
-}
-
-// ---------------------------------------------------------------------------
-// Frontmatter (read during migration; bodies no longer carry any)
-
-function splitFrontmatter(text) {
-  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
-  if (!m) return { fields: {}, body: text, had: false };
-  const fields = {};
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = line.match(/^([A-Za-z_][\w-]*):\s?(.*)$/);
-    if (!kv) continue;
-    let value = kv[2].trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
-    fields[kv[1]] = value;
-  }
-  return { fields, body: text.slice(m[0].length).replace(/^\s*\n/, ''), had: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -601,7 +716,13 @@ function backlogCommand(board, command, args, options) {
       if (!isLive(t)) throw new UsageError(`${id} is closed.`);
       if (holders.has(id)) throw new UsageError(`${id} is on roadmap node "${holders.get(id).node.id}" — on the tree, set that node active instead of claiming.`);
       if (t.claim && !options.force) throw new RefusedError(`${id} is already ${claimText(t.claim)}. Report this to the user; take it over only with --force once they say so.`);
-      t.claim = { date: today(), branch: options.branch ?? 'TBD', note: options.note ?? 'under discussion' };
+      // Re-claiming keeps every field not passed. The date is when the work started, which is what
+      // makes a stale claim visible, so it changes only for a new claim or a change of branch
+      // (a takeover); updating the note keeps it.
+      const prior = t.claim ?? { branch: 'TBD', note: 'under discussion' };
+      const branch = options.branch ?? prior.branch;
+      const date = t.claim && branch === prior.branch ? t.claim.date : today();
+      t.claim = { date, branch, note: options.note ?? prior.note };
       return { saveBacklog: true, print: [`Claimed ${id}: ${claimText(t.claim)}.`] };
     }
     case 'release': {
@@ -671,6 +792,7 @@ function promoteCommand(board, args, options) {
   }
 
   if (!nodeId) throw new UsageError('Usage: promote <id> <parentNodeId> <newNodeId> [options]');
+  refuseDone(options.status, nodeId);
   if (index.entries.has(nodeId)) throw new UsageError(`A node with id "${nodeId}" already exists; use --into ${nodeId} to attach to it.`);
   const parent = requireNode(index, parentId);
   const node = { id: nodeId, title: options.title ?? t.title, status: options.status ?? (wasClaimed ? 'active' : 'planned'), tickets: [id] };
@@ -884,6 +1006,13 @@ function detach(entry) {
   if (siblings.length === 0 && entry.parent.node.id !== ROOT_ID) delete entry.parent.node.children;
 }
 
+// Only `roadmap finish` makes a work item done: it also checks the item's parts, closes its
+// tickets and archives their bodies. So no other command sets "done", whatever the node's
+// status was before — not `set` (even after `set status -`), not `add`, not `promote`.
+function refuseDone(status, id) {
+  if (status === 'done') throw new UsageError(`Work items are finished with: roadmap finish ${id} --resolution "<where it landed>" — that also closes its tickets and archives their bodies.`);
+}
+
 function setNodeField(node, field, value) {
   const clear = value === '-';
   switch (field) {
@@ -933,7 +1062,11 @@ function roadmapCommand(board, command, args, options) {
     case 'render': {
       const text = renderMarkdown(roadmap, index);
       if (!options.out) return { print: [text.replace(/\n$/, '')] };
-      return { files: [{ file: path.resolve(options.out), text }], print: [`Wrote ${path.resolve(options.out)}.`] };
+      const out = path.resolve(options.out);
+      if (isInside(board.paths.backlogDir, out) || samePath(out, board.paths.roadmapJson)) {
+        throw new UsageError(`Refusing to write ${out}: --out may not point into .spec/backlog/ (ticket bodies live there) or at roadmap.json.`);
+      }
+      return { files: [{ file: out, text }], print: [`Wrote ${out}.`] };
     }
     case 'root': {
       const [field, ...values] = args;
@@ -964,9 +1097,7 @@ function roadmapCommand(board, command, args, options) {
       const entry = requireNode(index, id);
       if (entry === index.root) throw new UsageError('The root is edited with: roadmap root <title|intro|now> ...');
       if (field === 'tickets') throw new UsageError('Tickets arrive through promote, not set.');
-      if (field === 'status' && value === 'done' && entry.node.status in WORK_STATUS) {
-        throw new UsageError(`Work items are finished with: roadmap finish ${id} --resolution "<where it landed>" — that also closes its tickets and archives their bodies.`);
-      }
+      if (field === 'status') refuseDone(value, id);
       setNodeField(entry.node, field, value);
       return { saveRoadmap: true, print: [`Set ${field} of "${id}".`] };
     }
@@ -974,6 +1105,7 @@ function roadmapCommand(board, command, args, options) {
       const [parentId, id, title] = args;
       if (title === undefined) throw new UsageError('Usage: roadmap add <parentId> <id> <title> [options]');
       if (options.tickets !== undefined) throw new UsageError('Tickets arrive through promote; add the node, then `promote <ticket> --into <id>`.');
+      refuseDone(options.status, id);
       if (index.entries.has(id)) throw new UsageError(`A node with id "${id}" already exists.`);
       const parent = requireNode(index, parentId);
       const node = { id, title };
@@ -994,6 +1126,7 @@ function roadmapCommand(board, command, args, options) {
       if (target === entry || isAncestor(entry, target)) throw new UsageError(`Cannot move "${id}" under itself.`);
       detach(entry);
       insertChild(target.node, entry.node, options.before);
+      if (entry.node.status !== undefined) entry.node.updated = today();
       return { saveRoadmap: true, print: [`Moved "${id}" under "${parentId}".`] };
     }
     case 'rename': {
@@ -1020,8 +1153,15 @@ function roadmapCommand(board, command, args, options) {
       const entry = requireNode(index, id);
       if (entry === index.root) throw new UsageError('The root cannot be removed.');
       const held = [];
-      const collect = (node) => { held.push(...(node.tickets ?? [])); for (const c of node.children ?? []) collect(c); };
+      const done = [];
+      const collect = (node) => {
+        held.push(...(node.tickets ?? []));
+        if (node.status === 'done') done.push(node.id);
+        for (const c of node.children ?? []) collect(c);
+      };
       collect(entry.node);
+      // Finished work is the record of what the system has: only unfinished branches are removed.
+      if (done.length) throw new UsageError(`"${id}" ${done[0] === id ? 'is done' : `contains finished item(s) ${done.join(', ')}`} — finished history stays on the tree; remove only unfinished branches (or \`roadmap move\` it).`);
       if ((entry.node.children?.length || held.length) && !options.force) {
         throw new UsageError(`"${id}" has ${entry.node.children?.length ? 'children' : ''}${entry.node.children?.length && held.length ? ' and ' : ''}${held.length ? `ticket(s) ${held.join(', ')}` : ''}; add --force. Open tickets return to the basket.`);
       }
@@ -1060,6 +1200,8 @@ function roadmapCommand(board, command, args, options) {
             gather(c);
             return false;
           }
+          // A settled question that stays (it holds work items) still closes its own tickets now.
+          if (c.status === 'decided') toClose.push(...(c.tickets ?? []));
           prune(c);
           return true;
         });
@@ -1091,226 +1233,12 @@ function roadmapCommand(board, command, args, options) {
       const entry = requireNode(index, id);
       if (entry === index.root) throw new UsageError('The root cannot hold notes.');
       (entry.node.notes ??= []).push(text);
+      if (entry.node.status !== undefined) entry.node.updated = today();
       return { saveRoadmap: true, print: [`Added a note to "${id}".`] };
     }
     default:
       throw new UsageError(`Unknown roadmap command "${command}". Run with --help for usage.`);
   }
-}
-
-// ---------------------------------------------------------------------------
-// Migration from the BACKLOG.md + per-file layout
-//
-// Old item files come in more than one shape: YAML frontmatter with the documented keys,
-// frontmatter with other names (`created`, `origin`), or no frontmatter at all — a `# id: title`
-// heading and bold label lines (`**Status**:` / `**狀態**:`). The old BACKLOG.md index line also
-// carries type, date, a title hook and claim text, and archive/ holds closed items whose
-// frontmatter is their closing record. Every ticket — open or closed — becomes a record in
-// backlog.json, and two rules hold throughout:
-//   - no field is dropped: anything the new record has no slot for is kept in its `legacy`
-//     object, verbatim;
-//   - a required field that no source supplies is not quietly defaulted: the migration refuses
-//     and lists what is missing, and --force is needed to accept the fallback values.
-
-const LABELS = { status: ['status', '狀態'], source: ['source', '來源'], type: ['type', '類型'], date: ['date', '日期', 'created'] };
-
-function boldLabels(body) {
-  const found = {};
-  for (const line of body.split(/\r?\n/).slice(0, 40)) {
-    const m = line.match(/^\s*\*\*([^*]+)\*\*\s*[:：]\s*(.+?)\s*$/);
-    if (!m) continue;
-    const label = m[1].trim().toLowerCase();
-    for (const [field, names] of Object.entries(LABELS)) if (names.includes(label) && found[field] === undefined) found[field] = m[2];
-  }
-  return found;
-}
-
-function headingTitle(body, id) {
-  const m = body.match(/^\s*#\s+(.+?)\s*$/m);
-  if (!m) return undefined;
-  return m[1].replace(new RegExp(`^${id}\\s*[:：]\\s*`), '').trim() || undefined;
-}
-
-function indexEntries(file) {
-  const entries = new Map();
-  if (!fs.existsSync(file)) return entries;
-  const lineRe = /^\s*-\s*\[([ ~xX])\]\s*(bl-[0-9a-f]{6})\b\s*(?:\(([^)]*)\))?\s*(?:[—–-]+\s*)?(.*)$/;
-  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
-    const m = line.match(lineRe);
-    if (!m) continue;
-    const [, mark, id, paren = '', rest] = m;
-    const parts = paren.split(/[,，]\s*/);
-    const type = TYPE_NAME.test((parts[0] ?? '').trim()) ? parts[0].trim() : undefined;
-    const date = (parts.find((p) => DATE.test(p.trim())) ?? '').trim() || undefined;
-    const extras = parts.slice(1).filter((p) => !DATE.test(p.trim())).join('，').trim();
-    const hook = rest.replace(/\s*→\s*\[[^\]]*\]\([^)]*\)\s*$/, '').trim();
-    entries.set(id, { mark, type, date, extras, hook, line: line.trim() });
-  }
-  return entries;
-}
-
-// A claim written as text: "2026-07-17 (branch: feat/x) — note", or index extras such as
-// "in progress since 2026-07-17, branch `feat/x`" / "2026-09-07 claim".
-function claimFromText(text, fallbackDate) {
-  const t = (text ?? '').trim();
-  const dates = t.match(/\d{4}-\d{2}-\d{2}/g) ?? [];
-  const branch = (t.match(/branch[:\s]*`?([^`),，\s]+)`?/i) ?? [])[1];
-  const note = t.replace(/^\d{4}-\d{2}-\d{2}\s*/, '').replace(/\(branch:[^)]*\)\s*/i, '').replace(/^[—–-]+\s*/, '').trim();
-  return { date: dates[dates.length - 1] ?? fallbackDate, branch: branch || 'TBD', note: note || 'claimed in the old layout' };
-}
-
-function migrate(paths, options) {
-  if (fs.existsSync(paths.backlogJson)) throw new UsageError(`${paths.backlogJson} already exists — this project is already on the board layout.`);
-  const dry = options['dry-run'];
-  const plan = [];
-  const fallbacks = [];
-  const writes = [];
-  const removes = [];
-
-  let roadmap = readJson(paths.roadmapJson) ?? null;
-  if (options['roadmap-from']) {
-    if (roadmap) throw new UsageError(`${paths.roadmapJson} already exists; refusing to overwrite it with --roadmap-from.`);
-    const from = path.resolve(options['roadmap-from']);
-    roadmap = readJson(from);
-    if (!roadmap) throw new UsageError(`Cannot read ${from}.`);
-    plan.push(`roadmap: copy ${from} -> ${paths.roadmapJson}`);
-  }
-  if (roadmap) {
-    const problems = validateRoadmap(roadmap);
-    if (problems.length) throw new UsageError(`The roadmap has problems; fix them first:\n  - ${problems.join('\n  - ')}`);
-  }
-  const holders = ticketHolders(roadmap);
-  const index = indexEntries(paths.legacyIndex);
-  const tickets = [];
-  const seen = new Set();
-
-  const files = [];
-  for (const [dir, archived] of [[paths.backlogDir, false], [paths.archiveDir, true]]) {
-    let names = [];
-    try { names = fs.readdirSync(dir); } catch (_) { /* absent */ }
-    for (const name of names) if (name.endsWith('.md') && name !== 'BACKLOG.md') files.push({ file: path.join(dir, name), name, archived });
-  }
-
-  for (const { file, name, archived } of files) {
-    const text = fs.readFileSync(file, 'utf8');
-    const { fields: fm, body, had } = splitFrontmatter(text);
-    const id = fm.id || (name.match(/^(bl-[0-9a-f]{6})/) ?? [])[1];
-    if (!id || !TICKET_ID.test(id)) { plan.push(`skip ${archived ? 'archive/' : ''}${name}: no recognizable id`); continue; }
-    if (seen.has(id)) throw new UsageError(`Two files carry ticket id ${id}; resolve that first.`);
-    seen.add(id);
-    const bold = boldLabels(body);
-    const idx = index.get(id);
-
-    // Resolve each field from the best source that has it, remembering which keys it consumed.
-    const consumed = new Set(['id']);
-    const pick = (candidates) => {
-      for (const [value, key] of candidates) {
-        if (value !== undefined && String(value).trim() !== '') { if (key) consumed.add(key); return String(value).trim(); }
-      }
-      return undefined;
-    };
-    const t = {
-      id,
-      title: pick([[fm.title, 'title'], [headingTitle(body, id)], [idx?.hook]]),
-      type: pick([[fm.type, 'type'], [bold.type], [idx?.type]]),
-      date: pick([[fm.date, 'date'], [fm.created, 'created'], [bold.date], [idx?.date]]),
-      source: pick([[fm.source, 'source'], [fm.origin, 'origin'], [bold.source]]),
-    };
-    const feature = pick([[fm.feature, 'feature']]);
-    if (feature) t.feature = feature;
-    let status = pick([[fm.status, 'status'], [bold.status]]) ?? (archived ? 'done' : idx?.mark === '~' ? 'in-progress' : 'open');
-    // The old index's [~] is a claim even when the file itself still says open.
-    if (status === 'open' && idx?.mark === '~') status = 'in-progress';
-    const pickedUp = pick([[fm.picked_up, 'picked_up']]);
-    const resolution = pick([[fm.resolution, 'resolution']]);
-    const closedDate = pick([[fm.closed, 'closed']]);
-
-    const missing = ['title', 'type', 'date', 'source'].filter((f) => !t[f]);
-    if (missing.length) fallbacks.push(`${id}: no ${missing.join(', ')} in its file or in BACKLOG.md`);
-    t.title ??= name.replace(/\.md$/, '');
-    t.type = t.type && TYPE_NAME.test(t.type) ? t.type : 'idea';
-    t.date = t.date && DATE.test(t.date.slice(0, 10)) ? t.date.slice(0, 10) : today();
-    t.source ??= 'unknown (migrated)';
-
-    const legacy = {};
-    for (const [k, v] of Object.entries(fm)) if (!consumed.has(k)) legacy[k] = v;
-    const known = ['open', 'in-progress', 'done', 'dropped'];
-    if (!known.includes(status)) {
-      legacy.status = status;
-      plan.push(`${id}: status "${status}" is not one the board knows — kept as legacy.status; decide whether to close it`);
-      status = archived ? 'done' : idx?.mark === '~' ? 'in-progress' : 'open';
-    }
-
-    const holder = holders.get(id);
-    let closing = null;
-    if (status === 'done' || status === 'dropped') closing = { status, resolution: resolution ?? (archived ? 'closed before migration (no resolution recorded)' : 'marked done before migration') };
-    else if (holder && FINISHED.has(holder.node.status)) {
-      closing = { status: 'done', resolution: `finished on the roadmap before migration (node ${holder.node.id})` };
-      plan.push(`${id}: open, but its node "${holder.node.id}" is ${holder.node.status} -> closed as done, body archived`);
-    }
-    if (closing) {
-      t.closed = { status: closing.status, ...(closedDate && DATE.test(closedDate) ? { date: closedDate } : {}), resolution: closing.resolution };
-    } else if (status === 'in-progress' && !holder) {
-      t.claim = pickedUp ? claimFromText(pickedUp, t.date) : claimFromText(idx?.extras, t.date);
-      plan.push(`${id}: claim carried over — ${claimText(t.claim)}`);
-    } else if (status === 'in-progress' && holder) {
-      plan.push(`${id}: was claimed, and is on roadmap node "${holder.node.id}" (${holder.node.status ?? 'no status'}) — the node's status is the claim now`);
-    }
-    if (pickedUp && (closing || holder)) legacy.picked_up = pickedUp;
-    if (Object.keys(legacy).length) t.legacy = legacy;
-    tickets.push(t);
-
-    // Bodies carry no frontmatter any more; closed ones live in archive/.
-    const newText = had ? body : text;
-    const target = t.closed ? path.join(paths.archiveDir, name) : path.join(paths.backlogDir, name);
-    if (target !== file) { writes.push({ file: target, text: newText }); removes.push(file); }
-    else if (had) writes.push({ file, text: newText });
-
-    const where = [];
-    if (!had && (bold.status || bold.source)) where.push('bold-label header');
-    if (fm.created || fm.origin) where.push('frontmatter aliases');
-    if (Object.keys(legacy).length) where.push(`legacy: ${Object.keys(legacy).join(', ')}`);
-    if (!plan.some((p) => p.startsWith(`${id}:`))) {
-      plan.push(`${id}: ${t.closed ? `closed (${t.closed.status})` : holder ? `open, on roadmap node "${holder.node.id}"` : 'open, in the basket'}${where.length ? ` [${where.join('; ')}]` : ''}`);
-    } else if (where.length) plan.push(`${id}: [${where.join('; ')}]`);
-  }
-
-  // Index lines whose ticket has no body file anywhere become tickets whose body is that line.
-  for (const [id, idx] of index) {
-    if (seen.has(id)) continue;
-    const t = { id, title: idx.hook.slice(0, 200) || id, type: idx.type ?? 'idea', date: idx.date ?? today(), source: 'migrated from a BACKLOG.md line with no body file' };
-    if (!idx.type || !idx.date) fallbacks.push(`${id}: index-only entry without ${[!idx.type && 'type', !idx.date && 'date'].filter(Boolean).join(', ')}`);
-    if (idx.mark === '~' && !holders.has(id)) t.claim = claimFromText(idx.extras, t.date);
-    tickets.push(t);
-    seen.add(id);
-    writes.push({ file: path.join(paths.backlogDir, `${id}.md`), text: `**Migrated from BACKLOG.md** — this ticket had an index line but no body file. The line, verbatim:\n\n> ${idx.line}\n` });
-    plan.push(`${id}: index-only entry -> ticket with its BACKLOG.md line as body${t.claim ? ` (${claimText(t.claim)})` : ''}`);
-  }
-  for (const id of holders.keys()) if (!seen.has(id)) fallbacks.push(`${id}: referenced by roadmap node "${holders.get(id).node.id}" but no file or index line carries it`);
-
-  if (fs.existsSync(paths.legacyIndex)) { plan.push('BACKLOG.md: retired (every listed ticket accounted for)'); removes.push(paths.legacyIndex); }
-
-  const board = { paths, backlog: { tickets }, roadmap };
-  const view = { added: new Set(writes.map((w) => w.file)), removed: new Set(removes.filter((r) => !writes.some((w) => w.file === r))) };
-  const problems = fallbacks.some((f) => f.includes('referenced by roadmap')) ? [] : validateBoard(board, view);
-
-  const open = tickets.filter(isLive);
-  const lines = [
-    `Migration plan for ${paths.root}:`,
-    ...plan.map((p) => `  ${p}`),
-    `  -> ${tickets.length} ticket(s) into ${paths.backlogJson}: ${open.filter((t) => !holders.has(t.id)).length} in the basket, ${open.filter((t) => holders.has(t.id)).length} open on the roadmap, ${tickets.length - open.length} closed`,
-  ];
-  if (problems.length) lines.push('', 'The migrated board would have problems:', ...problems.map((p) => `  ${p}`));
-  if (fallbacks.length) lines.push('', 'Required fields no source could supply (a fallback value would be used):', ...fallbacks.map((f) => `  ${f}`));
-  const blocked = problems.length > 0 || (fallbacks.length > 0 && !options.force);
-  if (dry) return [...lines, '', blocked ? 'Dry run: nothing was changed. A real run would refuse as it stands.' : 'Dry run: nothing was changed.'];
-  if (blocked) { console.log(lines.join('\n')); throw new RefusedError(problems.length ? 'the migrated board would not validate.' : 'missing required fields — fix the files or re-run with --force to accept the fallbacks.'); }
-
-  for (const w of writes) { fs.mkdirSync(path.dirname(w.file), { recursive: true }); fs.writeFileSync(w.file, w.text, 'utf8'); }
-  for (const r of removes) if (!writes.some((w) => w.file === r)) fs.rmSync(r, { force: true });
-  saveBacklog(paths.backlogJson, board.backlog);
-  if (options['roadmap-from']) saveRoadmap(paths.roadmapJson, roadmap);
-  return [...lines, '', 'Done. Run `check` to confirm the board is consistent.'];
 }
 
 // ---------------------------------------------------------------------------
@@ -1329,20 +1257,59 @@ function parseArgs(argv) {
   return { positional, options };
 }
 
+// The table key for a command: "check", "promote", "backlog add", ... (a bare area is its default).
+function commandKey(area, command) {
+  if (area === 'backlog') return `backlog ${command ?? 'list'}`;
+  if (area === 'roadmap') return `roadmap ${command ?? 'show'}`;
+  return area;
+}
+
+function checkOptions(key, options) {
+  const allowed = COMMAND_OPTIONS[key];
+  if (!allowed) return; // an unknown command: its handler reports that
+  for (const name of Object.keys(options)) {
+    if (name === 'root' || name === 'help' || allowed.includes(name)) continue;
+    throw new UsageError(`${key} does not take --${name}${allowed.length ? `; it takes ${allowed.map((o) => `--${o}`).join(', ')}` : ''}. Run with --help for usage.`);
+  }
+}
+
+// Commands that only read take no lock; everything else holds it for the whole read-validate-write.
+function readsOnly(key, args, options) {
+  if (['check', 'backlog list', 'backlog show', 'roadmap show', 'roadmap next'].includes(key)) return true;
+  if (key === 'roadmap render') return !options.out;
+  if (key === 'roadmap root') return args.length === 0;
+  return false;
+}
+
+const pathKey = (p) => (process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p));
+const samePath = (a, b) => pathKey(a) === pathKey(b);
+function isInside(dir, file) {
+  const rel = path.relative(pathKey(dir), pathKey(file));
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
 function main(argv) {
   const { positional, options } = parseArgs(argv);
   const [area, command, ...args] = positional;
   if (!area || area === 'help' || options.help) { console.log(USAGE); return 0; }
+  const key = commandKey(area, command);
+  checkOptions(key, options);
 
   const root = options.root ? path.resolve(options.root) : mainWorktreeRoot(process.cwd());
   const paths = boardPaths(root);
-  const note = () => {
+  const release = readsOnly(key, args, options) ? null : acquireLock(paths.lock);
+  try {
+    const code = run(paths, area, command, args, options);
     // Say so when git redirected the board away from where the command was run (a linked worktree).
-    if (!options.root && path.resolve(process.cwd()) !== root && !process.cwd().startsWith(root + path.sep)) console.error(`(board: ${root})`);
-  };
+    if (code === 0 && !options.root && path.resolve(process.cwd()) !== root && !process.cwd().startsWith(root + path.sep)) console.error(`(board: ${root})`);
+    return code;
+  } finally {
+    release?.();
+  }
+}
 
-  if (area === 'migrate') { console.log(migrate(paths, options).join('\n')); note(); return 0; }
-
+function run(paths, area, command, args, options) {
+  const root = paths.root;
   const board = loadBoard(paths);
   const errors = validateBoard(board);
   if (errors.length > 0) {
@@ -1377,14 +1344,22 @@ function main(argv) {
       for (const p of problems) console.error(`  - ${p}`);
       return 1;
     }
-    for (const f of result.files ?? []) { fs.mkdirSync(path.dirname(f.file), { recursive: true }); fs.writeFileSync(f.file, f.text, 'utf8'); }
-    for (const r of result.remove ?? []) fs.rmSync(r, { force: true });
-    if (result.saveRoadmap) saveRoadmap(paths.roadmapJson, board.roadmap);
-    if (result.saveBacklog) saveBacklog(paths.backlogJson, board.backlog);
+    apply(paths, board, result);
   }
   console.log(result.print.join('\n'));
-  note();
   return 0;
+}
+
+// The order makes an interrupted write recoverable: every state a crash can leave between two
+// steps is one `check` names. New files first (a new body alone is an orphan; an archive copy
+// beside its live original is a duplicate), then roadmap.json, then backlog.json (between the
+// two, a finished node with open tickets, or a claimed ticket on a node), and only then the old
+// bodies are removed — so a body is never deleted before the record that says where it went.
+function apply(paths, board, result) {
+  for (const f of result.files ?? []) { fs.mkdirSync(path.dirname(f.file), { recursive: true }); fs.writeFileSync(f.file, f.text, 'utf8'); }
+  if (result.saveRoadmap) saveRoadmap(paths.roadmapJson, board.roadmap);
+  if (result.saveBacklog) saveBacklog(paths.backlogJson, board.backlog);
+  for (const r of result.remove ?? []) fs.rmSync(r, { force: true });
 }
 
 try {
@@ -1392,5 +1367,6 @@ try {
 } catch (error) {
   if (error instanceof RefusedError) { console.error(`refused: ${error.message}`); process.exitCode = 3; }
   else if (error instanceof UsageError) { console.error(`error: ${error.message}`); process.exitCode = 2; }
+  else if (error instanceof LockError) { console.error(`error: ${error.message}`); process.exitCode = 1; }
   else throw error;
 }
