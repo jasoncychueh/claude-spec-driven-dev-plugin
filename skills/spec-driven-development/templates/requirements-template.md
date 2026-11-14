@@ -23,6 +23,8 @@
 
 **User Story:** As a [role], I want [feature], so that [benefit]
 
+**Main flow:** [the steps the user takes, from trigger to outcome, in a few numbered lines; this requirement's E2E test walks it]
+
 #### Acceptance Criteria
 
 1. WHEN [event] THEN [system] SHALL [response]
@@ -32,6 +34,8 @@
 ### Requirement 2
 
 **User Story:** As a [role], I want [feature], so that [benefit]
+
+**Main flow:** [steps from trigger to outcome]
 
 #### Acceptance Criteria
 

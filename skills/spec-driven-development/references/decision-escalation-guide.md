@@ -4,7 +4,7 @@ The "translation work" the main agent must do when, having received an Architect
 
 > This file only needs to be read when the main agent needs to hand a Decision to the user. Reviewer agents **need not** read this file — they still output a mechanically parseable issue list per `review-protocol.md`; what this file governs is how the main agent **translates** that list into a conversation a human can digest.
 
-> **Architecture Decisions are reached here only after the advisor gate.** Every Architecture Decision first passes through the advisor (SKILL.md "Advisor Gate Mechanism" / `advisor-gate-guide.md`). The advisor settles the ones with a defensible technical answer — those are **not** delivered as an AskUserQuestion; they're recorded `advisor-resolved` and surfaced in the briefing / Summary for the user to confirm or override. The two-beat delivery below is for the Architecture Decisions the advisor **passed through** as genuine user calls (and for every Decision when the advisor is unavailable).
+> **Architecture Decisions are reached here only after the advisor gate.** Every Architecture Decision first passes through the advisor (`advisor-gate-guide.md`). The advisor settles the ones with a defensible technical answer — those are **not** delivered as an AskUserQuestion; they're recorded `advisor-resolved` and surfaced in the briefing / Summary for the user to confirm or override. The two-beat delivery below is for the Architecture Decisions the advisor **passed through** as genuine user calls (and for every Decision when the advisor is unavailable).
 >
 > The other two AskUserQuestion interactions this guide governs are **not** advisor-resolved and keep their existing handling: **Steering Candidate promotion** is a genuine preference / guardrail call that passes straight through to the user (Core Principle #7 keeps it deliberately restrained and user-confirmed — the advisor may inform the recommendation but doesn't resolve it), and the **Medium/Low defer-and-batch** already embodies the gate's "don't interrupt, keep going, surface later" instinct (its outcomes use the existing fix / waiver §3 / backlog homes). So the advisor's *autonomous resolution* is scoped to Architecture Decisions; the two-beat delivery discipline still applies to all three whenever they do reach the user.
 
@@ -24,7 +24,7 @@ The "translation work" the main agent must do when, having received an Architect
 
 ## Core principle: calibrate for the human cognitive limit
 
-> This guide is the concretization of SKILL.md's "Calibrate for Cognitive Load" global principle in the **Architecture Decision escalation** scenario — the same lens of "digest the abstraction first, narrate via real use cases, don't assume the user remembers prior context", applied here to translating the reviewer's issue list into a conversation the user can resolve.
+> This guide is the concretization of the "Calibrate for Cognitive Load" global principle (`briefing-guide.md`) in the **Architecture Decision escalation** scenario — the same lens of "digest the abstraction first, narrate via real use cases, don't assume the user remembers prior context", applied here to translating the reviewer's issue list into a conversation the user can resolve.
 
 The issue list the reviewer produces is raw material; **the main agent can't copy it over verbatim**. Reasons:
 
@@ -372,7 +372,7 @@ It is **not** delivered via AskUserQuestion at resolution time (recording is sil
 
 After finishing §2, immediately think one more step: does this Decision establish "**a choice for just this feature**" or "**a project-level principle**" (which other future features should also follow)? Clues for the judgment: does the rationale appeal to feature-agnostic reasons (workload characteristics, team preference, codebase consistency), should future similar choices simply reuse it without asking again. **The default is "just this feature", don't promote** — only when it clearly appeals to a feature-agnostic reason, and not recording it in steering would cause future inconsistency, treat it as a project-level principle; most Decisions are the former.
 
-If it's a project-level principle, per SKILL.md "Steering Evolution Mechanism" propose writing it into steering right then — the user has just resolved it, the context is still warm, and the cost of following up with "should this go into tech.md as a general rule?" is lowest. After confirmation, lightly write it in + record into review-log §5.
+If it's a project-level principle, per `steering-guide.md` "Steering Evolution Mechanism" propose writing it into steering right then — the user has just resolved it, the context is still warm, and the cost of following up with "should this go into tech.md as a general rule?" is lowest. After confirmation, lightly write it in + record into review-log §5.
 
 ### How a Decision's result reflects into design.md / tasks.md (neutralization principle)
 

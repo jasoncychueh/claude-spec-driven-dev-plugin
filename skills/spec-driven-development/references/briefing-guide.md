@@ -2,6 +2,33 @@
 
 Before implementation starts, the main agent uses **conversational output** to summarize for the user the key points and important concepts of the whole spec / plan.
 
+## Calibrate for Cognitive Load (the global principle behind this guide)
+
+**Any output** the main agent produces for the user — mode declaration, progress report, problem explanation, review conclusion, summary, Decision escalation, briefing — must be **digested and abstracted** before it's presented; don't dump a raw flood of information at the user. This isn't the rule of one checkpoint; it's the communication baseline that runs through the entire flow. The briefing is its most structured application; this section states the principle itself.
+
+**Why**: the mental map an agent can hold up instantly is far larger than what a human can absorb in the moment. Dumping un-abstracted bulk on the user → cognitive overload → the important point gets buried → misunderstandings only surface after implementation, where fixing them costs an order of magnitude more. Lowering cognitive load isn't a courtesy; it moves "trigger the discussion" to the cheapest possible moment. This is the communication layer; the docs themselves are the agent layer (SKILL.md "Docs for Agents, Code as Truth"), so lowering the user's load never means making the docs longer.
+
+**Core practice — one lens serving both analysis and communication**: "**use cases + execution flow + data structures**" is one lens used two ways:
+
+- **Analysis (review)** uses it to find "the core design concepts driven by real scenarios," ruling out theoretical edge cases with no scenario (see `review-protocol.md`, "Review method")
+- **Communication (briefing / any explanation)** presents those core concepts through the same lens: walk through it with an actual use case, introducing components, data structures, and execution flow only as they appear on stage in the scenario
+
+The bridge is the "**core design concept**" — review decides what's important (scenario-driven is what's important), and communication spends its words on what's important, skipping the theoretical noise. **Review and briefing have different jobs but share the same underlying lens.**
+
+**Three concrete disciplines**:
+
+1. **Narrate with an actual use case riding the execution flow** — a bare concept list (stacking component names + pattern names) builds no mental picture; scenario narration ("when the user does X, because of some decision, they go through Y") lands instantly.
+2. **Don't assume the user remembers earlier context** — humans forget across conversation turns, and forget a project's full architecture over time. When explaining, don't casually omit data structures, execution flows, or abstractions raised a few turns back; restate them proactively when needed, to help the user rebuild the mental model.
+3. **Just the right amount of information** — too little and the user can't judge; too much and they can't absorb it; when detail is needed, point at the location in the docs (design.md §X / the plan file's section) rather than re-pasting the whole thing.
+
+**Three downstream applications** (concretizations of this principle, each with its own detailed guide):
+
+| Application | Guide |
+|---|---|
+| Spec / Plan Briefing before implementation | this file, below |
+| Escalating an Architecture Decision / waiver / steering candidate to the user | `decision-escalation-guide.md` |
+| Review analysis (using the same lens to find core design concepts) | `review-protocol.md`, "Review method" |
+
 ## Trigger points
 
 | Flow | Timing | Form |
@@ -35,7 +62,7 @@ So the delivery rule: **the full briefing text must be the final message of that
 - After the user replies with no objection, the next turn proceeds to the next step (Quick Fix: ExitPlanMode; the Spec Mode Plan Briefing: write the spec documents; the final Spec Briefing and the `/implement` condensed briefing: run `approve.mjs <feature>` as the first action of the turn, then end /create-spec / enter Stage 1 — it records the approval, see SKILL.md "Planning Phase and Approval Gate"); if there are concerns, follow "Handling user concerns" below
 - Note that although ExitPlanMode itself also stops (presenting the full plan text = the document layer), the briefing is the **comprehension layer** stop point — **ExitPlanMode must not replace the briefing turn**; the briefing must be delivered **before** ExitPlanMode, as the turn-final message (the hook will block "ExitPlanMode without a prior briefing"). Spec Mode never calls ExitPlanMode, so there the briefing turn is itself the stop point and the user's reply is the approval
 
-> **The advisor gate never stands in for the briefing.** The advisor absorbs *decisions taken along the way* (SKILL.md "Advisor Gate Mechanism"), but the briefing and the plan approval (ExitPlanMode, or the user's reply in Spec Mode) are the user's sign-off on *what gets built* — the advisor is a technical reviewer, not the product owner, and can't approve the plan on the user's behalf. So the briefing is always delivered to the user and waits for the user, regardless of the advisor. Its content merely *grows*: the advisor's decisions are folded in as the "confirm or override" block (item 4 above).
+> **The advisor gate never stands in for the briefing.** The advisor absorbs *decisions taken along the way* (`advisor-gate-guide.md`), but the briefing and the plan approval (ExitPlanMode, or the user's reply in Spec Mode) are the user's sign-off on *what gets built* — the advisor is a technical reviewer, not the product owner, and can't approve the plan on the user's behalf. So the briefing is always delivered to the user and waits for the user, regardless of the advisor. Its content merely *grows*: the advisor's decisions are folded in as the "confirm or override" block (item 4 above).
 
 ### Three-layer reminder architecture (why not rely solely on SKILL.md's step list)
 
@@ -44,7 +71,7 @@ SKILL.md is loaded at the start of the task; the briefing's decision point comes
 1. **Reviewer convergence report** (review-protocol.md conclusion template) — when design-reviewer reports 0 issues, it attaches a next-step reminder
 2. **tasks-design-verifier pass report** — when Spec Mode verification passes, it attaches a Spec Briefing next-step reminder
 3. **PreToolUse command hook (ExitPlanMode)** — a deterministic Node script enforced by the harness (`hooks/briefing-checkpoint.js`), protecting **every ExitPlanMode** (Quick Fix / general plan mode alike — a briefing lowers cognitive load for any plan, and being fail-open it won't break plan mode, so it isn't narrowed). It reads the transcript, **skips the agent's mechanical tool turns** (the ToolSearch that loads the deferred ExitPlanMode, the post-approval Edit, and other assistant turns carrying tool_use) + tool_result + injected messages, then checks "whether the first substantive message is a user reply": yes → allow; agent plain text (with no user reply after it, = no briefing or exited without waiting for a reply) → block and return a brief reminder. **Fail-open** (unreadable transcript / parse failure / unexpected structure all allow through), **cannot deadlock** (after a completed briefing + user reply, the preceding message is a user message → allow). It filters out `isSidechain` (subagent messages) and `isMeta` (injected local-command / reminder). This replaces the prompt hook of 1.6.2–1.6.5 — that version was judged by an LLM, couldn't see history, and would overturn its own "always allow" and wrongly block the retry after a completed briefing.
-   The same mechanism, second hook — **the approval gate** (`hooks/approval-gate.js`, SKILL.md "Planning Phase and Approval Gate"): Spec Mode never calls ExitPlanMode, so its briefing has no ExitPlanMode to guard. Instead no `spec-implementer` / `spec-tester` is dispatched until the transcript shows a call to `approve.mjs <feature>` as the first action after the user's reply to a briefing (agent text, then a human message, then the call) — the same "briefed, then the user answered" walk as above, applied twice. The triggers are the user's confirmation of the final Spec Briefing and of the `/implement` condensed briefing; a human message with no briefing before it does not count. It shares the transcript helpers with the checkpoint (`hooks/lib/transcript.js`) and is likewise fail-open and unable to deadlock.
+   The same mechanism, second hook — **the approval gate** (`hooks/approval-gate.js`, SKILL.md "Planning Phase and Approval Gate", mechanics in `approval-gate.md`): Spec Mode never calls ExitPlanMode, so its briefing has no ExitPlanMode to guard. Instead no `spec-implementer` / `spec-tester` is dispatched until the transcript shows a call to `approve.mjs <feature>` as the first action after the user's reply to a briefing (agent text, then a human message, then the call) — the same "briefed, then the user answered" walk as above, applied twice. The triggers are the user's confirmation of the final Spec Briefing and of the `/implement` condensed briefing; a human message with no briefing before it does not count. It shares the transcript helpers with the checkpoint (`hooks/lib/transcript.js`) and is likewise fail-open and unable to deadlock.
 
 ### Remedy
 
@@ -67,7 +94,7 @@ The difference between a briefing and the plan / design is not length, it is the
 
 A pure conceptual list ("add a CacheService, using TTL invalidation, decoupled from EventDispatcher") builds no picture for someone who hasn't read the spec; the same content told as a scenario — "after the user updates their profile, the next query hits the cache first and may see a stale value for up to 60 seconds, then it updates automatically; this is a resolved trade-off, bought in exchange for queries not hammering the DB" — is instantly understandable.
 
-**This uses the same lens as review** (see SKILL.md "Calibrate for Cognitive Load"): review uses "use case + execution flow + data structure" to find the real-scenario-driven **core design concepts**, and the briefing takes those core concepts and explains the key points to the user through the same lens. So the briefing is not just abstract conclusions — it should bring out the **data structures and execution flows that the scenario actually touches**. Because humans forget across many turns of conversation, and over time forget a project's full architecture; only by restating the relevant data structures / flows along with it can you help the user rebuild their mental model.
+**This uses the same lens as review** (see "Calibrate for Cognitive Load" above): review uses "use case + execution flow + data structure" to find the real-scenario-driven **core design concepts**, and the briefing takes those core concepts and explains the key points to the user through the same lens. So the briefing is not just abstract conclusions — it should bring out the **data structures and execution flows that the scenario actually touches**. Because humans forget across many turns of conversation, and over time forget a project's full architecture; only by restating the relevant data structures / flows along with it can you help the user rebuild their mental model.
 
 How to do it:
 
@@ -83,7 +110,7 @@ How to do it:
 3. **Key design decisions** — the resolved Decisions not covered by the walkthrough, each as a one-line scenario-grounded consequence
 4. **Decisions I resolved via the advisor — confirm or override** — the Decisions the advisor gate settled on the user's behalf (review-log §2 `advisor-resolved`), each as a one-line scenario-grounded consequence citing its §2 letter, plus any tier-2 deferred defaults. This is the user's single consolidated review point for everything decided in their absence — the safety valve that makes autonomous resolution acceptable, so it's never omitted when the run has any advisor-resolved decisions. An override is handled like a fresh user Decision (see `advisor-gate-guide.md`). Omit the heading entirely when there were none
 5. **Deliberately accepted limitations** — Waivers + the cost each one pays (the user should know "what we gave up")
-6. **Implementation outlook** — Phase structure, which areas will be touched, rough scope (Quick Fix: list of changed files + verification method)
+6. **Implementation outlook** — Phase structure, which areas will be touched, rough scope (Quick Fix: list of changed files + verification method). In the Spec Briefing, also the test plan in one line: how many E2E rows (one per use case) and integration rows (one per external assumption), the runtime they need, and whether it is available during implementation. The user can cut rows here, the cheapest moment to do it
 7. **Explicit invitation to discuss** — a fixed closing invitation: "If anything doesn't match your expectations, raise it now — it's far cheaper than changing it after implementation"
 
 ## Calibration (designed for human cognitive limits — same philosophy as decision-escalation-guide)
@@ -106,7 +133,7 @@ The value of the briefing lies in triggering discussion — after the user respo
 - **The spec / plan really has a problem** →
   - Spec Mode: go back to `/update-spec` to fix it (triggers the corresponding verifier to rerun); if still within the `/create-spec` flow, fix it directly + add a round of design-reviewer
   - Quick Fix Mode: resume the `spec-author` session (Mode 2) to fix the plan file; if the change involves design substance, add a round of design-reviewer before ExitPlanMode
-- **A new preference / principle surfaces** → evaluate per the "Steering Evolution Mechanism" whether to promote it into steering
+- **A new preference / principle surfaces** → evaluate per the "Steering Evolution Mechanism" (`steering-guide.md`) whether to promote it into steering
 
 ## Condensed briefing (/implement starting in a later session, or re-entering plan mode after a restart)
 

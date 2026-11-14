@@ -20,12 +20,12 @@
 > - Components' Purpose and Interfaces.
 > - Data Models that cross a boundary or persist.
 > - Error Handling.
-> - The Test Cases table and the Test Approach seams (injection points, clock control, observable state).
+> - The Test Cases table (E2E and integration rows) and the Test Approach seams (injection points, clock control, observable state).
 > - Shared internals (the rule above).
 > - The processing flow where the flow is itself a decision.
 > - Code location and the Visual design pointer.
 >
-> The reason: `spec-tester` writes tests blind, from the interfaces, the case table and the Test Approach, so a vague contract does not free the implementer: it makes the tests and the code disagree. A decision the design states binds; a description of unshared internals and the approach does not. The contract's full definition is in SKILL.md "Docs for Agents, Code as Truth".
+> The reason: `spec-tester` writes tests blind, deriving the unit tests from the interfaces and the rest from the case table and the Test Approach, so a vague contract does not free the implementer: it makes the tests and the code disagree. A decision the design states binds; a description of unshared internals and the approach does not. The contract's full definition is in SKILL.md "Docs for Agents, Code as Truth".
 
 ## Overview
 
@@ -123,24 +123,24 @@ graph TD
 
 ### Test Cases
 
-Every case anchors to something that survives refactoring: a **requirement number** from requirements.md, or a **component's public interface** from this document. A case that can anchor to neither must not be written — an assertion about internal structure is a future time-sink, not coverage.
+The table lists only the **E2E** and **integration** tests. Unit tests are not listed: every public interface in Components and Interfaces is unit-tested for its normal result and each error behavior stated above, and `spec-tester` derives those cases from the interface contract. Kinds, bounds and reasons: `references/testing-guide.md`.
 
-| ID | Anchor | Level | Behavior to verify |
-|----|--------|-------|--------------------|
-| T-1 | [R2.3] | behavior | [what an outside observer can check] |
-| T-2 | [SyncQueue.push] | interface | [the contract a caller may rely on] |
-| T-3 | [R4.1] | e2e | [the user-visible scenario, end to end] |
+| ID | Kind | Anchor | Behavior to verify |
+|----|------|--------|--------------------|
+| T-1 | e2e | [Requirement 2] | [the use case's main success flow, end to end, as an outside observer sees it] |
+| T-2 | integration | [the external assumption, e.g. "the CAD API returns an empty list, not null, for an unsaved document"] | [what the adapter observes when the assumption holds] |
 
-- **ID** — `T-{n}`, stable for the life of the spec. A removed case's number is never reused.
-- **Anchor** — a requirement number (`R2.3`) or a public interface (`Component.method`). Never an internal function, private state, or a description of how the code works.
-- **Level** — `behavior` (anchored to a requirement; a refactor must never break it), `interface` (anchored to a component contract; only an interface redesign may invalidate it), `e2e` (a user-visible scenario end to end).
-- **Behavior to verify** — the observable outcome, not the mechanism. "concurrent push loses no items", never "push takes the lock before appending".
+- **ID**: `T-{n}`, stable for the life of the spec. A removed case's number is never reused.
+- **Kind**: `e2e` (anchored to a use case, a requirement's user story) or `integration` (anchored to an assumption about an external system, tested at the adapter that wraps it).
+- **Anchor**: the requirement whose user story the flow walks, or the external assumption stated in one sentence. Never an internal function, private state, or a description of how the code works.
+- **Behavior to verify**: the observable outcome, not the mechanism.
 
-Coverage this table must satisfy: every requirement has at least one `behavior` case, every component's public interface has at least one `interface` case, and every scenario in Error Handling above has a case covering its failure path.
+Coverage this table must satisfy, and its cap: one `e2e` row per requirement's user story (a second only for an acceptance criterion that cannot be observed without the whole flow), and one `integration` row per external assumption the design relies on. Nothing else belongs here: a rule an acceptance criterion states is verified by the unit tests of the interface that enforces it.
 
 ### Test Approach
 
 - [Harness / framework and where test files live]
-- [Fixture and test-data strategy]
+- [Fixture and test-data strategy; for a fixture against a live system, the smoke test that validates it first]
+- [Which runtime the integration and E2E tests need, and whether it is available during implementation]
 - [What must NOT be mocked — the seams whose real behavior is the point of the test]
 - [Anything that needs a design affordance to be testable at all: injection points, observable state, clock control]

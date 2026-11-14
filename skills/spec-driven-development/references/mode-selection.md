@@ -7,7 +7,7 @@ This skill supports two development paths. **Any** work that writes / modifies c
 | Document output | plan file only (outside the repo) | requirements.md + design.md + tasks.md |
 | Who writes docs | `spec-author` (plan file, per the main agent's brief) | `spec-author` (plan + spec docs, per the main agent's brief) |
 | Who writes code | `spec-implementer` (single session by default, plan-file-driven; fans out to a 2nd only across genuinely file-disjoint areas) | `spec-implementer` agents (parallel groups by default — `File:`-disjoint within a phase, ≤4, tasks.md-driven) |
-| Who writes tests | `spec-implementer` — the plan's change list names them (no separate tester) | `spec-tester`, dispatched alongside the implementer groups and **blind to the code they write**, one test per case ID in design.md's Test Cases table |
+| Who writes tests | `spec-implementer` — the plan's change list names them (no separate tester) | `spec-tester`, dispatched alongside the implementer groups and **blind to the code they write**, unit tests from the public interfaces plus the Test Cases table's integration and e2e rows |
 | design-reviewer loop | **mandatory** (multi-round review of the plan content to 0 issues) | **mandatory** (multi-round review of design.md to 0 issues) |
 | implementation-reviewer loop | **mandatory** (multi-round review to 0 issues) | **mandatory** (multi-round review to 0 issues) |
 | Applicable situations | bug fix / refactor / small extension | new feature / large refactor / cross-component |
@@ -108,7 +108,7 @@ Key characteristics of quick fix mode (the only mode that uses the harness Plan 
 - What ExitPlanMode submits to the user to approve is the **already-reviewed final version**
 - The user doesn't see the review process, only the converged plan
 
-**Steering and Quick Fix Mode**: Quick Fix Mode does not require steering to exist; but if the project already has `.spec/steering/`, the main agent should load it and let the reviewer know (steering alignment is one of the review facets), and a new convention discovered during the quick fix likewise goes through SKILL.md "Steering Evolution Mechanism" for promotion.
+**Steering and Quick Fix Mode**: Quick Fix Mode does not require steering to exist; but if the project already has `.spec/steering/`, the main agent should load it and let the reviewer know (steering alignment is one of the review facets), and a new convention discovered during the quick fix likewise goes through `steering-guide.md` "Steering Evolution Mechanism" for promotion.
 
 ---
 

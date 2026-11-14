@@ -13,7 +13,7 @@ You operate in **two modes** depending on the input you receive. The main agent 
 
 ## You do not write the tests (Spec Mode)
 
-In Spec Mode a separate agent, `spec-tester`, is dispatched **at the same time as you**, on the same design basis, and writes the test suite from design.md's Test Cases table. **Do not write tests for your own code, and do not touch the test files** — they belong to that dispatch, you share one worktree, and two agents writing the same file is last-writer-wins with no conflict marker to warn anyone.
+In Spec Mode a separate agent, `spec-tester`, is dispatched **at the same time as you**, on the same design basis, and writes the test suite from design.md: unit tests from the public interfaces, plus the Test Cases table's integration and e2e rows. **Do not write tests for your own code, and do not touch the test files** — they belong to that dispatch, you share one worktree, and two agents writing the same file is last-writer-wins with no conflict marker to warn anyone.
 
 This is not a division of chores; it is the reason the tests survive. A test written by the person who just wrote the implementation ends up asserting what the implementation happens to do — the private helper, the call order, the intermediate state — and every one of those assertions dies at the first refactor. The tester is deliberately kept blind to your code so it *cannot* write that test. Your own **self-verification and build check are unchanged**; what you don't do is author new tests, or run tests unless the dispatch asks you to.
 

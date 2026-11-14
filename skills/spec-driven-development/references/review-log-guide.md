@@ -2,7 +2,9 @@
 
 The detailed conventions the main agent follows when maintaining review-log.md during the review/resolve process. The reviewer agent may also read this document to understand the log structure (but the reviewer **does not write the log directly** — it only produces the issue list).
 
-> This document answers "**how to write the review log**". For "why a review log is needed" and "the overall flow", see the Review Log section of SKILL.md.
+> This document is the home of the Review Log Mechanism: why a review log exists, its four discipline rules, and how to write it. SKILL.md keeps only a summary.
+
+**Why it's needed**: in the old review/resolve process, the agent would leave the review-process audit trail inside the formal docs — for instance an 8-line "SRP exception (known and accepted): ..." block tucked into a tasks.md task description. The content itself is reasonable, but it's **in the wrong place**: tasks.md should answer "what does this task do," not carry "we accept violating some principle." The review log keeps these artifacts together, keeping the formal docs readable as the intent contract.
 
 ---
 
@@ -19,6 +21,15 @@ When a formal doc needs to explain "why this Component is designed this way" / "
 1. Formal docs are read far more often than the review log; keeping them readable as the intent contract is a core KPI
 2. A footnote pointer looks lightweight, but in practice it trains the agent into the habit of "I can mention the review-log in design.md", which gradually degenerates into an inline waiver block (empirically proven: once the pointer back door is opened, the agent naturally adds back ADR sections + reviewer letter tags + Round process narration)
 3. Design rationale can be expressed with neutral technical prose; there's no need to cite the reviewer just to "emphasize that this was discussed" — the reader doesn't need that layer of information, and whoever does need it goes to the review-log
+
+### The four discipline rules (100% isolation)
+
+1. **Formal docs contain no review-log content or reference at all** — forbidden: ADR / Decisions sections, reviewer letter tags (`per Decision X`), round-process narration, review-log citations, footnote pointers, waiver blocks. `spec-verifier`'s "cross-file Review-Residue check" auto-detects the full pattern list
+2. **No review-residue comments in production code** — forbidden: `// WAIVED:` / `# HACK: reviewer accepted` / `# ⓘ ... — see review-log`. Violations are opened by `implementation-reviewer` as a new Medium Smell. Exception: pure code semantic comments (system invariant / precondition / dependency pointer) are allowed
+3. **Formal docs explain design rationale with neutral prose** — weave technical constraints / codebase conventions / adverse consequences into the relevant section, without revealing the reviewer / Decision letter / Round / user-decision process (❌ "Synchronous per Decision AL accepted in Round 3" → ✅ "Synchronous for atomicity — async would leave intermediate states violating schema invariants")
+4. **The reviewer doesn't write the log; the main agent integrates it** — the reviewer only produces the issue list; each round the main agent appends §1, updates Status once handled, and fills the corresponding subsection; after a Decision is resolved it writes §2 **and** dispatches the `spec-author` session to weave the resulting content into design.md as neutral prose
+
+The reviewer/main-agent handshake protocol is the "Review Log integration" section of `review-protocol.md`.
 
 Detailed bad/good comparison: `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/review-log-bad-examples.md`
 
@@ -141,7 +152,7 @@ Written when an issue's resolution is "kept, not fixed" (whether the user active
 
 ### §5 Steering Updates (Promotion Record)
 
-When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in SKILL.md), record a row here. **A confirmed `[claude-md]` candidate is recorded here too** — same table, with CLAUDE.md as the destination — so the promotion channel has one audit trail rather than one visible record and one invisible one:
+When a project-level principle discovered during development is, after user confirmation, written into steering (per the "Steering Evolution Mechanism" in `steering-guide.md`), record a row here. **A confirmed `[claude-md]` candidate is recorded here too** — same table, with CLAUDE.md as the destination — so the promotion channel has one audit trail rather than one visible record and one invisible one:
 
 ```markdown
 | #   | Date       | Principle (one sentence)                          | Written into            | Source        |

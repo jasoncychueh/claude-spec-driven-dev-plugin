@@ -3,7 +3,7 @@ description: "Show the scheduled roadmap tree, what can start next, promote back
 argument-hint: "[next | show <id> | promote <id> ... | walk <id> | move/rename/set/demote ...]"
 ---
 
-Load the `spec-driven-development` SKILL, then run the `/roadmap` flow.
+Load the `spec-driven-development` SKILL, then read `${CLAUDE_PLUGIN_ROOT}/skills/spec-driven-development/references/commands.md` and run its `/roadmap` flow.
 
 Board command (the path is resolved here, not in the shell): `node "${CLAUDE_PLUGIN_ROOT}/scripts/board.mjs" roadmap …`
 

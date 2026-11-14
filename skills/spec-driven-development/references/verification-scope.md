@@ -16,7 +16,7 @@ The single home for how much of the solution any build covers and how much of th
   Quick Fix Mode: once after implementation (step 6), once after the review loop converges (before step 8), and the same conditional build after step 8's fixes. A Stage 3 fix routed through `spec-author` re-enters the review loop, and the point-2 build runs again when that loop converges.
 - **Whole-solution builds are serialized, and executor builds avoid rebuilding shared dependencies.** That keeps parallel executors from running the same solution build at the same time; it does not promise zero contention, only that the heavy, shared build has a single driver.
 - **Every fix dispatch lists the files that executor may change.** A build failure located in a file outside that list is a blocker report, never something the executor fixes — it would be editing another group's half-finished files. Inside the list, the executor fixes its own build failures (both modes).
-- **A whole-solution build failure** (any point above) is routed to the owning session(s) through the normal fix dispatch (the fan-out rule in SKILL.md "Dispatch Granularity" applies), then the same build point is retried. A fix large enough to change the design or an interface goes through the review loop as usual.
+- **A whole-solution build failure** (any point above) is routed to the owning session(s) through the normal fix dispatch (the fan-out rule in `dispatch-guide.md` "Fix dispatches fan out the same way" applies), then the same build point is retried. A fix large enough to change the design or an interface goes through the review loop as usual.
 - **Every report states what it built** (which projects / modules, which command).
 
 ## Test tiers, narrowest by default
@@ -27,7 +27,7 @@ The single home for how much of the solution any build covers and how much of th
 
 ## When the full suite runs
 
-Only when skipping it carries a significant risk, and then once, at the end. The main agent decides, after the targeted and affected runs are green and the fix loop has converged. Significant risk is any of:
+Only when skipping it carries a significant risk, and then once, at the end. The main agent decides, after the targeted and affected runs are green and the fix loop has converged; in Spec Mode, where `/implement` tests each phase in turn, the decision is made once, after the last phase. Significant risk is any of:
 
 1. **The affected set cannot be derived reliably** — the changed code is reached via reflection, DI registration, configuration, or a naming convention.
 2. **The change touches a foundation many modules share** — a cross-component public interface or contract, a shared base type or utility, framework-level code.

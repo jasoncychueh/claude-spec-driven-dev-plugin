@@ -22,7 +22,7 @@
 | `[~]` | Needs rework | Affected by a design change, needs reimplementation |
 | `[-]` | Removed | Removed by a design change, code already cleaned up |
 
-> **What each field is for.** `File:` decides parallel grouping and what the tester must not read. Phases and `After:` decide order: `After:` lists only **earlier** task numbers **in the same phase**, so a cycle cannot be written, and only when the task depends on what another task in the phase writes while their `File:` sets are disjoint (with overlapping sets they are grouped together anyway, and list order sets the order inside a group). Test tasks never carry `After:`: they run in parallel, blind to the code. `Cases:` assigns test cases. The contract is read from design.md and the approach is the implementer's, so a task carries no steps and does not restate the design.
+> **What each field is for.** `File:` decides parallel grouping and what the tester must not read. Phases and `After:` decide order: `After:` lists only **earlier** task numbers **in the same phase**, so a cycle cannot be written, and only when the task depends on what another task in the phase writes while their `File:` sets are disjoint (with overlapping sets they are grouped together anyway, and list order sets the order inside a group). Test tasks never carry `After:`: they run in parallel, blind to the code. `Interfaces:` and `Cases:` assign what each test task covers. The contract is read from design.md and the approach is the implementer's, so a task carries no steps and does not restate the design.
 
 ---
 
@@ -41,9 +41,10 @@
 - [ ] 3. [Test task title]
   - File: [test file path — **test files only**; a test task's File: set must not overlap any implementation task's]
   - [One line: the outcome this task covers]
-  - Cases: [the case IDs from design.md's Test Cases table this task implements, e.g. T-1, T-2, T-5]
+  - Interfaces: [the public interfaces this task unit-tests, by their design.md names, e.g. SyncQueue.push, SyncQueue.drain]
+  - Cases: [the E2E and integration case IDs from design.md's Test Cases table this task implements, e.g. T-1, T-2]
 
-> **Test tasks** are dispatched to `spec-tester`, not `spec-implementer`, and run in parallel with the implementation groups **of the same phase** — put a test task in a later phase and the tester ends up writing against a finished implementation instead of against the contract, which is the coupling this whole arrangement exists to prevent. Every case ID in design.md's Test Cases table must be claimed by exactly one test task — none orphaned, none claimed twice — and no test task may cite an ID that isn't in the table.
+> **Test tasks** are dispatched to `spec-tester`, not `spec-implementer`, and run in parallel with the implementation groups **of the same phase**. A test task in a later phase has the tester writing against a finished implementation instead of against the contract, which is the coupling this arrangement exists to prevent. A test task carries `Interfaces:` (unit tests, whose cases the tester derives from each interface's contract), `Cases:` (E2E and integration rows), or both. Every public interface in design.md's Components and Interfaces is named by exactly one test task's `Interfaces:`, and every case ID in the Test Cases table by exactly one test task's `Cases:`: none orphaned, none claimed twice, none that design.md doesn't have. When a phase has integration or E2E tests on a shared live fixture and the runtime is available, its test task builds the fixture and one smoke test first (`references/testing-guide.md`).
 
 ---
 

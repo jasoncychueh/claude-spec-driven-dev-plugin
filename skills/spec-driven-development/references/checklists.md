@@ -64,7 +64,7 @@ Before you start implementing, confirm the feature spec documents are complete.
 **Content completeness**:
 - [ ] Has an Introduction (feature overview, the problem it solves)
 - [ ] Describes Alignment with Product Vision
-- [ ] Every requirement has a **User Story** (role, feature, value)
+- [ ] Every requirement has a **User Story** (role, feature, value) and a **Main flow** from trigger to outcome (the path its E2E test walks)
 - [ ] Every requirement has **verifiable Acceptance Criteria**
 - [ ] Lists Non-Functional Requirements (performance, security, reliability)
 
@@ -86,8 +86,8 @@ Before you start implementing, confirm the feature spec documents are complete.
   - [ ] Dependencies
 - [ ] Defines the Data Models that cross a component boundary or persist (a feature with none says so in one line)
 - [ ] Defines an Error Handling strategy
-- [ ] Has a Testing Strategy containing a **Test Cases table**, every row carrying ID / Anchor / Level / Behavior to verify
-- [ ] Every case's **Anchor** is a requirement number or a component's **public** interface — never an internal function or private state
+- [ ] Has a Testing Strategy containing a **Test Cases table**, every row carrying ID / Kind / Anchor / Behavior to verify, with Kind `e2e` or `integration` only (unit tests are derived from the interfaces, not listed). A table that still has the earlier `Level` column is valid as written until an `/update-spec` migrates it (`testing-guide.md` "Specs written before the three kinds"); the Kind and Anchor items here then do not apply to it
+- [ ] Every `e2e` row's **Anchor** is a requirement whose user story it walks; every `integration` row's Anchor is an assumption about an external system, stated in one sentence. Never an internal function or private state
 - [ ] Has **Test Approach** notes (harness, fixtures, what must not be mocked)
 
 **Boundary-contract completeness** (enough for the implementer to build without guessing, without restating internals):
@@ -115,7 +115,7 @@ Before you start implementing, confirm the feature spec documents are complete.
 - [ ] Every task has a `File:` set
 - [ ] Every open (`[ ]` / `[~]`) task's title or outcome line names the component it delivers, by its design.md name. A component split over several tasks may name the public interface each one delivers instead. `[x]` and `[-]` tasks are records and are never retitled
 - [ ] Every `After:` points to an earlier task in the same phase, and no test task carries one
-- [ ] Includes **test tasks**, each listing the **case IDs** it covers and writing only test files (test tasks are what `spec-tester` is dispatched on, so their `File:` sets must not overlap any implementation task's)
+- [ ] Includes **test tasks**, each listing the public interfaces it unit-tests (`Interfaces:`) and/or the case IDs it implements (`Cases:`), and writing only test files (test tasks are what `spec-tester` is dispatched on, so their `File:` sets must not overlap any implementation task's)
 - [ ] Each task does only one thing (Single Responsibility)
 
 ### Design vs Requirements alignment check
@@ -171,8 +171,8 @@ Coverage is still guaranteed. For open tasks it is judged through the component 
 
 ### 6. Test coverage check
 
-- [ ] **Every case ID** in design.md's Test Cases table is claimed by exactly one test task — none orphaned, none claimed twice
-- [ ] No test task cites a case ID that isn't in the table
+- [ ] **Every public interface** in design.md's Components and Interfaces is named by exactly one test task's `Interfaces:`, and **every case ID** in the Test Cases table by exactly one test task's `Cases:` — none orphaned, none claimed twice. For a spec whose table still has the earlier `Level` column, only the case-ID half applies (`testing-guide.md` "Specs written before the three kinds")
+- [ ] No test task names an interface or a case ID that design.md doesn't have
 - [ ] Each test task sits in the **same phase as the implementation it covers** — a phase that implements something has test tasks in it, and no test task is deferred to a later phase (by then the code exists and the tester can no longer be kept blind to it)
 - [ ] Test tasks write **only test files**, and their `File:` sets are **disjoint from every implementation task's** (the two are dispatched in parallel into one worktree; overlap is last-writer-wins)
 - [ ] Every major component has a corresponding **test task**
@@ -338,29 +338,33 @@ Used when the `design-reviewer` agent reviews design.md (Spec Mode) or the plan 
 
 ### 6. Test Cases (the `## Testing Strategy` table in design.md)
 
+The table lists only E2E and integration rows; unit tests are derived by `spec-tester` from the public interfaces. Each kind has a coverage rule that also caps it (`testing-guide.md`), so this section checks both directions: a missing row and a row that should not exist.
+
 **Anchor legality** (an illegal anchor is the seed of a test that dies at the first refactor — usually High):
-- [ ] Is every case's Anchor either a requirement number that **exists in requirements.md**, or a **public** interface of a component defined in design.md?
-- [ ] Is no case anchored to an internal function, private state, or a description of how the code works?
+- [ ] Is every `e2e` row anchored to a requirement that **exists in requirements.md**, and every `integration` row to an external-system assumption the design actually relies on?
+- [ ] Is no row anchored to an internal function, private state, or a description of how the code works?
 
-**Coverage, forward** (a requirement with no case means the feature ships unverified — usually High):
-- [ ] Does every requirement have at least one `behavior`-level case?
-- [ ] Does every component's public interface have at least one `interface`-level case?
-- [ ] Does every scenario in design.md's **Error Handling** section have a case covering its failure path?
+**Coverage, forward** (usually High — a use case with no E2E row ships with its flow unverified):
+- [ ] Does every requirement's user story have an `e2e` row?
+- [ ] Does every assumption the design makes about an external system (a runtime, an API, a database, a file format) have an `integration` row?
+- [ ] Does every component's public interface state its normal result and its error behaviors precisely enough for `spec-tester` to derive unit tests blind? An interface whose errors are not stated cannot be tested for them; that is a gap in the interface, not in the table
 
-**Coverage, backward** (drift detection):
-- [ ] Does every case's anchor still exist — no case citing a removed requirement or a renamed interface?
+**Coverage, backward and excess** (Medium — excess is a defect too: every extra row is a slow test that has to be written, run and maintained):
+- [ ] Does every row's anchor still exist — no row citing a removed requirement or a dropped assumption?
+- [ ] Is there **no** row that should be a unit test — a rule an acceptance criterion states, a single interface's contract, an error reason? Those belong to the interface's unit tests
+- [ ] Is there at most one `e2e` row per user story, beyond one justified extra for an acceptance criterion that cannot be observed without the whole flow? Is there one `integration` row per assumption, not one per error reason or per fault?
+- [ ] A "missing case" finding names the risk: the use case or external assumption left unverified. "The design describes a behavior that has no row" is not by itself a finding, since that behavior is covered by its interface's unit tests
 
 **Requirement fidelity** (usually High — the design and the table share one author, so a misread requirement is implemented *and* verified, and ships certified wrong; no other check here catches it):
-- [ ] For each `behavior` case, read the **requirement's own text** and confirm the case verifies *that*, not the design's interpretation of it. The probe: **would this case still be correct if the design were thrown away and rebuilt differently?** If not, it is pinned to the design rather than to the requirement
-- [ ] Does any case quietly narrow or widen its requirement — e.g. requirement "an expired claim is released automatically" vs case "the claim is released when the session ends" (both observable, only one is what was asked for)?
+- [ ] For each `e2e` row, read the **requirement's own text** and confirm the row walks *that* use case, not the design's interpretation of it. The probe: **would this row still be correct if the design were thrown away and rebuilt differently?** If not, it is pinned to the design rather than to the requirement
+- [ ] Does any row quietly narrow or widen its requirement — e.g. requirement "an expired claim is released automatically" vs row "the claim is released when the session ends" (both observable, only one is what was asked for)?
 
 **Behavior, not mechanism** (usually High — rot is born in this column):
-- [ ] Does the "Behavior to verify" column state an **observable outcome** ("concurrent push loses no items") rather than a structural assertion ("push takes the lock before appending")?
-
-**Level fit and specification depth** (Medium):
-- [ ] Is a cross-component behavior placed at an appropriate level rather than pinned at unit level (brittle)?
-- [ ] Is a single-function contract kept off e2e (slow, vague failure reporting)?
+- [ ] Does the "Behavior to verify" column state an **observable outcome** ("the saved document reopens with every mate intact") rather than a structural assertion ("save calls flush before close")?
 - [ ] Does the table avoid prescribing **technique** (mock this, patch that)? Prescribing *how* re-introduces implementation coupling from above
+
+**Live runtime** (Medium):
+- [ ] Does the Test Approach name the runtime the integration and E2E rows need, and whether it is available during implementation? When they share a live fixture, does it name the smoke test that validates the fixture first?
 
 **Testability as a design property** (open against the design, not the table):
 - [ ] Can every requirement actually be verified under this design — is there an injection point, observable state, or clock control where the case needs one? A requirement that cannot be tested without a structural change is a design Bug/Smell, and an Architecture Decision when the fix is a real trade-off
@@ -383,7 +387,7 @@ For every choice where "both paths are valid, each with its own trade-off":
 
 - [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
 - [ ] Does it explain "why there is no industry consensus"?
-- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
+- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (`advisor-gate-guide.md`)?
 
 ### 9. Design Principles
 
@@ -440,15 +444,17 @@ Used by the `implementation-reviewer` agent during the multi-round review loop i
 
 ### 5. Test Completeness
 
-**Against what specified the tests** — **Spec Mode**: design.md's Test Cases table, already reviewed at design time, so here you check the code honors it. **Quick Fix Mode**: the plan file's change list; there is no case table, so read "case" as "the test the plan named":
+**Against what specified the tests** — **Spec Mode**: the public interfaces (unit tests) and design.md's Test Cases table (E2E and integration rows), already reviewed at design time, so here you check the tests honor them; kinds and bounds in `testing-guide.md`. **Quick Fix Mode**: the plan file's change list; there is no case table, so read "case" as "the test the plan named":
+- [ ] Does every public interface a test task names have unit tests for its normal result and each error behavior the design states for it?
 - [ ] Is every assigned case ID implemented by a test that actually verifies the stated behavior — not a test that shares its name and asserts something weaker?
-- [ ] Does the test suite contain **no test that asserts internal structure** — private attributes, call order, a private helper's existence? Such a test is a **Smell** even when it passes: it will break at the next refactor and cost time to repair for no protection in return
-- [ ] Can every test in the changed suite be traced to a case in the table? A test that cannot is either a missing table row (report it) or an internals assertion (Smell)
+- [ ] Does the test suite contain **no test that asserts internal structure** — private attributes, call order, a private helper's existence, a private method tested directly? Such a test is a **Smell** even when it passes: it will break at the next refactor and cost time to repair for no protection in return
+- [ ] Can every test in the changed suite be traced to a public interface or a case-table row? A test that cannot is an internals assertion or an invented live test (Smell)
+- [ ] **No excess** (Medium): no integration or E2E test beyond the table's rows, no behavior tested at a costlier kind than it needs, no near-duplicate tests of one behavior. A missing-test finding names the behavior and the risk it leaves unverified
 
 **Test quality**:
 - [ ] Do the added callbacks / events / paths have tests?
-- [ ] Are edge cases tested: empty / duplicate / out-of-order / concurrent?
-- [ ] Are failure paths tested, not just the happy path?
+- [ ] Are the edge cases an interface's contract names (empty / duplicate / out-of-order / concurrent) covered by its unit tests?
+- [ ] Are the stated failure paths tested, not just the happy path?
 - [ ] Are the mocks reasonable? Not so much mocking that it is effectively meaningless — in particular, is the seam the case is *about* left unmocked?
 - [ ] Are the tests deterministic (no race / sleep-based flakiness)?
 - [ ] Does any test pass for the wrong reason — an assertion so weak it would hold against a broken implementation, or one that was softened to reach green?
@@ -470,7 +476,7 @@ For every implementation choice where "both paths are valid, each with its own t
 
 - [ ] Is it marked as an Architecture Decision, listing Option 1 / Option 2 / ... + each one's trade-off?
 - [ ] Does it explain "why there is no industry consensus"?
-- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (SKILL.md "Advisor Gate Mechanism")?
+- [ ] Does the main agent route it through the advisor gate — the advisor resolves the clear-cut technical ones (recorded `advisor-resolved`, surfaced at the briefing), genuine preference / product / irreversible calls go to the user via AskUserQuestion (`advisor-gate-guide.md`)?
 
 ### 8. Design Principles (code stage)
 

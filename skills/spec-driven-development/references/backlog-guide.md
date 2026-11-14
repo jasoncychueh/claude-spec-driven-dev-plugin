@@ -143,15 +143,18 @@ The body must show the ladder was walked: its **Why deferrable** line states why
 | Hook | When | What goes in |
 |---|---|---|
 | 1. Review Medium/Low batch | the defer-and-batch AskUserQuestion round | the user's third option besides fix-now / waive: "handle later" → backlog item citing the review round |
-| 2. Implementer report | `spec-implementer`'s completion report (both modes) | out-of-scope findings (pre-existing bug next door, adjacent tech debt) — the implementer reports; the main agent **walks the triage ladder** (fix in passing / absorb / backlog), records only the honest residual |
+| 2. Implementer / tester report | `spec-implementer`'s completion report (both modes); `spec-tester`'s (its case-table gaps go to `spec-author`, not here — only genuinely deferrable findings reach this hook) | out-of-scope findings (pre-existing bug next door, adjacent tech debt) — the implementer reports; the main agent **walks the triage ladder** (fix in passing / absorb / backlog), records only the honest residual |
 | 3. Conversation | any moment in any flow | the user says "note this for later" / "let's not block on this now", or the main agent itself spots an unresolvable-now issue worth keeping |
+| 4. Reviewer's out-of-scope block | the `Out-of-scope findings (non-blocking)` block of a review round (`review-protocol.md`) | pre-existing problems the change did not add or worsen; not issues and not counted toward convergence; the main agent walks the same triage ladder and records only the honest residual, or drops the finding |
+
+**Consumption**: `/load-spec` shows the open count and the feature's roadmap node; `/backlog` lists, picks up (routing the item through normal mode selection, or promoting it), and closes items; `/roadmap` shows the tree, what can start next, and walks a branch (flows in `commands.md`).
 
 ### What does NOT go in the backlog
 
 - **Anything the triage ladder handles above rung 4** — this cycle's own defects, anything the goal needs to work, design-basis gaps (→ back into the cycle), trivial fixes (→ fix in passing), related quick-fix-scale discoveries (→ absorb by explicit scope extension)
 - Things fixed on the spot (they're just work, not debt)
 - Accepted-as-is decisions → review-log §3 Waivers
-- Project-level principles → Steering Evolution Mechanism
+- Project-level principles → Steering Evolution Mechanism (`steering-guide.md`)
 - Facts about the user or session → project memory
 - Work already on the roadmap → it has a node; its discussion goes into that node's body, not a new item
 

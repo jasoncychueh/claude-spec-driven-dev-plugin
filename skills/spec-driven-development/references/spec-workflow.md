@@ -128,7 +128,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     ├── Challenge exchange → final post-challenge list is the round's record
     │     ├── Architecture Decision → advisor gate (advisor settles clear-cut ones → review-log §2 advisor-resolved, confirmed at briefing; genuine user calls → AskUserQuestion)
     │     ├── Bugs/Smells → resume spec-author (Mode 2) to fix design.md (Medium/Low defer-and-batch: fix / waive / backlog)
-    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
+    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism, steering-guide.md)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
     │
@@ -144,7 +144,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     ├── (If this session hasn't briefed yet → condensed briefing as the turn-final message; enter Stage 1 only after the user confirms, recorded with approve.mjs <feature>)
     ├── Stage 1: spec-implementer (Mode 1) writes the initial version — parallel groups by default (File:-disjoint within a phase, ≤4, one message) + self-verify + build of its own scope
     │            spec-tester (Mode 1) writes the tests in the SAME message — its own group, blind to the source files in flight,
-    │            one test per case ID in design.md's Test Cases table; Mode 1 red is expected, never softened
+    │            unit tests per assigned interface + one test per assigned case row; Mode 1 red is expected, never softened
     │            Stage 1 ends with the main agent's whole-solution build (code builds, tests compile) — no test run yet
     │
     ├── Stage 2: implementation-reviewer multi-round review loop (mandatory; one persistent reviewer session)
@@ -159,7 +159,7 @@ This skill supports two development paths (see `mode-selection.md` for details);
     │     │     Fix items are grouped by owning session, then File:-disjointness; the groups are dispatched in the same message,
     │     │     each building only its own scope
     │     │     (Medium/Low defer-and-batch: fix / waive / backlog)
-    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism)
+    │     ├── Steering Candidate → accumulate, hand to user in batch (Steering Evolution Mechanism, steering-guide.md)
     │     └── Exit only when the round reaches 0 issues (still new Critical/High at Round 5 → convergence fuse
     │         → one fresh-eyes reviewer round before reporting)
     │     Loop converged → main agent builds the whole solution (serially)
@@ -224,7 +224,7 @@ Content to define:
 - Components and Interfaces - component design, public API
 - Data Models - data structure definitions
 - Error Handling - error handling strategy
-- Testing Strategy - the **Test Cases table** (ID / Anchor / Level / Behavior to verify — every anchor is a requirement number or a component's public interface) plus Test Approach notes
+- Testing Strategy - the **Test Cases table** (ID / Kind / Anchor / Behavior to verify: one `e2e` row per requirement's user story, one `integration` row per external-system assumption; unit tests are derived from the public interfaces and not listed) plus Test Approach notes. Kinds and bounds: `testing-guide.md`
 
 **Authoring points**:
 - When an Architecture section is included, it shows the component relationships
@@ -259,7 +259,8 @@ Content to define:
 - [ ] {number}. {test task title}
   - File: {test files only}
   - {one line: the outcome}
-  - Cases: {case IDs from design.md's Test Cases table}
+  - Interfaces: {public interfaces this task unit-tests}
+  - Cases: {integration / e2e case IDs from design.md's Test Cases table}
 ```
 
 **Authoring points**:
